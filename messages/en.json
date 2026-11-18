@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "Inventory",
+    "description": "Track your belongings: what is where"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "items": "Items",
+    "search": "Search",
+    "add": "Add",
+    "locations": "Places",
+    "settings": "Settings"
+  },
+  "items": {
+    "title": "My items",
+    "empty": "Nothing here yet. Tap the camera below to add your first item."
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "For example: where is my drill?",
+    "comingSoon": "Voice and text search will arrive in the next stages."
+  },
+  "add": {
+    "title": "Add item",
+    "comingSoon": "Photo capture and item recognition will live here."
+  },
+  "locations": {
+    "title": "Places",
+    "comingSoon": "The place tree will live here: house, rooms, closets, shelves."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Interface language",
+    "languages": {
+      "ru": "Русский",
+      "en": "English"
+    }
+  }
+}
