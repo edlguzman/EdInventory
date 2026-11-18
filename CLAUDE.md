@@ -79,5 +79,5 @@ Storage: приватный бакет `item-photos`, путь `{user_id}/{item_
 npm run dev        # локальный запуск
 npm run build      # проверка сборки
 npm run lint
-supabase db push   # применить миграции к проекту Supabase
+npx supabase db push   # применить миграции к проекту Supabase (CLI не ставим, только через npx)
 ```
