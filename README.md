@@ -19,3 +19,12 @@ npm run build          # проверка сборки
 npm run lint
 npx supabase db push   # применить миграции к проекту Supabase
 ```
+
+## Перед запуском для других пользователей
+
+- [ ] **Свой SMTP (Resend).** Встроенная почта Supabase отправляет лишь несколько писем в час и не даёт менять шаблоны. После подключения SMTP:
+  - включить *Confirm email* (Authentication → Sign In / Providers → Email);
+  - в шаблонах писем (Authentication → Emails) заменить ссылки на формат `token_hash`, он работает в любом браузере, в том числе во встроенном браузере почтового приложения:
+    - **Confirm signup:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
+    - **Reset password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+  - `/auth/confirm` уже поддерживает оба формата: `token_hash` и стандартный `code`.

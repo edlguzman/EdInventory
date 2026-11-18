@@ -34,6 +34,64 @@
     "languages": {
       "ru": "Русский",
       "en": "English"
+    },
+    "account": "Account",
+    "signedInAs": "Signed in as",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat password",
+    "passwordHint": "At least 8 characters",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "login": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "noAccount": "No account yet?",
+      "signupLink": "Sign up",
+      "forgotLink": "Forgot password?"
+    },
+    "signup": {
+      "title": "Sign up",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "checkEmailTitle": "Check your email",
+      "checkEmail": "We sent an email to {email}. Open the link in it to confirm your address."
+    },
+    "forgot": {
+      "title": "Reset password",
+      "intro": "Enter your email and we will send you a link to set a new password.",
+      "submit": "Send link",
+      "sentTitle": "Email sent",
+      "sent": "If an account with {email} exists, it will receive an email with a link. Open it in this same browser.",
+      "backToLogin": "Back to sign in"
+    },
+    "reset": {
+      "title": "New password",
+      "intro": "Choose a new password for signing in.",
+      "submit": "Save password"
+    },
+    "linkError": "The email link is invalid or has expired. Request a new one and open it in the same browser you used to request it.",
+    "errors": {
+      "required": "This field is required",
+      "invalidEmail": "Check the email address",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordTooLong": "Password is too long (72 characters max)",
+      "passwordsMismatch": "Passwords do not match",
+      "invalidCredentials": "Wrong email or password",
+      "emailNotConfirmed": "Email is not confirmed. Open the link from the email.",
+      "emailTaken": "An account with this email already exists. Try signing in.",
+      "weakPassword": "Password is too weak. Choose another one.",
+      "samePassword": "New password is the same as the old one",
+      "emailRateLimit": "Too many emails. Try again later.",
+      "rateLimit": "Too many attempts. Wait a bit and try again.",
+      "signupDisabled": "Sign up is currently unavailable",
+      "sessionExpired": "Session expired. Request the link again.",
+      "unknown": "Something went wrong. Please try again."
     }
   }
 }
