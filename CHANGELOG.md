@@ -3,6 +3,12 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.3.0 — 2026-11-19
+
+- **Voice in text fields:** a mic next to item names and descriptions, place names and category names (new and edit forms). The recording becomes text in the field's language (the EN field always gets English), with obvious recognition mistakes fixed and punctuation, never retold. It is offered under the field: Insert / Replace / Append to the end / Cancel — nothing changes without a tap. One recording = one AI request.
+- With both data languages: "Update translation" of the other language after a change; translation now also works for descriptions.
+- Database (safe migration): AI usage kind `transcribe`.
+
 ## v1.2.0 — 2026-11-19
 
 - **Same photo again:** the device remembers a fingerprint (SHA-256) of each photo file. Adding the same file again — as one item or as several — shows "This photo has already been added: N items" with links, before any AI request (no AI limit used). "Recognize anyway" continues.
