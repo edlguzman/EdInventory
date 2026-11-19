@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { ItemForm } from "@/components/items/item-form";
+import { AddItem } from "@/components/items/add-item";
 import { PageTitle } from "@/components/page-title";
 import { requireUser } from "@/lib/auth";
 import { getCategories } from "@/lib/items/data";
@@ -15,7 +15,7 @@ export default async function AddPage() {
   return (
     <>
       <PageTitle>{t("addTitle")}</PageTitle>
-      <ItemForm mode="create" userId={user.id} categories={categories} />
+      <AddItem userId={user.id} categories={categories} />
     </>
   );
 }

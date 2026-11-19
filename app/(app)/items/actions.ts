@@ -5,12 +5,13 @@ import { z } from "zod";
 import { getDataLang, getUser } from "@/lib/auth";
 import type { DataLang } from "@/lib/data-lang";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
-import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles } from "@/lib/photos/paths";
+import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
 import { translateAfterSave } from "@/lib/translate/after-save";
 import {
   itemFieldsSchema,
   itemRefsSchema,
+  MAX_BATCH_ITEMS,
   newPhotosSchema,
   toItemRow,
   type ItemFieldsInput,
@@ -24,6 +25,7 @@ export type ItemErrorKey =
   | "tooManyTags"
   | "photoTooMany"
   | "photoInvalid"
+  | "photoUpload"
   | "unauthorized";
 
 export type ItemResult<T = undefined> = { ok: true; data: T } | { ok: false; error: ItemErrorKey };
@@ -111,6 +113,113 @@ export async function createItem(
   translateAfterSave(mode, [{ type: "item", id: id.data }]);
   refresh();
   return { ok: true, data: { id: id.data } };
+}
+
+type BatchItemInput = { id: string; fields: ItemFieldsInput; category_id: string | null; photo: string };
+
+/** Runs `tasks` with at most `limit` at a time; resolves to their results in order. */
+async function pool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const i = next++;
+      results[i] = await tasks[i]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+}
+
+/**
+ * Saves several items found on one photo ("several items in one photo"), all in one place.
+ * The client has uploaded each item's cut-out to {user_id}/{item_id}/{uuid}.jpg and the whole
+ * photo once, into the folder of the first item. The server copies the whole photo (main +
+ * thumbnail) into every other item's folder, so each item owns its files and deleting an item
+ * or a photo works as for any item. Primary photo = the cut-out, second = the whole photo.
+ * Everything is inserted at once; on any failure the items and all files are removed.
+ */
+export async function createItemsBatch(input: {
+  location_id: string | null;
+  overview: string;
+  items: BatchItemInput[];
+}): Promise<ItemResult<{ count: number }>> {
+  const supabase = await createClient();
+  const storage = supabase.storage.from(PHOTO_BUCKET);
+  const user = await getUser();
+  const items = Array.isArray(input.items) ? input.items.slice(0, MAX_BATCH_ITEMS + 1) : [];
+  const ids = items.map((it) => uuid.safeParse(it?.id));
+  const validIds = ids.every((r) => r.success) && new Set(items.map((it) => it.id)).size === items.length;
+
+  // Files the client uploaded that really belong to this user and these items; only these are ever removed.
+  const uploaded =
+    user && validIds
+      ? [
+          ...items.map((it) => it.photo).filter((p, i) => typeof p === "string" && isOwnPhotoPath(p, user.id, items[i].id)),
+          ...(typeof input.overview === "string" && items[0] && isOwnPhotoPath(input.overview, user.id, items[0].id)
+            ? [input.overview]
+            : []),
+        ]
+      : [];
+  const copies: string[] = [];
+  const abort = async (error: ItemErrorKey) => {
+    await removePhotoFiles(supabase, [...uploaded, ...copies]);
+    return fail(error);
+  };
+
+  if (!user) return fail("unauthorized");
+  if (!validIds || items.length === 0) return abort("unknown");
+  if (items.length > MAX_BATCH_ITEMS) return abort("unknown");
+  // Every cut-out and the whole photo must be in their own item's folder, and all different.
+  if (uploaded.length !== items.length + 1 || new Set(uploaded).size !== uploaded.length) return abort("photoInvalid");
+
+  const mode = await getDataLang();
+  const rows = [];
+  for (const it of items) {
+    const parsed = parseSave({ fields: it.fields, category_id: it.category_id, location_id: input.location_id }, mode, null);
+    if ("error" in parsed) return abort(parsed.error ?? "unknown");
+    rows.push({ id: it.id, ...parsed.row });
+  }
+
+  // Copy the whole photo into the other items' folders (server side, no second upload).
+  const targets = items.slice(1).map((it) => photoPath(user.id, it.id, crypto.randomUUID()));
+  const copied = await pool(
+    targets.map((to) => async () => {
+      const [a, b] = await Promise.all([
+        storage.copy(input.overview, to),
+        storage.copy(thumbPath(input.overview), thumbPath(to)),
+      ]);
+      if (!a.error || !b.error) copies.push(to); // remove whatever part of the pair exists
+      return !a.error && !b.error;
+    }),
+    4,
+  );
+  if (copied.includes(false)) return abort("photoUpload");
+
+  const { error: itemError } = await supabase.from("items").insert(rows);
+  if (itemError) return abort(dataErrorKey(itemError));
+
+  const overviewOf = [input.overview, ...targets];
+  const { error: photoError } = await supabase.from("item_photos").insert(
+    items.flatMap((it, i) => [
+      { item_id: it.id, storage_path: it.photo, is_primary: true },
+      { item_id: it.id, storage_path: overviewOf[i], is_primary: false },
+    ]),
+  );
+  if (photoError) {
+    await supabase.from("items").delete().in("id", items.map((it) => it.id));
+    return abort("unknown");
+  }
+
+  // Ru mode: Gemini filled English too; only items whose Russian was edited lack it now.
+  translateAfterSave(
+    mode,
+    rows
+      .filter((r) => r.name_en === null || (r.description_ru && r.description_en === null))
+      .map((r) => ({ type: "item" as const, id: r.id })),
+  );
+  refresh();
+  return { ok: true, data: { count: items.length } };
 }
 
 /**

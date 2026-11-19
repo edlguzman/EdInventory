@@ -1,5 +1,5 @@
 import type { TranslateRequest } from "./translate-schema";
-import type { ItemContext, PlaceMode, PlaceResult, RecognizeResult, SearchResult } from "./types";
+import type { ItemContext, PlaceMode, PlaceResult, RecognizeMultiResult, RecognizeResult, SearchResult } from "./types";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
 export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "accountInactive" | "network";
@@ -46,6 +46,15 @@ export function recognizeItem(image: Blob, locale: string) {
     "/api/ai/recognize",
     form({ image, meta: { locale } }),
     (d): d is RecognizeResult => isObject(d) && typeof d.name_ru === "string",
+  );
+}
+
+/** Photo of a shelf or a tool board -> every separate item with its box. 1 unit of the daily limit. */
+export function recognizeItems(image: Blob, locale: string) {
+  return call<RecognizeMultiResult>(
+    "/api/ai/recognize-multi",
+    form({ image, meta: { locale } }),
+    (d): d is RecognizeMultiResult => isObject(d) && Array.isArray(d.items),
   );
 }
 

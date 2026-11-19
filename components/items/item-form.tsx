@@ -28,15 +28,18 @@ import { useOffline } from "@/components/offline-banner";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
+/** A new item handed over with a ready photo and, optionally, what the AI already recognized. */
+export type ItemSeed = { photo: { main: Blob; thumb: Blob }; recognition: RecognizeResult | null };
+
 type Props = { userId: string; categories: CategoryOption[] } & (
-  | { mode: "create"; item?: undefined }
-  | { mode: "edit"; item: ItemDetail }
+  | { mode: "create"; item?: undefined; seed?: ItemSeed }
+  | { mode: "edit"; item: ItemDetail; seed?: undefined }
 );
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base outline-none focus:border-accent aria-invalid:border-red-500";
 
-export function ItemForm({ mode, item, userId, categories }: Props) {
+export function ItemForm({ mode, item, userId, categories, seed }: Props) {
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
@@ -46,13 +49,16 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const { byId, path } = useLocations();
   const here = useCurrentLocation();
 
-  const [photos, setPhotos] = useState<PhotoDraft[]>(
-    () => item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? [],
+  const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
+    seed
+      ? [{ key: "seed", kind: "new", main: seed.photo.main, thumb: seed.photo.thumb, preview: URL.createObjectURL(seed.photo.thumb) }]
+      : (item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? []),
   );
   const [primaryKey, setPrimaryKey] = useState<string | null>(
-    () => item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null,
+    () => (seed ? "seed" : (item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null)),
   );
-  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null);
+  const seeded = seed?.recognition ?? null;
+  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? seeded?.category_id ?? null);
   // undefined = not chosen yet: a new item then follows the "I'm here" place, which is known
   // only after hydration (it lives in localStorage), so it is derived instead of copied once.
   const [chosenLocation, setLocationId] = useState<string | null | undefined>(mode === "edit" ? item.locationId : undefined);
@@ -61,7 +67,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const [error, setError] = useState<string>();
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [recognizing, setRecognizing] = useState(false);
-  const [recognized, setRecognized] = useState(false);
+  const [recognized, setRecognized] = useState(!!seeded);
   const [aiError, setAiError] = useState<string>();
   const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
 
@@ -70,11 +76,11 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
     // Hidden-language text stays in the form values (not shown); the server decides what
     // to write. Tags hidden in this mode are not shown and are kept by the server.
     defaultValues: {
-      name_ru: item?.nameRu ?? "",
-      name_en: item?.nameEn ?? "",
-      description_ru: item?.descriptionRu ?? "",
-      description_en: item?.descriptionEn ?? "",
-      tags: (item?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
+      name_ru: item?.nameRu ?? seeded?.name_ru ?? "",
+      name_en: item?.nameEn ?? seeded?.name_en ?? "",
+      description_ru: item?.descriptionRu ?? seeded?.description_ru ?? "",
+      description_en: item?.descriptionEn ?? seeded?.description_en ?? "",
+      tags: (item?.tags ?? seeded?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
     },
   });
   const {

@@ -248,7 +248,8 @@
     "recordingFailed": "Could not process the recording. Try again or type instead.",
     "aiNoPlace": "Could not tell which place. Say it more precisely or pick from the list.",
     "aiNoTerms": "Could not tell what to look for. Try saying it differently.",
-    "accountInactive": "Your account is not approved yet or has been disabled."
+    "accountInactive": "Your account is not approved yet or has been disabled.",
+    "multiNameRequired": "Enter a name for the selected items (marked in red)."
   },
   "here": {
     "label": "I'm here",
@@ -393,6 +394,15 @@
           "Check the suggestions and tap “Save”."
         ]
       },
+      "multi": {
+        "title": "A whole shelf or tool board",
+        "points": [
+          "Add screen → \"Several items in one photo\". Handy for a shelf, a tool board, a drawer.",
+          "The AI finds up to 30 items and cuts each one out of the photo. It is one AI request.",
+          "Check the list: untick what you do not need, fix names and categories. One place for all — \"I'm here\" by default.",
+          "Each item gets its cut-out as the main photo and the whole photo as the second. Shoot straight on, in good light, items not covering each other."
+        ]
+      },
       "find": {
         "title": "Find an item",
         "points": [
@@ -528,5 +538,35 @@
       "subject": "Access to your account is closed",
       "body": "Hello!\n\nThe administrator has closed access to your Inventory account. Your data has not been deleted."
     }
+  },
+  "multi": {
+    "title": "Several items in one photo",
+    "entryHint": "A shelf, a tool board, a drawer — shoot it whole",
+    "intro": "The AI finds the separate items and cuts them out of the photo. Check the list and save the ones you need.",
+    "tips": "Shoot straight on and in good light, so the items do not cover each other. Up to 30 items per photo, one AI request.",
+    "backToSingle": "Back to one item",
+    "wholePhoto": "Whole photo",
+    "step": {
+      "processing": "Processing the photo…",
+      "detecting": "The AI is looking for items…",
+      "cutting": "Cutting out the items…"
+    },
+    "noneFound": "No separate items found in this photo. Add it as one item or take another photo.",
+    "oneFound": "Found one item — the usual form is easier for it.",
+    "useSingle": "Add as usual",
+    "otherPhoto": "Another photo",
+    "placeForAll": "Place for all items",
+    "selectedOf": "{n} of {total} selected",
+    "selectAll": "Select all",
+    "selectNone": "Clear all",
+    "showOnPhoto": "Item {n}: show on the whole photo",
+    "nameOf": "Name of item {n}",
+    "categoryOf": "Category of item {n}",
+    "saveThis": "Save item {n}",
+    "saveSelected": "{count, plural, =0 {Nothing selected} one {Save # item} other {Save # items}}",
+    "saved": "{count, plural, one {Saved # item} other {Saved # items}}",
+    "openPlace": "Open the place",
+    "openItems": "To my items",
+    "another": "Shoot another shelf"
   }
 }
