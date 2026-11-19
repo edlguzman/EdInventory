@@ -227,6 +227,7 @@ export type Database = {
         Args: { arr: string[]; sep: string }
         Returns: string
       }
+      keepalive: { Args: never; Returns: string }
       location_descendants: { Args: { loc_id: string }; Returns: string[] }
       normalize_search: { Args: { t: string }; Returns: string }
       seed_default_categories: { Args: { uid: string }; Returns: undefined }

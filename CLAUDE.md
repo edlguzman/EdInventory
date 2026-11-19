@@ -31,7 +31,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=                 # только сервер
 GEMINI_MODEL=gemini-2.5-flash   # имя модели берём из env, не хардкодим
 AI_DAILY_LIMIT_PER_USER=100
+CRON_SECRET=                    # только сервер; Vercel Cron шлёт его в Authorization: Bearer …
 ```
+
+**Keepalive:** Vercel Cron (`vercel.json`, раз в сутки в 06:00 UTC) вызывает `/api/cron/keepalive`. Маршрут без `Authorization: Bearer $CRON_SECRET` отвечает 401, иначе вызывает RPC `keepalive()` (возвращает `now()` из Postgres, доступна `anon`, данных не читает). Нужно, чтобы проект Supabase Free не уходил в паузу после 7 дней без запросов.
 
 Ключи никогда не попадают в клиентский код, в git и в логи. `.env.local` в `.gitignore`, `.env.example` держим актуальным. Service role key Supabase в приложении не используем: всё работает через сессию пользователя и RLS.
 
