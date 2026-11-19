@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { ItemForm } from "@/components/items/item-form";
 import { PageTitle } from "@/components/page-title";
+import { requireUser } from "@/lib/auth";
+import { getCategories } from "@/lib/items/data";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("add");
-  return { title: t("title") };
+  const t = await getTranslations("items");
+  return { title: t("addTitle") };
 }
 
-export default function AddPage() {
-  const t = useTranslations("add");
+export default async function AddPage() {
+  const [user, categories, t] = await Promise.all([requireUser(), getCategories(), getTranslations("items")]);
   return (
     <>
-      <PageTitle>{t("title")}</PageTitle>
-      <p className="text-muted">{t("comingSoon")}</p>
+      <PageTitle>{t("addTitle")}</PageTitle>
+      <ItemForm mode="create" userId={user.id} categories={categories} />
     </>
   );
 }

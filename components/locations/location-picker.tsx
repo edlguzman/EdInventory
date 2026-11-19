@@ -19,6 +19,8 @@ type Props = {
   excludeId?: string;
   /** Offer "Top level" (parent = null). */
   allowRoot?: boolean;
+  /** Label of the root choice, e.g. "All places" in a filter (default "Top level"). */
+  rootLabel?: string;
 };
 
 /**
@@ -30,7 +32,7 @@ export function LocationPicker(props: Props) {
   return props.open ? <PickerSheet key={`${props.initialId ?? ""}`} {...props} /> : null;
 }
 
-function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, allowRoot = false }: Props) {
+function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, allowRoot = false, rootLabel }: Props) {
   const t = useTranslations("locations");
   const { all, byId, childrenOf, subtreeIds, name, path, locale } = useLocations();
   const excluded = useMemo(() => (excludeId ? subtreeIds(excludeId) : new Set<string>()), [excludeId, subtreeIds]);
@@ -61,7 +63,7 @@ function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, al
       </Button>
     ) : allowRoot ? (
       <Button variant="primary" className="w-full" onClick={() => onSelect(null)}>
-        {t("topLevel")}
+        {rootLabel ?? t("topLevel")}
       </Button>
     ) : undefined;
 

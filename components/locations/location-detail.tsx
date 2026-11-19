@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { Check, ChevronRight, MapPin, MoreHorizontal, Package, Plus } from "lucide-react";
+import { ItemGallery } from "@/components/items/item-list";
+import type { CategoryOption } from "@/lib/items/data";
+import type { ItemSummary } from "@/lib/items/types";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/buttons";
 import { useLocationActions } from "./location-dialogs";
 import { setCurrentLocationId, useCurrentLocation, useLocations } from "./locations-context";
 
-export function LocationDetail({ id }: { id: string }) {
+export function LocationDetail({ id, items, categories }: { id: string; items: ItemSummary[]; categories: CategoryOption[] }) {
+  const tItems = useTranslations("items");
   const t = useTranslations("locations");
   const tHere = useTranslations("here");
   const tCommon = useTranslations("common");
@@ -111,12 +115,25 @@ export function LocationDetail({ id }: { id: string }) {
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-3">
         <h2 className="font-semibold">{t("items")}</h2>
-        <p className="flex items-center gap-2 rounded-2xl border border-dashed border-border p-6 text-muted">
-          <Package className="size-5 shrink-0" aria-hidden />
-          {t("noItems")}
-        </p>
+        {items.length === 0 ? (
+          <p className="flex items-center gap-2 rounded-2xl border border-dashed border-border p-6 text-muted">
+            <Package className="size-5 shrink-0" aria-hidden />
+            {t("noItems")}
+          </p>
+        ) : (
+          <ItemGallery items={items} categories={categories} />
+        )}
+        {loc.totalItems > loc.directItems && (
+          <Link
+            href={`/?location=${id}`}
+            className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border px-3 text-center font-medium"
+          >
+            {tItems("allNested", { count: loc.totalItems })}
+            <ChevronRight className="size-5 shrink-0" aria-hidden />
+          </Link>
+        )}
       </section>
     </div>
   );

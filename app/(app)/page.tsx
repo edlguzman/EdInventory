@@ -1,12 +1,38 @@
-import { useTranslations } from "next-intl";
-import { PageTitle } from "@/components/page-title";
+import { z } from "zod";
+import { getTranslations } from "next-intl/server";
+import { ItemsBrowser } from "@/components/items/items-browser";
+import { getCategories, listItems } from "@/lib/items/data";
 
-export default function ItemsPage() {
-  const t = useTranslations("items");
+const PAGE_SIZE = 48;
+const MAX_LIMIT = 480;
+
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export default async function ItemsPage({ searchParams }: PageProps<"/">) {
+  const t = await getTranslations("items");
+  const params = await searchParams;
+
+  // Filters live in the URL, so back/forward and reload keep them. Invalid values are ignored.
+  const rawCategory = one(params.category);
+  const category = rawCategory === "none" || z.uuid().safeParse(rawCategory).success ? rawCategory! : null;
+  const rawLocation = one(params.location);
+  const location = z.uuid().safeParse(rawLocation).success ? rawLocation! : null;
+  const n = Number.parseInt(one(params.n) ?? "", 10);
+  const limit = Number.isFinite(n) ? Math.min(Math.max(PAGE_SIZE, n), MAX_LIMIT) : PAGE_SIZE;
+
+  const [{ items, hasMore }, categories] = await Promise.all([
+    listItems({ category: category ?? undefined, location: location ?? undefined, limit }),
+    getCategories(),
+  ]);
+
   return (
-    <>
-      <PageTitle>{t("title")}</PageTitle>
-      <p className="rounded-2xl border border-dashed border-border p-6 text-center text-muted">{t("empty")}</p>
-    </>
+    <ItemsBrowser
+      title={t("title")}
+      items={items}
+      hasMore={hasMore}
+      categories={categories}
+      filters={{ category, location, limit }}
+      pageSize={PAGE_SIZE}
+    />
   );
 }

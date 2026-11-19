@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { LocationDetail } from "@/components/locations/location-detail";
+import { getCategories, listItems } from "@/lib/items/data";
 import { createClient } from "@/lib/supabase/server";
 
 async function findLocation(id: string) {
@@ -22,5 +23,7 @@ export default async function LocationPage({ params }: PageProps<"/locations/[id
   const { id } = await params;
   // RLS: another user's place looks the same as a missing one.
   if (!(await findLocation(id))) notFound();
-  return <LocationDetail id={id} />;
+  // Items directly in this place; nested ones are one tap away (/?location=id).
+  const [{ items }, categories] = await Promise.all([listItems({ directLocation: id, limit: 96 }), getCategories()]);
+  return <LocationDetail id={id} items={items} categories={categories} />;
 }
