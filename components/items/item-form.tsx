@@ -11,7 +11,7 @@ import { createItem, updateItem } from "@/app/(app)/items/actions";
 import { findPhotoUses, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
-import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
+import { useHerePlace, useLocations } from "@/components/locations/locations-context";
 import { DictationField } from "@/components/dictation-field";
 import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
@@ -54,7 +54,6 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   const router = useRouter();
   const id = useId();
   const { byId, path } = useLocations();
-  const here = useCurrentLocation();
 
   const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
     seed
@@ -73,10 +72,12 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   );
   const seeded = seed?.recognition ?? null;
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? seeded?.category_id ?? null);
-  // undefined = not chosen yet: a new item then follows the "I'm here" place, which is known
-  // only after hydration (it lives in localStorage), so it is derived instead of copied once.
-  const [chosenLocation, setLocationId] = useState<string | null | undefined>(mode === "edit" ? item.locationId : undefined);
-  const locationId = chosenLocation === undefined ? (here?.id ?? null) : chosenLocation;
+  // New item: the place IS "I'm here" (choosing it here changes it everywhere).
+  // Editing an item: the place belongs to that item only.
+  const [herePlace, setHerePlace] = useHerePlace();
+  const [editLocation, setEditLocation] = useState<string | null>(item?.locationId ?? null);
+  const locationId = mode === "edit" ? editLocation : herePlace;
+  const setLocationId = mode === "edit" ? setEditLocation : setHerePlace;
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string>();
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -369,6 +370,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
 
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">{t("place")}</span>
+        {mode === "create" && <span className="-mt-1 text-sm text-muted">{t("placeIsHere")}</span>}
         <div className="flex items-center gap-1">
           <button
             type="button"

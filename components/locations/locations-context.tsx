@@ -1,7 +1,7 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import { createContext, use, useEffect, useMemo } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createLocalStore } from "@/lib/local-store";
@@ -134,4 +134,25 @@ export function useCurrentLocation(): LocationNode | null {
   }, [id, node, router]);
 
   return node;
+}
+
+/**
+ * The place of a NEW item (item form, "several items"): it is "I'm here" itself, so choosing
+ * or clearing it there changes "I'm here" everywhere (header, other screens, next items).
+ * A place created a moment ago (voice: "create … inside …") counts at once, before the list
+ * of places has been refreshed.
+ */
+export function useHerePlace(): [string | null, (id: string | null) => void] {
+  const node = useCurrentLocation();
+  const { here } = useLocations();
+  const raw = here.useValue();
+  const [justSet, setJustSet] = useState<string | null>(null);
+  const set = useCallback(
+    (id: string | null) => {
+      setJustSet(id);
+      here.set(id);
+    },
+    [here],
+  );
+  return [node?.id ?? (raw && raw === justSet ? raw : null), set];
 }

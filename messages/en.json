@@ -78,7 +78,8 @@
     "recognizeAgain": "Recognize again",
     "recognizing": "AI is recognizing the item…",
     "recognized": "Filled in by AI — please check.",
-    "placeVoiceHint": "Or say where you put it, details about the item welcome:"
+    "placeVoiceHint": "Or say where you put it, details about the item welcome:",
+    "placeIsHere": "This is your \"I'm here\" place: it stays for the next items too."
   },
   "search": {
     "title": "Search",
@@ -374,7 +375,8 @@
         "points": [
           "Pick a place once, e.g. “Country house → Garage → Rack”.",
           "Every new item goes there: photograph things in a row without choosing a place each time.",
-          "The current place is shown in the header, where you can change or clear it."
+          "The current place is shown in the header, where you can change or clear it.",
+          "The place you choose while adding an item (from the list or by voice) is your \"I'm here\": it stays on every screen. Reset it with the × in the header."
         ]
       },
       "languages": {
