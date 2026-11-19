@@ -2,12 +2,15 @@
 
 import { Check, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useDataLang } from "@/components/data-lang/context";
 import { Button } from "@/components/ui/buttons";
 import type { ItemSuggestion } from "@/lib/ai/types";
 
 /**
  * Item details heard in a voice phrase, shown as a suggestion.
  * Nothing changes in the form until the user taps "Accept".
+ * Only the languages of the data mode are shown; in ru mode the English text from the
+ * same AI answer is accepted along with it (it stays hidden).
  */
 export function ItemSuggestionCard({
   suggestion,
@@ -21,11 +24,16 @@ export function ItemSuggestionCard({
   const t = useTranslations("voice");
   const tItems = useTranslations("items");
   const tCommon = useTranslations("common");
+  const { edit } = useDataLang();
+  const one = edit.length === 1;
   const rows: [string, string][] = [];
-  if (suggestion.name_ru) rows.push([tCommon("nameRu"), suggestion.name_ru]);
-  if (suggestion.name_en) rows.push([tCommon("nameEn"), suggestion.name_en]);
-  if (suggestion.description_ru) rows.push([tItems("descriptionRu"), suggestion.description_ru]);
-  if (suggestion.description_en) rows.push([tItems("descriptionEn"), suggestion.description_en]);
+  for (const lang of edit) {
+    const name = lang === "ru" ? suggestion.name_ru : suggestion.name_en;
+    const description = lang === "ru" ? suggestion.description_ru : suggestion.description_en;
+    if (name) rows.push([one ? tCommon("name") : tCommon(lang === "ru" ? "nameRu" : "nameEn"), name]);
+    if (description)
+      rows.push([one ? tItems("description") : tItems(lang === "ru" ? "descriptionRu" : "descriptionEn"), description]);
+  }
   if (suggestion.tags_add.length) rows.push([tItems("tags"), suggestion.tags_add.map((x) => `+ ${x}`).join(", ")]);
 
   return (

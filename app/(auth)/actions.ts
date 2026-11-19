@@ -3,7 +3,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { getLocale } from "next-intl/server";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth-errors";
+import { dataLangForLocale } from "@/lib/data-lang";
 import { notifyAdmin } from "@/lib/notify/admin-email";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
@@ -49,7 +51,11 @@ export async function signUp(input: SignupInput): Promise<AuthActionResult> {
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { emailRedirectTo: `${await requestOrigin()}/auth/confirm?next=/` },
+    options: {
+      emailRedirectTo: `${await requestOrigin()}/auth/confirm?next=/`,
+      // Data language mode from the interface language (read once by the profile trigger).
+      data: { data_lang: dataLangForLocale(await getLocale()) },
+    },
   });
   if (error) return { error: authErrorKey(error) };
 

@@ -1,11 +1,12 @@
 "use client";
 
+import { useDataLang } from "@/components/data-lang/context";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
@@ -18,6 +19,7 @@ import type { CategoryOption } from "@/lib/items/data";
 import type { ItemDetail } from "@/lib/items/types";
 import { PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/client";
+import { isVisibleTag } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
@@ -38,7 +40,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
-  const locale = useLocale();
+  const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const router = useRouter();
   const id = useId();
   const { byId, path } = useLocations();
@@ -64,13 +66,15 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
 
   const form = useForm<ItemFieldsInput>({
-    resolver: zodResolver(itemFieldsSchema),
+    resolver: zodResolver(itemFieldsSchema(dataMode)),
+    // Hidden-language text stays in the form values (not shown); the server decides what
+    // to write. Tags hidden in this mode are not shown and are kept by the server.
     defaultValues: {
       name_ru: item?.nameRu ?? "",
       name_en: item?.nameEn ?? "",
       description_ru: item?.descriptionRu ?? "",
       description_en: item?.descriptionEn ?? "",
-      tags: item?.tags ?? [],
+      tags: (item?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
     },
   });
   const {
@@ -226,13 +230,13 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
 
       <NameFields form={form as unknown as UseFormReturn<NamePairInput>} max={ITEM_NAME_MAX} />
 
-      {(["ru", "en"] as const).map((lang) => {
+      {editLangs.map((lang) => {
         const name = lang === "ru" ? "description_ru" : "description_en";
         const err = fieldError(errors[name]?.message);
         return (
           <div key={lang} className="flex flex-col gap-1.5">
             <label htmlFor={`${id}-${name}`} className="text-sm font-medium">
-              {lang === "ru" ? t("descriptionRu") : t("descriptionEn")}
+              {editLangs.length === 1 ? t("description") : lang === "ru" ? t("descriptionRu") : t("descriptionEn")}
             </label>
             <textarea
               id={`${id}-${name}`}

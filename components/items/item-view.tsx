@@ -1,10 +1,13 @@
 "use client";
 
+import { TranslateRecordButton } from "@/components/data-lang/translate-record-button";
+import { isVisibleTag } from "@/lib/data-lang";
+import { useDataLang } from "@/components/data-lang/context";
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRightLeft, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
-import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { deleteItem, moveItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
@@ -96,7 +99,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const format = useFormatter();
-  const locale = useLocale();
+  const { display: locale, mode } = useDataLang();
   const router = useRouter();
   const { byId, path } = useLocations();
   const [dialog, setDialog] = useState<"move" | "delete" | null>(null);
@@ -105,6 +108,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
 
   const name = pickText(item.nameRu, item.nameEn, locale);
   const description = pickText(item.descriptionRu, item.descriptionEn, locale);
+  const tags = item.tags.filter((tag) => isVisibleTag(tag, mode));
   const place = item.locationId ? byId.get(item.locationId) : undefined;
   const category = categories.find((c) => c.id === item.categoryId);
   const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: "medium" });
@@ -133,6 +137,17 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
         <h1 className="text-2xl font-semibold tracking-tight break-words">{name}</h1>
         {category && <p className="mt-1 text-muted">{pickText(category.name_ru, category.name_en, locale)}</p>}
       </div>
+
+      <TranslateRecordButton
+        type="item"
+        id={item.id}
+        texts={{
+          name_ru: item.nameRu,
+          name_en: item.nameEn,
+          description_ru: item.descriptionRu,
+          description_en: item.descriptionEn,
+        }}
+      />
 
       {error && <Alert>{errorText(error)}</Alert>}
 
@@ -174,11 +189,11 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
             <dd className="whitespace-pre-line">{description}</dd>
           </div>
         )}
-        {item.tags.length > 0 && (
+        {tags.length > 0 && (
           <div>
             <dt className="text-sm text-muted">{t("tags")}</dt>
             <dd className="mt-1 flex flex-wrap gap-1.5">
-              {item.tags.map((tag) => (
+              {tags.map((tag) => (
                 <span key={tag} className="inline-flex items-center gap-1 rounded-lg bg-surface px-2.5 py-1 text-sm">
                   <Tag className="size-3.5 text-muted" aria-hidden />
                   {tag}

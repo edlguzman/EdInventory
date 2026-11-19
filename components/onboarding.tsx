@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Camera, CircleHelp, Home, MapPin, Mic, Package, Search, Sparkles, Warehouse } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createLocation } from "@/app/(app)/locations/actions";
+import { useDataLang } from "@/components/data-lang/context";
 import { setCurrentLocationId } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
 import { completeOnboarding } from "@/lib/onboarding/actions";
@@ -27,6 +28,7 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
   const t = useTranslations("onboarding");
   const errorText = useErrorText();
   const router = useRouter();
+  const { mode: dataMode } = useDataLang();
   const [open, setOpen] = useState(initialOpen);
   const [step, setStep] = useState<Step>("place");
   const [placeId, setPlaceId] = useState<string | null>(null);
@@ -101,7 +103,8 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = custom.trim();
-                if (name) create(name, name);
+                // The typed name goes into the language of the data mode (ru_en: Russian, copied to English).
+                if (name) create(dataMode === "en" ? "" : name, dataMode === "en" ? name : "");
               }}
               className="flex gap-2"
             >

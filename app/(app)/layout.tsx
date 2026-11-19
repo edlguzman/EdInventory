@@ -1,5 +1,7 @@
 import { AccountBlocked } from "@/components/account-blocked";
 import { BottomNav } from "@/components/bottom-nav";
+import { DataLangProvider } from "@/components/data-lang/context";
+import { TranslationProgress } from "@/components/data-lang/translation-progress";
 import { CurrentLocationBar } from "@/components/current-location-bar";
 import { LocationDialogsProvider } from "@/components/locations/location-dialogs";
 import { LocationsProvider } from "@/components/locations/locations-context";
@@ -9,6 +11,7 @@ import { getPendingCount } from "@/lib/admin/data";
 import { getProfile, getUser, requireUser } from "@/lib/auth";
 import { getLocations } from "@/lib/locations/data";
 import { createClient } from "@/lib/supabase/server";
+import { countMissing } from "@/lib/translate/records";
 
 /** First run: not onboarded yet and nothing created (an existing user is never bothered). */
 async function needsOnboarding(placeCount: number) {
@@ -32,20 +35,29 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     return <AccountBlocked status={profile?.status === "disabled" ? "disabled" : "pending"} email={user.email ?? ""} />;
   }
 
-  const [locations, pendingCount] = await Promise.all([getLocations(), profile.isAdmin ? getPendingCount() : 0]);
+  const mode = profile.dataLang;
+  const [locations, pendingCount, silentMissingEn] = await Promise.all([
+    getLocations(),
+    profile.isAdmin ? getPendingCount() : 0,
+    // Ru mode keeps English filled in the background; catch up what a failed save left.
+    mode === "ru" ? createClient().then((supabase) => countMissing(supabase, ["en"])) : 0,
+  ]);
   const onboarding = await needsOnboarding(locations.length);
 
   return (
-    <LocationsProvider locations={locations}>
-      <LocationDialogsProvider>
-        <CurrentLocationBar />
-        <OfflineBanner />
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-          {children}
-        </main>
-        <BottomNav settingsBadge={pendingCount} />
-        <Onboarding initialOpen={onboarding} />
-      </LocationDialogsProvider>
-    </LocationsProvider>
+    <DataLangProvider mode={mode} silentMissingEn={silentMissingEn}>
+      <LocationsProvider locations={locations}>
+        <LocationDialogsProvider>
+          <CurrentLocationBar />
+          <OfflineBanner />
+          <TranslationProgress />
+          <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            {children}
+          </main>
+          <BottomNav settingsBadge={pendingCount} />
+          <Onboarding initialOpen={onboarding} />
+        </LocationDialogsProvider>
+      </LocationsProvider>
+    </DataLangProvider>
   );
 }

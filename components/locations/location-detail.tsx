@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Check, ChevronRight, MapPin, MoreHorizontal, Package, Plus } from "lucide-react";
+import { TranslateRecordButton } from "@/components/data-lang/translate-record-button";
 import { ItemGallery } from "@/components/items/item-list";
 import type { CategoryOption } from "@/lib/items/data";
 import type { ItemSummary } from "@/lib/items/types";
@@ -54,6 +55,7 @@ export function LocationDetail({ id, items, categories }: { id: string; items: I
         </nav>
         <div className="flex items-start gap-2">
           <h1 className="min-w-0 flex-1 text-2xl font-semibold tracking-tight break-words">{name(loc)}</h1>
+          <TranslateRecordButton type="location" id={id} texts={{ name_ru: loc.nameRu, name_en: loc.nameEn }} compact />
           <button
             type="button"
             onClick={() => openMenu(id)}

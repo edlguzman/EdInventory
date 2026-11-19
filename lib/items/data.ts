@@ -128,7 +128,7 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   };
 }
 
-export type CategoryOption = { id: string; name_ru: string; name_en: string };
+export type CategoryOption = { id: string; name_ru: string | null; name_en: string | null };
 
 export async function getCategories(): Promise<CategoryOption[]> {
   const supabase = await createClient();

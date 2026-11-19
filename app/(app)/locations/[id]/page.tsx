@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { LocationDetail } from "@/components/locations/location-detail";
+import { getDisplayLang } from "@/lib/auth";
+import { pickText } from "@/lib/data-lang";
 import { getCategories, listItems } from "@/lib/items/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,7 +17,7 @@ async function findLocation(id: string) {
 export async function generateMetadata({ params }: PageProps<"/locations/[id]">): Promise<Metadata> {
   const loc = await findLocation((await params).id);
   if (!loc) return {};
-  return { title: (await getLocale()) === "en" ? loc.name_en : loc.name_ru };
+  return { title: pickText(loc.name_ru, loc.name_en, await getDisplayLang()) };
 }
 
 export default async function LocationPage({ params }: PageProps<"/locations/[id]">) {

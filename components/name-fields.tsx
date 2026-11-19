@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { translateName } from "@/lib/ai/client";
 import { useErrorText } from "@/lib/use-error-text";
 import type { NamePairInput } from "@/lib/validation/names";
+import { useDataLang } from "./data-lang/context";
 import { useOffline } from "./offline-banner";
 import { Button } from "./ui/buttons";
 
@@ -14,8 +15,9 @@ const inputClass =
   "min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base outline-none focus:border-accent aria-invalid:border-red-500";
 
 /**
- * RU + EN name inputs. "Translate" is enabled when exactly one of them is filled:
- * it asks /api/ai/translate and fills the other one (the user still saves).
+ * Name inputs for the data language mode: one field (en / ru) or RU + EN (ru_en).
+ * In ru_en, "Translate" is enabled when exactly one of them is filled: it asks
+ * /api/ai/translate and fills the other one (the user still saves).
  */
 export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; max: number }) {
   const t = useTranslations("common");
@@ -24,6 +26,8 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
   const [translating, setTranslating] = useState(false);
   const [aiError, setAiError] = useState<string>();
   const offline = useOffline();
+  const { edit } = useDataLang();
+  const both = edit.length === 2;
   const {
     register,
     watch,
@@ -49,44 +53,34 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${id}-ru`} className="text-sm font-medium">
-          {t("nameRu")}
-        </label>
-        <input
-          id={`${id}-ru`}
-          lang="ru"
-          autoComplete="off"
-          maxLength={max}
-          aria-invalid={fieldError ? true : undefined}
-          className={inputClass}
-          {...register("name_ru", { onChange: () => setAiError(undefined) })}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${id}-en`} className="text-sm font-medium">
-          {t("nameEn")}
-        </label>
-        <input
-          id={`${id}-en`}
-          lang="en"
-          autoComplete="off"
-          maxLength={max}
-          aria-invalid={fieldError ? true : undefined}
-          className={inputClass}
-          {...register("name_en", { onChange: () => setAiError(undefined) })}
-        />
-      </div>
-      <Button onClick={translate} disabled={!from || offline} pending={translating} className="self-start">
-        {!translating && <Languages className="size-5" aria-hidden />}
-        {translating ? t("translating") : t("translate")}
-      </Button>
+      {edit.map((lang) => (
+        <div key={lang} className="flex flex-col gap-1.5">
+          <label htmlFor={`${id}-${lang}`} className="text-sm font-medium">
+            {!both ? t("name") : lang === "ru" ? t("nameRu") : t("nameEn")}
+          </label>
+          <input
+            id={`${id}-${lang}`}
+            lang={lang}
+            autoComplete="off"
+            maxLength={max}
+            aria-invalid={fieldError ? true : undefined}
+            className={inputClass}
+            {...register(lang === "ru" ? "name_ru" : "name_en", { onChange: () => setAiError(undefined) })}
+          />
+        </div>
+      ))}
+      {both && (
+        <Button onClick={translate} disabled={!from || offline} pending={translating} className="self-start">
+          {!translating && <Languages className="size-5" aria-hidden />}
+          {translating ? t("translating") : t("translate")}
+        </Button>
+      )}
       {fieldError || aiError ? (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {fieldError ?? errorText(aiError)}
         </p>
       ) : (
-        <p className="text-sm text-muted">{t("nameHint")}</p>
+        both && <p className="text-sm text-muted">{t("nameHint")}</p>
       )}
     </div>
   );

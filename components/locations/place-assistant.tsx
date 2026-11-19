@@ -1,8 +1,10 @@
 "use client";
 
+import { pickText } from "@/lib/data-lang";
+import { useDataLang } from "@/components/data-lang/context";
 import { useState, useTransition } from "react";
 import { Check, MapPin, Plus } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { createLocationChain } from "@/app/(app)/locations/actions";
 import { VoiceInput } from "@/components/voice-input";
 import { Alert, Button } from "@/components/ui/buttons";
@@ -31,7 +33,7 @@ export function PlaceAssistant({
 }) {
   const t = useTranslations("voice");
   const errorText = useErrorText();
-  const locale = useLocale();
+  const { display: locale } = useDataLang();
   const { byId, path } = useLocations();
   const here = useCurrentLocation();
   const [busy, setBusy] = useState(false);
@@ -78,7 +80,7 @@ export function PlaceAssistant({
     });
 
   const parent = result?.create?.parent_id ? byId.get(result.create.parent_id) : undefined;
-  const newPath = result?.create?.names.map((n) => (locale === "en" ? n.name_en : n.name_ru)).join(" → ");
+  const newPath = result?.create?.names.map((n) => pickText(n.name_ru, n.name_en, locale)).join(" → ");
 
   return (
     <div className="flex flex-col gap-2">

@@ -39,24 +39,24 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          name_en: string
-          name_ru: string
+          name_en: string | null
+          name_ru: string | null
           sort_order: number
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          name_en: string
-          name_ru: string
+          name_en?: string | null
+          name_ru?: string | null
           sort_order?: number
           user_id?: string
         }
         Update: {
           created_at?: string
           id?: string
-          name_en?: string
-          name_ru?: string
+          name_en?: string | null
+          name_ru?: string | null
           sort_order?: number
           user_id?: string
         }
@@ -105,8 +105,8 @@ export type Database = {
           description_ru: string | null
           id: string
           location_id: string | null
-          name_en: string
-          name_ru: string
+          name_en: string | null
+          name_ru: string | null
           search_text: string | null
           tags: string[]
           updated_at: string
@@ -119,8 +119,8 @@ export type Database = {
           description_ru?: string | null
           id?: string
           location_id?: string | null
-          name_en: string
-          name_ru: string
+          name_en?: string | null
+          name_ru?: string | null
           search_text?: string | null
           tags?: string[]
           updated_at?: string
@@ -133,8 +133,8 @@ export type Database = {
           description_ru?: string | null
           id?: string
           location_id?: string | null
-          name_en?: string
-          name_ru?: string
+          name_en?: string | null
+          name_ru?: string | null
           search_text?: string | null
           tags?: string[]
           updated_at?: string
@@ -161,8 +161,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          name_en: string
-          name_ru: string
+          name_en: string | null
+          name_ru: string | null
           parent_id: string | null
           sort_order: number
           user_id: string
@@ -170,8 +170,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          name_en: string
-          name_ru: string
+          name_en?: string | null
+          name_ru?: string | null
           parent_id?: string | null
           sort_order?: number
           user_id?: string
@@ -179,8 +179,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          name_en?: string
-          name_ru?: string
+          name_en?: string | null
+          name_ru?: string | null
           parent_id?: string | null
           sort_order?: number
           user_id?: string
@@ -198,6 +198,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          data_lang: string
           role: string
           status: string
           status_changed_at: string | null
@@ -205,6 +206,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_lang?: string
           role?: string
           status?: string
           status_changed_at?: string | null
@@ -212,6 +214,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_lang?: string
           role?: string
           status?: string
           status_changed_at?: string | null

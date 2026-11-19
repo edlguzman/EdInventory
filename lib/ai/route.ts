@@ -17,6 +17,28 @@ function dailyLimit() {
   return Number.isFinite(n) && n > 0 ? n : 100;
 }
 
+export type QuotaResult = "ok" | "limit" | "inactive" | "error";
+
+/**
+ * Checks the daily limit and records one AI call (atomically in the database).
+ * The same database call refuses pending and disabled accounts (42501).
+ */
+export async function consumeQuota(supabase: Awaited<ReturnType<typeof createClient>>, kind: AiKind): Promise<QuotaResult> {
+  const { data: allowed, error } = await supabase.rpc("consume_ai_quota", { p_kind: kind, p_limit: dailyLimit() });
+  if (error?.code === "42501") return "inactive";
+  if (error) {
+    console.error("consume_ai_quota failed", { code: error.code });
+    return "error";
+  }
+  return allowed ? "ok" : "limit";
+}
+
+export function quotaError(result: Exclude<QuotaResult, "ok">) {
+  if (result === "inactive") return aiError("accountInactive", 403);
+  if (result === "limit") return aiError("aiLimit", 429);
+  return aiError("aiFailed", 500);
+}
+
 type Guard =
   | { ok: true; user: User; supabase: Awaited<ReturnType<typeof createClient>> }
   | { ok: false; response: NextResponse };
@@ -34,14 +56,8 @@ export async function guardAiRequest(kind: AiKind): Promise<Guard> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, response: aiError("unauthorized", 401) };
 
-  const { data: allowed, error } = await supabase.rpc("consume_ai_quota", { p_kind: kind, p_limit: dailyLimit() });
-  // 42501 from consume_ai_quota: the account is pending or disabled (checked in the database).
-  if (error?.code === "42501") return { ok: false, response: aiError("accountInactive", 403) };
-  if (error) {
-    console.error("consume_ai_quota failed", { code: error.code });
-    return { ok: false, response: aiError("aiFailed", 500) };
-  }
-  if (!allowed) return { ok: false, response: aiError("aiLimit", 429) };
+  const quota = await consumeQuota(supabase, kind);
+  if (quota !== "ok") return { ok: false, response: quotaError(quota) };
 
   return { ok: true, user, supabase };
 }

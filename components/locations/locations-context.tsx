@@ -1,7 +1,8 @@
 "use client";
 
+import { useDataLang } from "@/components/data-lang/context";
 import { createContext, use, useEffect, useMemo } from "react";
-import { useLocale } from "next-intl";
+
 import { createLocalStore } from "@/lib/local-store";
 import { name as nameOf, path as pathOf, type Locale, type LocationNode } from "@/lib/locations/types";
 
@@ -20,7 +21,7 @@ type LocationsValue = {
 const LocationsContext = createContext<LocationsValue | null>(null);
 
 export function LocationsProvider({ locations, children }: { locations: LocationNode[]; children: React.ReactNode }) {
-  const locale = useLocale() as Locale;
+  const { display: locale } = useDataLang();
 
   const value = useMemo<LocationsValue>(() => {
     const collator = new Intl.Collator(locale, { sensitivity: "base", numeric: true });

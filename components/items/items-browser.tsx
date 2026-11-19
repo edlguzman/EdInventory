@@ -1,10 +1,11 @@
 "use client";
 
+import { useDataLang } from "@/components/data-lang/context";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, LayoutGrid, List, MapPin, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { useLocations } from "@/components/locations/locations-context";
 import type { CategoryOption } from "@/lib/items/data";
@@ -32,7 +33,7 @@ export function ItemsBrowser({
   pageSize: number;
 }) {
   const t = useTranslations("items");
-  const locale = useLocale();
+  const { display: locale } = useDataLang();
   const router = useRouter();
   const pathname = usePathname();
   const view = viewStore.useValue();

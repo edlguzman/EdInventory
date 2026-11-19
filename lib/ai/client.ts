@@ -74,3 +74,20 @@ export function askSearch(input: { audio?: Blob | null; text?: string }) {
     (d): d is SearchResult => isObject(d) && Array.isArray(d.terms),
   );
 }
+
+export type TranslateBatchResult = { translated: number; remaining: number };
+
+/**
+ * Translates the next pack of records lacking `langs` (or only `targets`).
+ * The server reads the records itself; one pack = 1 unit of the daily limit.
+ */
+export function translateBatch(input: {
+  langs?: ("ru" | "en")[];
+  targets?: { type: "item" | "location" | "category"; id: string }[];
+}) {
+  return call<TranslateBatchResult>(
+    "/api/ai/translate-batch",
+    { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) },
+    (d): d is TranslateBatchResult => isObject(d) && typeof d.translated === "number" && typeof d.remaining === "number",
+  );
+}

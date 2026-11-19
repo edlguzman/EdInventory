@@ -214,9 +214,10 @@
     "edit": "Edit",
     "translate": "Translate",
     "translating": "Translating…",
+    "name": "Name",
     "nameRu": "Name (RU)",
     "nameEn": "Name (EN)",
-    "nameHint": "You can fill in just one field: the other gets the same text, or use “Translate”.",
+    "nameHint": "You can fill in one field. An empty English name gets the Russian text; the Translate button fills the other field with a translation.",
     "moreActions": "More actions",
     "search": "Search"
   },
@@ -374,6 +375,15 @@
           "The current place is shown in the header, where you can change or clear it."
         ]
       },
+      "languages": {
+        "title": "Data languages",
+        "points": [
+          "Settings → “Data languages”: English only, Russian only, or both. The interface language is chosen separately.",
+          "Russian only: you write in Russian, the English translation appears by itself in the background.",
+          "When you turn on Russian after English, the app offers to translate your records in packs. You can do it later: a record without a translation has a Translate button.",
+          "Changing the mode deletes nothing: the other language is just hidden and comes back when you switch again."
+        ]
+      },
       "add": {
         "title": "Add an item",
         "points": [
@@ -466,5 +476,37 @@
       "subject": "Account deleted: {email}",
       "body": "User {email} deleted their account and all data ({time})."
     }
+  },
+  "dataLang": {
+    "title": "Data languages",
+    "intro": "The language of names and descriptions of items, places and categories. The interface language is chosen separately.",
+    "options": {
+      "en": {
+        "title": "English only",
+        "hint": "Forms and AI in English only."
+      },
+      "ru": {
+        "title": "Russian only",
+        "hint": "Everything in Russian; the English translation is filled in automatically."
+      },
+      "ru_en": {
+        "title": "Russian and English",
+        "hint": "Both languages in forms, with a Translate button."
+      }
+    },
+    "askTitle": "Translate records?",
+    "askText": "{count, plural, one {# record has} other {# records have}} no translation. Translate now? It runs in the background in packs; each pack is 1 AI request from the daily limit.",
+    "translateNow": "Translate now",
+    "later": "Later",
+    "laterHint": "You can translate later here or with the Translate button on each record.",
+    "untranslated": "Not translated: {count, plural, one {# record} other {# records}}",
+    "translateAll": "Translate",
+    "progress": "Translating records: {done} of {total}",
+    "progressDone": "Done, translated: {done}",
+    "progressStopped": "Translation stopped ({done} of {total}).",
+    "progressLabel": "Translating records",
+    "stop": "Stop",
+    "close": "Close",
+    "translateRecord": "Translate"
   }
 }

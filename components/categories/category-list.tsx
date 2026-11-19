@@ -4,26 +4,30 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { createCategory, deleteCategory, renameCategory } from "@/app/(app)/settings/category-actions";
+import { useDataLang } from "@/components/data-lang/context";
+import { TranslateRecordButton } from "@/components/data-lang/translate-record-button";
 import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
+import { pickText } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
 import { CATEGORY_NAME_MAX, categoryNamesSchema, type NamePairInput } from "@/lib/validation/names";
 
-export type Category = { id: string; name_ru: string; name_en: string };
+export type Category = { id: string; name_ru: string | null; name_en: string | null };
 
 type Dialog = { kind: "create" } | { kind: "edit"; category: Category } | { kind: "delete"; category: Category };
 
 export function CategoryList({ categories }: { categories: Category[] }) {
   const t = useTranslations("categories");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
+  const { display: locale, mode } = useDataLang();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const close = () => setDialog(null);
-  const label = (c: Category) => (locale === "en" ? c.name_en : c.name_ru);
-  const other = (c: Category) => (locale === "en" ? c.name_ru : c.name_en);
+  const label = (c: Category) => pickText(c.name_ru, c.name_en, locale);
+  // The second line (other language) only in the two-language mode.
+  const other = (c: Category) => (mode !== "ru_en" ? null : locale === "en" ? c.name_ru : c.name_en);
 
   return (
     <section className="flex flex-col gap-3">
@@ -42,8 +46,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
             <li key={c.id} className="flex items-center gap-1 py-1 pl-4">
               <div className="min-w-0 flex-1">
                 <p className="truncate">{label(c)}</p>
-                {other(c) !== label(c) && <p className="truncate text-sm text-muted">{other(c)}</p>}
+                {other(c) && other(c) !== label(c) && <p className="truncate text-sm text-muted">{other(c)}</p>}
               </div>
+              <TranslateRecordButton type="category" id={c.id} texts={c} compact />
               <button
                 type="button"
                 onClick={() => setDialog({ kind: "edit", category: c })}
@@ -76,9 +81,10 @@ function CategoryFormSheet({ category, onClose }: { category?: Category; onClose
   const t = useTranslations("categories");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
+  const { mode } = useDataLang();
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
-    resolver: zodResolver(categoryNamesSchema),
+    resolver: zodResolver(categoryNamesSchema(mode)),
     defaultValues: { name_ru: category?.name_ru ?? "", name_en: category?.name_en ?? "" },
   });
 

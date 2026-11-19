@@ -1,10 +1,11 @@
 "use client";
 
+import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LoaderCircle, MapPin, Search, Sparkles, Tag, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { ItemTable } from "@/components/items/item-list";
 import { useLocations } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
@@ -39,7 +40,7 @@ export function SearchView({
 }) {
   const t = useTranslations("search");
   const errorText = useErrorText();
-  const locale = useLocale();
+  const { display: locale } = useDataLang();
   const router = useRouter();
   const pathname = usePathname();
   const { byId, path } = useLocations();

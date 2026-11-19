@@ -2,11 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getUser } from "@/lib/auth";
+import { getDataLang, getUser } from "@/lib/auth";
+import type { DataLang } from "@/lib/data-lang";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
-import { itemFieldsSchema, itemRefsSchema, newPhotosSchema, toItemRow, type ItemFieldsInput } from "@/lib/validation/items";
+import { translateAfterSave } from "@/lib/translate/after-save";
+import {
+  itemFieldsSchema,
+  itemRefsSchema,
+  newPhotosSchema,
+  toItemRow,
+  type ItemFieldsInput,
+  type ItemTextRow,
+} from "@/lib/validation/items";
 
 export type ItemErrorKey =
   | DataErrorKey
@@ -48,12 +57,13 @@ type SaveInput = {
   location_id: string | null;
 };
 
-function parseSave(input: SaveInput) {
-  const fields = itemFieldsSchema.safeParse(input.fields);
+/** `current`: the stored text of the item being edited (null for a new item). */
+function parseSave(input: SaveInput, mode: DataLang, current: ItemTextRow | null) {
+  const fields = itemFieldsSchema(mode).safeParse(input.fields);
   if (!fields.success) return { error: firstIssue(fields.error) } as const;
   const refs = itemRefsSchema.safeParse({ category_id: input.category_id, location_id: input.location_id });
   if (!refs.success) return { error: "notFound" as const };
-  return { row: { ...toItemRow(fields.data), ...refs.data } } as const;
+  return { row: { ...toItemRow(fields.data, mode, current), ...refs.data } } as const;
 }
 
 /**
@@ -80,7 +90,8 @@ export async function createItem(
   if (!id.success) return abort("unknown");
   if (!photos.success) return abort(firstIssue(photos.error));
   if (ownPhotos.length !== photos.data.length) return abort("photoInvalid");
-  const parsed = parseSave(input);
+  const mode = await getDataLang();
+  const parsed = parseSave(input, mode, null);
   if ("error" in parsed) return abort(parsed.error ?? "unknown");
 
   const { error: itemError } = await supabase.from("items").insert({ id: id.data, ...parsed.row });
@@ -97,6 +108,7 @@ export async function createItem(
     }
   }
 
+  translateAfterSave(mode, [{ type: "item", id: id.data }]);
   refresh();
   return { ok: true, data: { id: id.data } };
 }
@@ -122,7 +134,14 @@ export async function updateItem(
   if (!id.success) return abort("notFound");
   if (!add.success) return abort(firstIssue(add.error));
   if (ownAdd.length !== add.data.length) return abort("photoInvalid");
-  const parsed = parseSave(input);
+  const mode = await getDataLang();
+  const { data: current } = await supabase
+    .from("items")
+    .select("name_ru, name_en, description_ru, description_en, tags")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (!current) return abort("notFound");
+  const parsed = parseSave(input, mode, current);
   if ("error" in parsed) return abort(parsed.error ?? "unknown");
 
   const { data: existing, error: loadError } = await supabase
@@ -162,6 +181,7 @@ export async function updateItem(
     await supabase.from("item_photos").update({ is_primary: true }).eq("item_id", id.data).eq("storage_path", primary);
   }
 
+  translateAfterSave(mode, [{ type: "item", id: id.data }]);
   refresh();
   return { ok: true, data: undefined };
 }

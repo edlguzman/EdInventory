@@ -1,7 +1,7 @@
 export type ItemSummary = {
   id: string;
-  nameRu: string;
-  nameEn: string;
+  nameRu: string | null;
+  nameEn: string | null;
   categoryId: string | null;
   locationId: string | null;
   tags: string[];
@@ -26,8 +26,5 @@ export type ItemDetail = Omit<ItemSummary, "thumbUrl" | "photoCount"> & {
   photos: ItemPhoto[];
 };
 
-/** Text in the interface language; if it is empty there, the other language (CLAUDE.md). */
-export function pickText(ru: string | null | undefined, en: string | null | undefined, locale: string) {
-  const [first, second] = locale === "en" ? [en, ru] : [ru, en];
-  return first?.trim() ? first : (second ?? "");
-}
+/** Text in the display language; if it is empty there, the other language (lib/data-lang). */
+export { pickText } from "@/lib/data-lang";

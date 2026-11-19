@@ -1,8 +1,9 @@
 "use client";
 
+import { useDataLang } from "@/components/data-lang/context";
 import Link from "next/link";
 import { ImageOff } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useLocations } from "@/components/locations/locations-context";
 import { Photo } from "@/components/ui/photo";
 import type { CategoryOption } from "@/lib/items/data";
@@ -23,7 +24,7 @@ function shortPath(full: string) {
 }
 
 function useItemLabels(categories: CategoryOption[], fullPath = false) {
-  const locale = useLocale();
+  const { display: locale } = useDataLang();
   const { byId, path } = useLocations();
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   return {

@@ -6,6 +6,7 @@ import { MAX_TEXT, phraseParts, readAiForm } from "@/lib/ai/input";
 import { aiFailure, cleanTags } from "@/lib/ai/respond";
 import { aiError, guardAiRequest } from "@/lib/ai/route";
 import type { SearchResult } from "@/lib/ai/types";
+import { getDataLang } from "@/lib/auth";
 
 // Model-facing schema: "" means "no filter".
 const outputSchema = z.object({
@@ -26,14 +27,18 @@ export async function POST(request: NextRequest) {
 
   const guard = await guardAiRequest("search");
   if (!guard.ok) return guard.response;
-  const [categories, places] = await Promise.all([aiCategories(guard.supabase), aiLocations(guard.supabase)]);
+  const [categories, places, mode] = await Promise.all([aiCategories(guard.supabase), aiLocations(guard.supabase), getDataLang()]);
+  const termsRule =
+    mode === "en"
+      ? "terms: 3-12 lowercase English search words for the thing the user is looking for (the inventory is in English),"
+      : "terms: 3-12 lowercase search words for the thing the user is looking for: the key nouns in Russian AND English,";
 
   try {
     const r = await generateJson(outputSchema, {
       systemInstruction: [
         "You turn a question about a personal home inventory into a database search.",
         'Example: "где моя дрель?" -> terms: дрель, дрели, шуруповерт, электроинструмент, drill, power drill.',
-        "terms: 3-12 lowercase search words for the thing the user is looking for: the key nouns in Russian AND English,",
+        termsRule,
         "with close synonyms and common word forms. No filler words (где, мой, лежит, where, my, is).",
         "category_id: only if the user explicitly limits the search to a kind of things matching a category below, else \"\".",
         'location_id: only if the user explicitly names a place to look in ("на даче", "in the garage"); the best matching place id below, else "".',

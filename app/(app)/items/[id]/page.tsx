@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { ItemView } from "@/components/items/item-view";
+import { getDisplayLang } from "@/lib/auth";
 import { getCategories, getItem } from "@/lib/items/data";
 import { pickText } from "@/lib/items/types";
 
@@ -12,7 +12,7 @@ async function load(id: string) {
 
 export async function generateMetadata({ params }: PageProps<"/items/[id]">): Promise<Metadata> {
   const item = await load((await params).id);
-  return item ? { title: pickText(item.nameRu, item.nameEn, await getLocale()) } : {};
+  return item ? { title: pickText(item.nameRu, item.nameEn, await getDisplayLang()) } : {};
 }
 
 export default async function ItemPage({ params }: PageProps<"/items/[id]">) {

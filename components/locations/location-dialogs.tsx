@@ -12,6 +12,7 @@ import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
 import { useErrorText } from "@/lib/use-error-text";
 import { LOCATION_NAME_MAX, locationNamesSchema, type NamePairInput } from "@/lib/validation/names";
+import { useDataLang } from "@/components/data-lang/context";
 import { expandAll } from "./expanded-store";
 import { LocationPicker } from "./location-picker";
 import { setCurrentLocationId, useCurrentLocation, useLocations } from "./locations-context";
@@ -146,11 +147,12 @@ function CreateSheet({ parentId, onClose, notify }: { parentId: string | null; o
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const { byId, path } = useLocations();
+  const { mode } = useDataLang();
   const [parent, setParent] = useState<string | null>(parentId);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
-    resolver: zodResolver(locationNamesSchema),
+    resolver: zodResolver(locationNamesSchema(mode)),
     defaultValues: { name_ru: "", name_en: "" },
   });
   const parentNode = parent ? byId.get(parent) : undefined;
@@ -221,10 +223,11 @@ function RenameSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const { byId } = useLocations();
+  const { mode } = useDataLang();
   const loc = byId.get(id);
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
-    resolver: zodResolver(locationNamesSchema),
+    resolver: zodResolver(locationNamesSchema(mode)),
     defaultValues: { name_ru: loc?.nameRu ?? "", name_en: loc?.nameEn ?? "" },
   });
   if (!loc) return null;
