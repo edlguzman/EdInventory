@@ -78,6 +78,7 @@ export function MultiAdd({
 }) {
   const t = useTranslations("multi");
   const tItems = useTranslations("items");
+  const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const { byId, path } = useLocations();
@@ -174,6 +175,10 @@ export function MultiAdd({
       photo?.close();
     }
   }
+
+  // Cancel goes back to the "Add" screen; found items are not thrown away without asking.
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancel = () => (found.length > 0 ? setConfirmCancel(true) : onCancel());
 
   const update = (key: string, patch: Partial<Found>) => {
     setFound((list) => list.map((f) => (f.key === key ? { ...f, ...patch } : f)));
@@ -327,15 +332,11 @@ export function MultiAdd({
           <p className="font-medium">{t("title")}</p>
           <p className="text-sm text-muted">{t("intro")}</p>
         </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          aria-label={t("backToSingle")}
-          className="-mt-2 -mr-3 flex size-11 shrink-0 items-center justify-center text-muted"
-        >
-          <X className="size-5" aria-hidden />
-        </button>
+        {stage.kind === "review" && found.length > 1 && (
+          <Button variant="ghost" onClick={reset} disabled={saving} className="-mt-2 -mr-3 shrink-0 text-sm">
+            {t("otherPhoto")}
+          </Button>
+        )}
       </div>
 
       {error && <Alert>{errorText(error)}</Alert>}
@@ -354,6 +355,7 @@ export function MultiAdd({
               <p className="text-sm text-muted">{t("tips")}</p>
             </>
           )}
+          <Button onClick={cancel}>{tCommon("cancel")}</Button>
         </>
       )}
 
@@ -495,8 +497,8 @@ export function MultiAdd({
               </ul>
 
               <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 flex gap-2 bg-background/95 px-4 py-2 backdrop-blur">
-                <Button onClick={reset} disabled={saving} className="flex-1">
-                  {t("otherPhoto")}
+                <Button onClick={cancel} disabled={saving} className="flex-1">
+                  {tCommon("cancel")}
                 </Button>
                 <Button
                   variant="primary"
@@ -516,6 +518,24 @@ export function MultiAdd({
           )}
         </>
       )}
+
+      <Sheet
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        title={t("cancelTitle")}
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={() => setConfirmCancel(false)} className="flex-1">
+              {t("keepReviewing")}
+            </Button>
+            <Button variant="danger" onClick={onCancel} className="flex-1">
+              {t("discard")}
+            </Button>
+          </div>
+        }
+      >
+        <p>{t("cancelText", { count: found.length })}</p>
+      </Sheet>
 
       <LocationPicker
         open={picking}

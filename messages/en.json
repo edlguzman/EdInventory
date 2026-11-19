@@ -543,7 +543,6 @@
     "title": "Several items in one photo",
     "intro": "The AI finds the separate items and cuts them out of the photo. Check the list and save the ones you need.",
     "tips": "Shoot straight on and in good light, so the items do not cover each other. Up to 30 items per photo, one AI request.",
-    "backToSingle": "Back to one item",
     "wholePhoto": "Whole photo",
     "step": {
       "processing": "Processing the photo…",
@@ -566,7 +565,11 @@
     "saved": "{count, plural, one {Saved # item} other {Saved # items}}",
     "openPlace": "Open the place",
     "openItems": "To my items",
-    "another": "Shoot another shelf"
+    "another": "Shoot another shelf",
+    "cancelTitle": "Cancel?",
+    "cancelText": "{count, plural, one {The # item found will not be saved.} other {The # items found will not be saved.}}",
+    "keepReviewing": "Back to the list",
+    "discard": "Cancel"
   },
   "addChoice": {
     "multi": {
