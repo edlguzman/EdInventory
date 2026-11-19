@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <DataLangProvider mode={mode} silentMissingEn={silentMissingEn}>
-      <LocationsProvider locations={locations}>
+      <LocationsProvider locations={locations} userId={user.id}>
         <LocationDialogsProvider>
           <CurrentLocationBar />
           <OfflineBanner />

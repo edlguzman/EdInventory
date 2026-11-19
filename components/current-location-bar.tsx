@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MapPin, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocationPicker } from "@/components/locations/location-picker";
-import { setCurrentLocationId, useCurrentLocation, useLocations } from "@/components/locations/locations-context";
+import { useCurrentLocation, useLocations, useSetCurrentLocation } from "@/components/locations/locations-context";
 
 /** Shortens "A → B → C → D" to "… → C → D" so the end of the path stays visible. */
 function shortPath(full: string) {
@@ -17,6 +17,7 @@ export function CurrentLocationBar() {
   const t = useTranslations("here");
   const { path } = useLocations();
   const current = useCurrentLocation();
+  const setCurrentLocationId = useSetCurrentLocation();
   const [picking, setPicking] = useState(false);
 
   return (

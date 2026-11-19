@@ -6,7 +6,7 @@ import { Building2, Camera, CircleHelp, Home, MapPin, Mic, Package, Search, Spar
 import { useTranslations } from "next-intl";
 import { createLocation } from "@/app/(app)/locations/actions";
 import { useDataLang } from "@/components/data-lang/context";
-import { setCurrentLocationId } from "@/components/locations/locations-context";
+import { useSetCurrentLocation } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
 import { completeOnboarding } from "@/lib/onboarding/actions";
 import { useErrorText } from "@/lib/use-error-text";
@@ -26,6 +26,7 @@ const PRESETS = [
  */
 export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
   const t = useTranslations("onboarding");
+  const setCurrentLocationId = useSetCurrentLocation();
   const errorText = useErrorText();
   const router = useRouter();
   const { mode: dataMode } = useDataLang();

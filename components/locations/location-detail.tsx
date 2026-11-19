@@ -9,7 +9,7 @@ import type { ItemSummary } from "@/lib/items/types";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/buttons";
 import { useLocationActions } from "./location-dialogs";
-import { setCurrentLocationId, useCurrentLocation, useLocations } from "./locations-context";
+import { useCurrentLocation, useLocations, useSetCurrentLocation } from "./locations-context";
 
 export function LocationDetail({ id, items, categories }: { id: string; items: ItemSummary[]; categories: CategoryOption[] }) {
   const tItems = useTranslations("items");
@@ -19,6 +19,7 @@ export function LocationDetail({ id, items, categories }: { id: string; items: I
   const { byId, childrenOf, name } = useLocations();
   const { openMenu, openCreate } = useLocationActions();
   const current = useCurrentLocation();
+  const setCurrentLocationId = useSetCurrentLocation();
   const loc = byId.get(id);
 
   // Deleted while open: the delete dialog navigates away; show a short fallback meanwhile.
