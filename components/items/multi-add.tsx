@@ -22,6 +22,9 @@ import { openPhoto, UnsupportedImageError, type ProcessedPhoto } from "@/lib/pho
 import { createClient } from "@/lib/supabase/client";
 import { useErrorText } from "@/lib/use-error-text";
 import { ITEM_NAME_MAX } from "@/lib/validation/items";
+import { findPhotoUses, findSimilarItems, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
+import { fileHash } from "@/lib/photos/hash";
+import { PhotoUsedNotice, SimilarNote } from "./duplicate-notice";
 import type { ItemSeed } from "./item-form";
 
 type Found = {
@@ -30,6 +33,8 @@ type Found = {
   crop: ProcessedPhoto;
   preview: string;
   selected: boolean;
+  /** The user ticked or unticked it: the duplicate check no longer changes the tick. */
+  touched: boolean;
   name_ru: string;
   name_en: string;
   category_id: string | null;
@@ -39,6 +44,7 @@ type Stage =
   | { kind: "pick" }
   | { kind: "working"; step: "processing" | "detecting" | "cutting" }
   | { kind: "review" }
+  | { kind: "used"; items: ExistingItem[] }
   | { kind: "done"; count: number; locationId: string | null };
 
 const fieldClass =
@@ -79,6 +85,7 @@ export function MultiAdd({
   const t = useTranslations("multi");
   const tItems = useTranslations("items");
   const tCommon = useTranslations("common");
+  const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const { byId, path } = useLocations();
@@ -91,6 +98,8 @@ export function MultiAdd({
   const [stage, setStage] = useState<Stage>({ kind: "pick" });
   const [overview, setOverview] = useState<(ProcessedPhoto & { url: string }) | null>(null);
   const [found, setFound] = useState<Found[]>([]);
+  /** Card key -> existing item with a similar name (duplicate check, no AI). */
+  const [similar, setSimilar] = useState<Record<string, ExistingItem>>({});
   const [error, setError] = useState<string>();
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [showBox, setShowBox] = useState<Found | null>(null);
@@ -120,29 +129,33 @@ export function MultiAdd({
     releaseAll();
     setOverview(null);
     setFound([]);
+    setSimilar({});
     setInvalid(new Set());
     setError(undefined);
     setStage({ kind: "pick" });
   }
 
-  // Start with the photo picked on the "Add" screen (once, also under Strict Mode).
-  const started = useRef(false);
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    void start(initialFile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The picked file and the SHA-256 of it: the same photo added again is caught before the AI.
+  const fileRef = useRef<File | null>(null);
+  const hashRef = useRef<string | null>(null);
 
-  async function start(file: File | undefined) {
+  async function start(file: File | undefined, { recheck = true } = {}) {
     if (!file) return;
     reset();
     setStage({ kind: "working", step: "processing" });
     let photo: Awaited<ReturnType<typeof openPhoto>> | null = null;
     try {
-      photo = await openPhoto(file);
+      fileRef.current = file;
+      const [opened, hash] = await Promise.all([openPhoto(file), fileHash(file)]);
+      photo = opened;
+      hashRef.current = hash;
       const whole = await photo.process();
       setOverview({ ...whole, url: track(whole.main) });
+
+      if (recheck && hash) {
+        const uses = (await findPhotoUses([hash]).catch(() => ({}) as Record<string, ExistingItem[]>))[hash];
+        if (uses?.length) return setStage({ kind: "used", items: uses });
+      }
 
       setStage({ kind: "working", step: "detecting" });
       const r = await recognizeItems(new Blob([whole.main], { type: "image/jpeg" }), locale);
@@ -161,6 +174,7 @@ export function MultiAdd({
           crop,
           preview: track(crop.thumb),
           selected: true,
+          touched: false,
           name_ru: ai.name_ru,
           name_en: ai.name_en,
           category_id: ai.category_id,
@@ -176,6 +190,15 @@ export function MultiAdd({
     }
   }
 
+  // Start with the photo picked on the "Add" screen (once, also under Strict Mode).
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void Promise.resolve().then(() => start(initialFile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Cancel goes back to the "Add" screen; found items are not thrown away without asking.
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancel = () => (found.length > 0 ? setConfirmCancel(true) : onCancel());
@@ -189,6 +212,32 @@ export function MultiAdd({
       return next;
     });
   };
+
+  // Similar items already in the inventory (by name, no AI): checked when the list appears
+  // and again when the place changes. Untouched cards with a match are unticked.
+  const reviewKeys = stage.kind === "review" ? found.map((f) => f.key).join() : "";
+  useEffect(() => {
+    if (!reviewKeys) return;
+    const list = found;
+    let stale = false;
+    findSimilarItems({ names: list.map((f) => ({ ru: f.ai.name_ru, en: f.ai.name_en })), locationId })
+      .then((matches) => {
+        if (stale) return;
+        const byKey: Record<string, ExistingItem> = {};
+        list.forEach((f, i) => {
+          if (matches[i]) byKey[f.key] = matches[i];
+        });
+        setSimilar(byKey);
+        setFound((cur) => cur.map((f) => (f.touched ? f : { ...f, selected: !byKey[f.key] })));
+      })
+      .catch(() => undefined);
+    return () => {
+      stale = true;
+    };
+    // Re-run for a new list or a new place only (not on every edit of a name).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewKeys, locationId]);
+  const unticked = found.filter((f) => similar[f.key] && !f.selected).length;
 
   const selected = found.filter((f) => f.selected);
   const allSelected = found.length > 0 && selected.length === found.length;
@@ -242,6 +291,7 @@ export function MultiAdd({
     const result = await createItemsBatch({
       location_id: locationId,
       overview: overviewPath,
+      overviewHash: hashRef.current,
       items: items.map(({ f, id: itemId, photo }) => ({
         id: itemId,
         photo,
@@ -343,7 +393,9 @@ export function MultiAdd({
 
       {(stage.kind === "pick" || working) && (
         <>
-          {overview && <Photo src={overview.url} alt={t("wholePhoto")} className="max-h-72 w-full rounded-xl object-contain" />}
+          {overview && (
+            <Photo src={overview.url} alt={t("wholePhoto")} className="max-h-72 w-full rounded-xl object-contain" />
+          )}
           {working ? (
             <p role="status" className="flex min-h-11 items-center gap-2 text-sm text-muted">
               <LoaderCircle className="size-4 animate-spin" aria-hidden />
@@ -357,6 +409,20 @@ export function MultiAdd({
           )}
           <Button onClick={cancel}>{tCommon("cancel")}</Button>
         </>
+      )}
+
+      {stage.kind === "used" && (
+        <PhotoUsedNotice
+          items={stage.items}
+          actions={
+            <>
+              <Button variant="primary" onClick={() => void start(fileRef.current ?? undefined, { recheck: false })}>
+                {tDup("recognizeAnyway")}
+              </Button>
+              <Button onClick={onCancel}>{tCommon("cancel")}</Button>
+            </>
+          }
+        />
       )}
 
       {stage.kind === "review" && overview && (
@@ -412,15 +478,22 @@ export function MultiAdd({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-muted">{t("selectedOf", { n: selected.length, total: found.length })}</span>
+                <span className="text-sm text-muted">
+                  {t("selectedOf", { n: selected.length, total: found.length })}
+                </span>
                 <Button
                   variant="ghost"
                   className="-mr-4"
-                  onClick={() => setFound((list) => list.map((f) => ({ ...f, selected: !allSelected })))}
+                  onClick={() => setFound((list) => list.map((f) => ({ ...f, selected: !allSelected, touched: true })))}
                 >
                   {allSelected ? t("selectNone") : t("selectAll")}
                 </Button>
               </div>
+              {unticked > 0 && (
+                <p className="-mt-2 text-sm text-amber-800 dark:text-amber-200">
+                  {tDup("similarHint", { count: unticked })}
+                </p>
+              )}
 
               <ul className="flex flex-col gap-3">
                 {found.map((f, i) => {
@@ -429,68 +502,73 @@ export function MultiAdd({
                     <li
                       key={f.key}
                       id={`${id}-${f.key}`}
-                      className={`flex gap-3 rounded-xl border p-2 transition-opacity ${
-                        bad ? "border-red-500" : "border-border"
-                      } ${f.selected ? "" : "opacity-60"}`}
+                      className={`flex flex-col gap-2 rounded-xl border p-2 ${bad ? "border-red-500" : "border-border"}`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setShowBox(f)}
-                        aria-label={t("showOnPhoto", { n: i + 1 })}
-                        className="size-20 shrink-0 overflow-hidden rounded-lg bg-surface"
-                      >
-                        <Photo src={f.preview} alt="" className="size-full object-cover" />
-                      </button>
-                      <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        {editLangs.map((lang) => {
-                          const key = lang === "ru" ? "name_ru" : "name_en";
-                          return (
-                            <input
-                              key={lang}
-                              lang={lang}
-                              value={f[key]}
-                              maxLength={ITEM_NAME_MAX}
-                              disabled={saving}
-                              aria-invalid={bad || undefined}
-                              aria-label={editLangs.length === 1 ? t("nameOf", { n: i + 1 }) : `${t("nameOf", { n: i + 1 })} (${lang.toUpperCase()})`}
-                              placeholder={editLangs.length === 1 ? undefined : lang.toUpperCase()}
-                              onChange={(e) => update(f.key, { [key]: e.target.value })}
-                              className={fieldClass}
-                            />
-                          );
-                        })}
-                        <select
-                          value={f.category_id ?? ""}
+                      <div className={`flex gap-3 transition-opacity ${f.selected ? "" : "opacity-60"}`}>
+                        <button
+                          type="button"
+                          onClick={() => setShowBox(f)}
+                          aria-label={t("showOnPhoto", { n: i + 1 })}
+                          className="size-20 shrink-0 overflow-hidden rounded-lg bg-surface"
+                        >
+                          <Photo src={f.preview} alt="" className="size-full object-cover" />
+                        </button>
+                        <div className="flex min-w-0 flex-1 flex-col gap-2">
+                          {editLangs.map((lang) => {
+                            const key = lang === "ru" ? "name_ru" : "name_en";
+                            return (
+                              <input
+                                key={lang}
+                                lang={lang}
+                                value={f[key]}
+                                maxLength={ITEM_NAME_MAX}
+                                disabled={saving}
+                                aria-invalid={bad || undefined}
+                                aria-label={
+                                  editLangs.length === 1
+                                    ? t("nameOf", { n: i + 1 })
+                                    : `${t("nameOf", { n: i + 1 })} (${lang.toUpperCase()})`
+                                }
+                                placeholder={editLangs.length === 1 ? undefined : lang.toUpperCase()}
+                                onChange={(e) => update(f.key, { [key]: e.target.value })}
+                                className={fieldClass}
+                              />
+                            );
+                          })}
+                          <select
+                            value={f.category_id ?? ""}
+                            disabled={saving}
+                            aria-label={t("categoryOf", { n: i + 1 })}
+                            onChange={(e) => update(f.key, { category_id: e.target.value || null })}
+                            className={`${fieldClass} appearance-none text-sm`}
+                          >
+                            <option value="">{tItems("noCategory")}</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {label(c)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={f.selected}
+                          aria-label={t("saveThis", { n: i + 1 })}
                           disabled={saving}
-                          aria-label={t("categoryOf", { n: i + 1 })}
-                          onChange={(e) => update(f.key, { category_id: e.target.value || null })}
-                          className={`${fieldClass} appearance-none text-sm`}
+                          onClick={() => update(f.key, { selected: !f.selected, touched: true })}
+                          className="-m-2 flex size-11 shrink-0 items-start justify-end p-2"
                         >
-                          <option value="">{tItems("noCategory")}</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {label(c)}
-                            </option>
-                          ))}
-                        </select>
+                          <span
+                            className={`flex size-6 items-center justify-center rounded-md border-2 ${
+                              f.selected ? "border-accent bg-accent text-accent-foreground" : "border-border"
+                            }`}
+                          >
+                            {f.selected && <Check className="size-4" strokeWidth={3} aria-hidden />}
+                          </span>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={f.selected}
-                        aria-label={t("saveThis", { n: i + 1 })}
-                        disabled={saving}
-                        onClick={() => update(f.key, { selected: !f.selected })}
-                        className="-m-2 flex size-11 shrink-0 items-start justify-end p-2"
-                      >
-                        <span
-                          className={`flex size-6 items-center justify-center rounded-md border-2 ${
-                            f.selected ? "border-accent bg-accent text-accent-foreground" : "border-border"
-                          }`}
-                        >
-                          {f.selected && <Check className="size-4" strokeWidth={3} aria-hidden />}
-                        </span>
-                      </button>
+                      {similar[f.key] && <SimilarNote item={similar[f.key]} />}
                     </li>
                   );
                 })}
@@ -548,7 +626,13 @@ export function MultiAdd({
         }}
       />
 
-      <Sheet open={!!showBox} onClose={() => setShowBox(null)} title={showBox ? (locale === "en" ? showBox.name_en || showBox.name_ru : showBox.name_ru || showBox.name_en) : ""}>
+      <Sheet
+        open={!!showBox}
+        onClose={() => setShowBox(null)}
+        title={
+          showBox ? (locale === "en" ? showBox.name_en || showBox.name_ru : showBox.name_ru || showBox.name_en) : ""
+        }
+      >
         {showBox && overview && (
           <div className="relative overflow-hidden rounded-lg">
             <Photo src={overview.url} alt={t("wholePhoto")} className="block w-full" />

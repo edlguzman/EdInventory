@@ -68,6 +68,7 @@ export type Database = {
           id: string
           is_primary: boolean
           item_id: string
+          source_hash: string | null
           storage_path: string
           user_id: string
         }
@@ -76,6 +77,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           item_id: string
+          source_hash?: string | null
           storage_path: string
           user_id?: string
         }
@@ -84,6 +86,7 @@ export type Database = {
           id?: string
           is_primary?: boolean
           item_id?: string
+          source_hash?: string | null
           storage_path?: string
           user_id?: string
         }
@@ -312,6 +315,20 @@ export type Database = {
         }[]
       }
       seed_default_categories: { Args: { uid: string }; Returns: undefined }
+      similar_items: {
+        Args: {
+          p_location_id?: string
+          p_min?: number
+          p_names_en: string[]
+          p_names_ru: string[]
+        }
+        Returns: {
+          idx: number
+          in_place: boolean
+          item_id: string
+          score: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

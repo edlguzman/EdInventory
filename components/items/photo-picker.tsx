@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, LoaderCircle, Star, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { MAX_PHOTOS } from "@/lib/photos/paths";
+import { fileHash } from "@/lib/photos/hash";
 import { processPhoto, UnsupportedImageError } from "@/lib/photos/process";
 import { Photo } from "@/components/ui/photo";
 
 /** A photo in the form: either already stored (existing) or processed and waiting for upload (new). */
 export type PhotoDraft =
   | { key: string; kind: "existing"; path: string; preview: string | null; url: string | null }
-  | { key: string; kind: "new"; main: Blob; thumb: Blob; preview: string };
+  | { key: string; kind: "new"; main: Blob; thumb: Blob; preview: string; hash: string | null };
 
 export function PhotoPicker({
   photos,
@@ -46,8 +47,8 @@ export function PhotoPicker({
     const added: PhotoDraft[] = [];
     for (const file of files) {
       try {
-        const { main, thumb } = await processPhoto(file);
-        added.push({ key: crypto.randomUUID(), kind: "new", main, thumb, preview: URL.createObjectURL(thumb) });
+        const [{ main, thumb }, hash] = await Promise.all([processPhoto(file), fileHash(file)]);
+        added.push({ key: crypto.randomUUID(), kind: "new", main, thumb, preview: URL.createObjectURL(thumb), hash });
       } catch (error) {
         onError(error instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
       }
