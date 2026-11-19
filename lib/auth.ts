@@ -16,9 +16,14 @@ export const getUser = cache(async () => {
   return data.user;
 });
 
+/**
+ * No valid user: clear this device's session first (/auth/signout), then sign in.
+ * Redirecting straight to /login would loop when the cookie still holds a token that is
+ * signed correctly but revoked: the proxy (signature check only) would send it back here.
+ */
 export async function requireUser() {
   const user = await getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/signout");
   return user;
 }
 
