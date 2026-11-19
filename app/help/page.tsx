@@ -13,6 +13,7 @@ import {
   Smartphone,
   Tags,
   UserCheck,
+  Mic,
   ScanSearch,
   type LucideIcon,
 } from "lucide-react";
@@ -25,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" | "add" | "multi" | "find" | "views" | "categories" | "tips"; icon: LucideIcon }[] = [
+const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" | "add" | "multi" | "dictation" | "find" | "views" | "categories" | "tips"; icon: LucideIcon }[] = [
   { key: "approval", icon: UserCheck },
   { key: "install", icon: Smartphone },
   { key: "places", icon: FolderTree },
@@ -33,6 +34,7 @@ const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" 
   { key: "languages", icon: Languages },
   { key: "add", icon: Camera },
   { key: "multi", icon: ScanSearch },
+  { key: "dictation", icon: Mic },
   { key: "find", icon: Search },
   { key: "views", icon: LayoutGrid },
   { key: "categories", icon: Tags },

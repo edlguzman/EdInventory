@@ -1,5 +1,13 @@
 import type { TranslateRequest } from "./translate-schema";
-import type { ItemContext, PlaceMode, PlaceResult, RecognizeMultiResult, RecognizeResult, SearchResult } from "./types";
+import type {
+  ItemContext,
+  PlaceMode,
+  PlaceResult,
+  RecognizeMultiResult,
+  RecognizeResult,
+  SearchResult,
+  TranscribeResult,
+} from "./types";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
 export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "accountInactive" | "network";
@@ -55,6 +63,15 @@ export function recognizeItems(image: Blob, locale: string) {
     "/api/ai/recognize-multi",
     form({ image, meta: { locale } }),
     (d): d is RecognizeMultiResult => isObject(d) && Array.isArray(d.items),
+  );
+}
+
+/** Dictation into one field: the recording -> text in the field's language. 1 unit of the daily limit. */
+export function transcribe(audio: Blob, meta: { lang: "ru" | "en"; kind: "name" | "description" }) {
+  return call<TranscribeResult>(
+    "/api/ai/transcribe",
+    form({ audio, meta }),
+    (d): d is TranscribeResult => isObject(d) && typeof d.text === "string",
   );
 }
 

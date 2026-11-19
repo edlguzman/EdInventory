@@ -49,3 +49,6 @@ export type ItemContext = {
 export type DetectedItem = RecognizeResult & { box: [number, number, number, number] };
 
 export type RecognizeMultiResult = { items: DetectedItem[] };
+
+/** Dictation into a text field: the text in the field's language ("" = nothing intelligible). */
+export type TranscribeResult = { text: string };

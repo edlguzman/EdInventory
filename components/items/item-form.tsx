@@ -12,6 +12,7 @@ import { findPhotoUses, type ExistingItem } from "@/app/(app)/items/duplicate-ac
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
+import { DictationField } from "@/components/dictation-field";
 import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
 import { recognizeItem } from "@/lib/ai/client";
@@ -313,12 +314,26 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
 
       {editLangs.map((lang) => {
         const name = lang === "ru" ? "description_ru" : "description_en";
+        const otherName = lang === "ru" ? "description_en" : "description_ru";
         const err = fieldError(errors[name]?.message);
+        const set = (field: typeof name | typeof otherName) => (value: string) =>
+          setValue(field, value, { shouldValidate: true, shouldDirty: true });
         return (
-          <div key={lang} className="flex flex-col gap-1.5">
-            <label htmlFor={`${id}-${name}`} className="text-sm font-medium">
-              {editLangs.length === 1 ? t("description") : lang === "ru" ? t("descriptionRu") : t("descriptionEn")}
-            </label>
+          <DictationField
+            key={lang}
+            label={editLangs.length === 1 ? t("description") : lang === "ru" ? t("descriptionRu") : t("descriptionEn")}
+            htmlFor={`${id}-${name}`}
+            lang={lang}
+            kind="description"
+            max={DESCRIPTION_MAX}
+            getValue={() => form.getValues(name)}
+            setValue={set(name)}
+            other={
+              editLangs.length === 2
+                ? { lang: lang === "ru" ? "en" : "ru", get: () => form.getValues(otherName), set: set(otherName) }
+                : undefined
+            }
+          >
             <textarea
               id={`${id}-${name}`}
               lang={lang}
@@ -329,7 +344,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
               {...register(name)}
             />
             {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
-          </div>
+          </DictationField>
         );
       })}
 
