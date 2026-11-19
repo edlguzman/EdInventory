@@ -29,7 +29,7 @@
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=                 # только сервер
-GEMINI_MODEL=gemini-2.5-flash   # имя модели берём из env, не хардкодим
+GEMINI_MODEL=gemini-3.6-flash   # имя модели берём из env, не хардкодим (gemini-2.5-flash новым пользователям недоступна, 404)
 AI_DAILY_LIMIT_PER_USER=100
 CRON_SECRET=                    # только сервер; Vercel Cron шлёт его в Authorization: Bearer …
 ```
