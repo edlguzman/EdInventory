@@ -1,7 +1,9 @@
 import type { TranslateRequest } from "./translate-schema";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
-export type AiClientError = "aiLimit" | "aiBusy" | "aiFailed" | "unauthorized" | "network";
+export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "network";
+
+const KNOWN: readonly string[] = ["aiLimit", "aiBusy", "aiProviderQuota", "aiFailed", "unauthorized"];
 
 export async function translateName(input: TranslateRequest): Promise<{ text: string } | { error: AiClientError }> {
   try {
@@ -14,10 +16,10 @@ export async function translateName(input: TranslateRequest): Promise<{ text: st
     if (res.ok && data && typeof data === "object" && "text" in data && typeof data.text === "string") {
       return { text: data.text };
     }
-    if (res.status === 429) return { error: "aiLimit" }; // our daily limit
-    if (res.status === 503) return { error: "aiBusy" }; // Google overloaded / rate limited
-    if (res.status === 401) return { error: "unauthorized" };
-    return { error: "aiFailed" };
+    // Routes answer { error: AiErrorCode }; use it when it is one we know.
+    const code = data && typeof data === "object" && "error" in data ? data.error : undefined;
+    if (typeof code === "string" && KNOWN.includes(code)) return { error: code as AiClientError };
+    return { error: res.status === 401 ? "unauthorized" : "aiFailed" };
   } catch {
     return { error: "network" };
   }

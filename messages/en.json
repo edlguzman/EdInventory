@@ -149,6 +149,7 @@
     "notFound": "Not found. It may have been deleted already.",
     "aiLimit": "Daily AI request limit reached. Try again later.",
     "aiBusy": "AI is busy right now. Try again in a minute.",
+    "aiProviderQuota": "The Gemini key has used up its daily quota (free tier). Translation will work again after Google resets the quota, within about a day.",
     "aiFailed": "AI could not answer. Please try again.",
     "unauthorized": "Session expired. Please sign in again.",
     "network": "No connection to the server. Check your internet.",

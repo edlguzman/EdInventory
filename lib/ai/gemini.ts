@@ -38,12 +38,22 @@ type GenerateOptions = {
 };
 
 const isTimeout = (e: unknown) => e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError");
-/** 500/503: model overloaded; 429: Google's per-minute rate limit on the API key. */
-const isOverloaded = (e: unknown) => e instanceof ApiError && [429, 500, 503].includes(e.status);
 const isUnsupportedThinking = (e: unknown) => e instanceof ApiError && e.status === 400 && /thinking/i.test(e.message);
 
 /**
- * True when the failure is temporary on Google's side (overload, rate limit, timeout):
+ * 429 with a per-day quota id (e.g. "GenerateRequestsPerDayPerProjectPerModel-FreeTier"):
+ * the Gemini key ran out of its daily quota. Retrying is pointless for hours.
+ */
+export function isProviderQuotaExhausted(e: unknown) {
+  return e instanceof ApiError && e.status === 429 && /PerDay/i.test(e.message);
+}
+
+/** 500/503: model overloaded; 429 (not daily): Google's per-minute rate limit on the key. */
+const isOverloaded = (e: unknown) =>
+  e instanceof ApiError && [429, 500, 503].includes(e.status) && !isProviderQuotaExhausted(e);
+
+/**
+ * True when the failure is temporary on Google's side (overload, per-minute limit, timeout):
  * the user should simply try again a bit later.
  */
 export function isAiBusy(error: unknown) {

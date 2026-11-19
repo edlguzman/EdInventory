@@ -1,7 +1,7 @@
 import { ApiError } from "@google/genai";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { generateJson, isAiBusy } from "@/lib/ai/gemini";
+import { generateJson, isAiBusy, isProviderQuotaExhausted } from "@/lib/ai/gemini";
 import { aiError, guardAiRequest } from "@/lib/ai/route";
 import { translateRequestSchema } from "@/lib/ai/translate-schema";
 
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       name: error instanceof Error ? error.name : "unknown",
       status: error instanceof ApiError ? error.status : undefined,
     });
+    if (isProviderQuotaExhausted(error)) return aiError("aiProviderQuota", 503);
     return isAiBusy(error) ? aiError("aiBusy", 503) : aiError("aiFailed", 502);
   }
 }
