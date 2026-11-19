@@ -388,7 +388,7 @@
       "add": {
         "title": "Add an item",
         "points": [
-          "Tap the camera at the bottom and take a photo.",
+          "Tap the camera at the bottom → \"One item\" and take a photo of the item.",
           "AI fills in the name, description and category.",
           "Say where you put it and what it is: “it's dad's old drill, put it in the garage on the rack”.",
           "Check the suggestions and tap “Save”."
@@ -541,7 +541,6 @@
   },
   "multi": {
     "title": "Several items in one photo",
-    "entryHint": "A shelf, a tool board, a drawer — shoot it whole",
     "intro": "The AI finds the separate items and cuts them out of the photo. Check the list and save the ones you need.",
     "tips": "Shoot straight on and in good light, so the items do not cover each other. Up to 30 items per photo, one AI request.",
     "backToSingle": "Back to one item",
@@ -568,5 +567,15 @@
     "openPlace": "Open the place",
     "openItems": "To my items",
     "another": "Shoot another shelf"
+  },
+  "addChoice": {
+    "multi": {
+      "title": "Several items in one photo",
+      "hint": "A shelf, a tool board, a drawer: the AI finds each item"
+    },
+    "single": {
+      "title": "One item",
+      "hint": "Take a close-up photo of one item"
+    }
   }
 }

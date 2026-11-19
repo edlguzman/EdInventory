@@ -65,9 +65,12 @@ async function runPool(tasks: (() => Promise<boolean>)[], limit: number) {
 export function MultiAdd({
   userId,
   categories,
+  initialFile,
   onSingle,
   onCancel,
 }: {
+  /** The photo picked on the "Add" screen: processing starts right away. */
+  initialFile: File;
   userId: string;
   categories: CategoryOption[];
   onSingle: (seed: ItemSeed) => void;
@@ -120,6 +123,15 @@ export function MultiAdd({
     setError(undefined);
     setStage({ kind: "pick" });
   }
+
+  // Start with the photo picked on the "Add" screen (once, also under Strict Mode).
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void start(initialFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function start(file: File | undefined) {
     if (!file) return;
@@ -356,8 +368,8 @@ export function MultiAdd({
                   onClick={() =>
                     onSingle(
                       found[0]
-                        ? { photo: found[0].crop, recognition: found[0].ai }
-                        : { photo: overview, recognition: null },
+                        ? { photos: [found[0].crop], recognition: found[0].ai }
+                        : { photos: [overview], recognition: null },
                     )
                   }
                 >

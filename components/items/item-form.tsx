@@ -1,7 +1,7 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,18 +28,21 @@ import { useOffline } from "@/components/offline-banner";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
-/** A new item handed over with a ready photo and, optionally, what the AI already recognized. */
-export type ItemSeed = { photo: { main: Blob; thumb: Blob }; recognition: RecognizeResult | null };
+/**
+ * A new item handed over with ready photos (the first is primary) and, optionally, what the AI
+ * already recognized. Without a recognition the first photo is recognized right away.
+ */
+export type ItemSeed = { photos: { main: Blob; thumb: Blob }[]; recognition: RecognizeResult | null };
 
 type Props = { userId: string; categories: CategoryOption[] } & (
-  | { mode: "create"; item?: undefined; seed?: ItemSeed }
-  | { mode: "edit"; item: ItemDetail; seed?: undefined }
+  | { mode: "create"; item?: undefined; seed?: ItemSeed; onCancel?: () => void }
+  | { mode: "edit"; item: ItemDetail; seed?: undefined; onCancel?: undefined }
 );
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base outline-none focus:border-accent aria-invalid:border-red-500";
 
-export function ItemForm({ mode, item, userId, categories, seed }: Props) {
+export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Props) {
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
@@ -51,11 +54,11 @@ export function ItemForm({ mode, item, userId, categories, seed }: Props) {
 
   const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
     seed
-      ? [{ key: "seed", kind: "new", main: seed.photo.main, thumb: seed.photo.thumb, preview: URL.createObjectURL(seed.photo.thumb) }]
+      ? seed.photos.map((p, i) => ({ key: `seed-${i}`, kind: "new" as const, main: p.main, thumb: p.thumb, preview: URL.createObjectURL(p.thumb) }))
       : (item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? []),
   );
   const [primaryKey, setPrimaryKey] = useState<string | null>(
-    () => (seed ? "seed" : (item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null)),
+    () => (seed ? (seed.photos.length ? "seed-0" : null) : (item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null)),
   );
   const seeded = seed?.recognition ?? null;
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? seeded?.category_id ?? null);
@@ -125,6 +128,17 @@ export function ItemForm({ mode, item, userId, categories, seed }: Props) {
       setRecognizing(false);
     }
   }
+
+  // Photos handed over without a recognition: recognize the first one once (1 AI request),
+  // as when the first photo is added in the form. The ref keeps it to one request.
+  const autoRecognized = useRef(false);
+  useEffect(() => {
+    if (autoRecognized.current || !seed || seed.recognition || photos.length === 0) return;
+    autoRecognized.current = true;
+    void recognize(photos[0]);
+    // Runs once on mount for the seeded photos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function acceptSuggestion(s: ItemSuggestion) {
     const opts = { shouldDirty: true, shouldValidate: true };
@@ -327,7 +341,7 @@ export function ItemForm({ mode, item, userId, categories, seed }: Props) {
       {errors.tags && <p className="-mt-4 text-sm text-red-600 dark:text-red-400">{fieldError(errors.tags.message ?? errors.tags[0]?.message)}</p>}
 
       <div className="flex gap-2">
-        <Button onClick={() => router.back()} disabled={busy} className="flex-1">
+        <Button onClick={() => (onCancel ? onCancel() : router.back())} disabled={busy} className="flex-1">
           {tCommon("cancel")}
         </Button>
         <Button variant="primary" type="submit" pending={busy} disabled={offline} className="flex-[2]">
