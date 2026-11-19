@@ -17,7 +17,8 @@ npm run dev
 npm run dev            # локальный запуск
 npm run build          # проверка сборки
 npm run lint
-npx supabase db push   # применить миграции к проекту Supabase
+npx supabase db push --remote   # применить миграции к проекту Supabase
+npm run db:types               # обновить типы TypeScript из схемы БД
 ```
 
 ## Перед запуском для других пользователей

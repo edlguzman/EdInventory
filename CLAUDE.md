@@ -37,21 +37,29 @@ AI_DAILY_LIMIT_PER_USER=100
 
 ## Модель данных
 
-У всех таблиц есть `user_id uuid not null references auth.users on delete cascade` и включён RLS с политиками `user_id = auth.uid()` на select/insert/update/delete.
+У всех таблиц есть `user_id uuid not null default auth.uid() references auth.users on delete cascade` и включён RLS с политиками `user_id = (select auth.uid())` на select/insert/update/delete (исключение: `ai_usage`, см. ниже). Права выдаём явно: `anon` ничего, `authenticated` только нужное.
+
+**Связи между таблицами только по паре `(id, user_id)`.** Postgres проверяет внешние ключи в обход RLS, поэтому ключ только по `id` позволил бы сослаться на чужое место, категорию или вещь, зная uuid. У каждой родительской таблицы есть `unique (id, user_id)`, а внешние ключи составные: `(parent_id, user_id)`, `(location_id, user_id)`, `(category_id, user_id)` (с `on delete set null (category_id)`, чтобы `user_id` не обнулялся), `(item_id, user_id)`. Новые связи делаем так же.
+
+**Ограничения длины** (check в БД, те же правила в zod):
+- названия мест и вещей: `name_ru` и `name_en` обязательны оба, 1–200 символов после trim; если пользователь ввёл одно, приложение копирует его во второе;
+- названия категорий: 1–100 символов, оба обязательны;
+- описания: до 2000 символов, nullable;
+- теги: не больше 50.
 
 - **`locations`**: дерево мест любой глубины (parent-child).
   `id, user_id, parent_id (nullable, ссылка на locations.id, on delete restrict), name_ru, name_en, sort_order, created_at`.
   Место без родителя это верхний уровень (дом, дача). Перенос шкафа в другую комнату = смена `parent_id`; вещи внутри переезжают вместе с ним. Запрещаем циклы (нельзя сделать место потомком самого себя), проверка в триггере.
   SQL-функции:
   - `location_descendants(loc_id)`: id места и всех потомков (recursive CTE), для фильтра «всё на Даче».
-  - представление или функция `location_paths`: для каждого места полный путь на обоих языках («Дача → Гараж → Стеллаж»).
+  - представление `location_paths` (`security_invoker`): `id, user_id, parent_id, depth, path_ru, path_en, id_path` — полный путь на обоих языках («Дача → Гараж → Стеллаж»).
 - **`categories`**: `id, user_id, name_ru, name_en, sort_order, created_at`. При регистрации триггер на `auth.users` создаёт стандартный набор: Мебель, Инструменты, Кухня, Электроника, Одежда, Документы, Хозтовары, Спорт и отдых, Личные вещи, Другое (с английскими названиями). Пользователь может переименовывать, добавлять и удалять свои категории; при удалении у вещей `category_id` становится null.
 - **`items`**: `id, user_id, location_id (nullable, on delete restrict), category_id (nullable, on delete set null), name_ru, name_en, description_ru, description_en, tags text[], created_at, updated_at`.
-  Поиск: колонка `search_text` (имена, описания и теги на обоих языках, в нижнем регистре), расширение `pg_trgm` и GIN-индекс.
-- **`item_photos`**: `id, item_id (on delete cascade), user_id, storage_path, is_primary, created_at`.
-- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search'), created_at`. Для дневного лимита запросов к Gemini.
+  Поиск: генерируемая колонка `search_text` (имена, описания и теги на обоих языках), нормализованная функцией `normalize_search()`: нижний регистр и **`ё` → `е`**. Поисковые слова в приложении нормализуем так же. Расширение `pg_trgm` (схема `extensions`) и GIN-индекс.
+- **`item_photos`**: `id, item_id (on delete cascade), user_id, storage_path, is_primary, created_at`. Не больше одного `is_primary` на вещь; `storage_path` строго `{user_id}/{item_id}/….jpg`. Файлы в Storage при удалении вещи сами не удаляются: это делает приложение.
+- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search'), created_at`. Для дневного лимита запросов к Gemini. **Политики только select и insert** (без update/delete): anon key есть в браузере, и с правом delete пользователь мог бы стереть свои записи и обойти лимит.
 
-Storage: приватный бакет `item-photos`, путь `{user_id}/{item_id}/{uuid}.jpg`, политики пускают только в папку своего `user_id`. Фото показываем через signed URLs.
+Storage: приватный бакет `item-photos` (только `image/jpeg`, до 5 МБ), путь `{user_id}/{item_id}/{uuid}.jpg`, политики пускают только в папку своего `user_id`. Фото показываем через signed URLs.
 
 ## Работа с Gemini
 
@@ -79,5 +87,6 @@ Storage: приватный бакет `item-photos`, путь `{user_id}/{item_
 npm run dev        # локальный запуск
 npm run build      # проверка сборки
 npm run lint
-npx supabase db push   # применить миграции к проекту Supabase (CLI не ставим, только через npx)
+npx supabase db push --remote   # применить миграции к проекту Supabase (CLI не ставим, только npx; без --remote CLI 3.x идёт в локальную БД)
+npm run db:types               # перегенерировать lib/supabase/database.types.ts после миграции
 ```
