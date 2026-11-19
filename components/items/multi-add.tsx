@@ -271,7 +271,7 @@ export function MultiAdd({
           {t("saved", { count: stage.count })}
         </p>
         <Link
-          href={stage.locationId ? `/locations/${stage.locationId}` : "/items"}
+          href={stage.locationId ? `/locations/${stage.locationId}` : "/"}
           className="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 font-semibold text-accent-foreground"
         >
           {stage.locationId ? t("openPlace") : t("openItems")}
