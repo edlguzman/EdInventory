@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
+import { findPhotoUses, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
@@ -25,6 +26,7 @@ import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput 
 import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
 import { useOffline } from "@/components/offline-banner";
+import { PhotoUsedNotice } from "./duplicate-notice";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
@@ -32,7 +34,7 @@ import { TagsInput } from "./tags-input";
  * A new item handed over with ready photos (the first is primary) and, optionally, what the AI
  * already recognized. Without a recognition the first photo is recognized right away.
  */
-export type ItemSeed = { photos: { main: Blob; thumb: Blob }[]; recognition: RecognizeResult | null };
+export type ItemSeed = { photos: { main: Blob; thumb: Blob; hash?: string | null }[]; recognition: RecognizeResult | null };
 
 type Props = { userId: string; categories: CategoryOption[] } & (
   | { mode: "create"; item?: undefined; seed?: ItemSeed; onCancel?: () => void }
@@ -45,6 +47,7 @@ const fieldClass =
 export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Props) {
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
+  const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const router = useRouter();
@@ -54,7 +57,14 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
 
   const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
     seed
-      ? seed.photos.map((p, i) => ({ key: `seed-${i}`, kind: "new" as const, main: p.main, thumb: p.thumb, preview: URL.createObjectURL(p.thumb) }))
+      ? seed.photos.map((p, i) => ({
+          key: `seed-${i}`,
+          kind: "new" as const,
+          main: p.main,
+          thumb: p.thumb,
+          preview: URL.createObjectURL(p.thumb),
+          hash: p.hash ?? null,
+        }))
       : (item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? []),
   );
   const [primaryKey, setPrimaryKey] = useState<string | null>(
@@ -73,6 +83,10 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   const [recognized, setRecognized] = useState(!!seeded);
   const [aiError, setAiError] = useState<string>();
   const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
+  // Duplicate check (new items): items that already have a photo made from the same file.
+  const [photoUses, setPhotoUses] = useState<ExistingItem[] | null>(null);
+  const [heldRecognition, setHeldRecognition] = useState<PhotoDraft | null>(null);
+  const checkedHashes = useRef(new Set<string>());
 
   const form = useForm<ItemFieldsInput>({
     resolver: zodResolver(itemFieldsSchema(dataMode)),
@@ -129,13 +143,38 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
     }
   }
 
+  /**
+   * New item only: were any of these photos (by the hash of their source file) added before?
+   * Shows the warning and returns true if so. Each hash is checked once; no AI involved.
+   */
+  async function photosAlreadyUsed(list: PhotoDraft[]) {
+    if (mode !== "create") return false;
+    const hashes = list.flatMap((p) => (p.kind === "new" && p.hash && !checkedHashes.current.has(p.hash) ? [p.hash] : []));
+    if (hashes.length === 0) return false;
+    hashes.forEach((h) => checkedHashes.current.add(h));
+    const uses = Object.values(await findPhotoUses(hashes).catch(() => ({}))).flat();
+    if (uses.length === 0) return false;
+    setPhotoUses((current) => [...(current ?? []), ...uses.filter((u) => !current?.some((c) => c.id === u.id))]);
+    return true;
+  }
+
+  /** First photo of a new item: check for a repeat first, so a known photo costs no AI request. */
+  async function checkThenRecognize(photo: PhotoDraft, list: PhotoDraft[]) {
+    if (await photosAlreadyUsed(list)) return setHeldRecognition(photo);
+    void recognize(photo);
+  }
+
   // Photos handed over without a recognition: recognize the first one once (1 AI request),
   // as when the first photo is added in the form. The ref keeps it to one request.
   const autoRecognized = useRef(false);
   useEffect(() => {
-    if (autoRecognized.current || !seed || seed.recognition || photos.length === 0) return;
+    if (autoRecognized.current || !seed || photos.length === 0) return;
     autoRecognized.current = true;
-    void recognize(photos[0]);
+    // After this render (state updates belong in the async callback, not the effect body).
+    void Promise.resolve().then(async () => {
+      if (seed.recognition) await photosAlreadyUsed(photos);
+      else await checkThenRecognize(photos[0], photos);
+    });
     // Runs once on mount for the seeded photos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -165,6 +204,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
     const fresh = photos.filter((p) => p.kind === "new");
     const pathByKey = new Map(photos.flatMap((p) => (p.kind === "existing" ? [[p.key, p.path] as const] : [])));
     const uploaded: string[] = [];
+    const hashes: Record<string, string> = {};
     setProgress(fresh.length ? { done: 0, total: fresh.length } : null);
     for (const p of fresh) {
       const main = photoPath(userId, itemId, crypto.randomUUID());
@@ -177,6 +217,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
       }
       uploaded.push(main);
       pathByKey.set(p.key, main);
+      if (p.kind === "new" && p.hash) hashes[main] = p.hash;
       setProgress({ done: uploaded.length, total: fresh.length });
     }
     setProgress(null);
@@ -187,13 +228,14 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
     const common = { fields, category_id: categoryId, location_id: locationId };
     const result =
       mode === "create"
-        ? await createItem({ ...common, id: itemId, photos: ordered, primary })
+        ? await createItem({ ...common, id: itemId, photos: ordered, primary, hashes })
         : await updateItem({
             ...common,
             id: itemId,
             keep: photos.flatMap((p) => (p.kind === "existing" ? [p.path] : [])),
             add: uploaded,
             primary,
+            hashes,
           });
     if (!result.ok) return setError(result.error);
 
@@ -215,7 +257,9 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
           const v = form.getValues();
           const firstPhoto = photos.length === 0 && next.length > 0;
           if (firstPhoto && !v.name_ru.trim() && !v.name_en.trim() && !recognized) {
-            void recognize(next.find((p) => p.key === primary) ?? next[0]);
+            void checkThenRecognize(next.find((p) => p.key === primary) ?? next[0], next);
+          } else {
+            void photosAlreadyUsed(next);
           }
           setPhotos(next);
           setPrimaryKey(primary);
@@ -244,6 +288,23 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
           )}
           {aiError && <Alert>{errorText(aiError)}</Alert>}
         </div>
+      )}
+
+      {photoUses && photoUses.length > 0 && (
+        <PhotoUsedNotice
+          items={photoUses}
+          actions={
+            <Button
+              onClick={() => {
+                setPhotoUses(null);
+                if (heldRecognition) void recognize(heldRecognition);
+                setHeldRecognition(null);
+              }}
+            >
+              {heldRecognition ? tDup("recognizeAnyway") : tDup("continueAnyway")}
+            </Button>
+          }
+        />
       )}
 
       {error && <Alert>{errorText(error)}</Alert>}

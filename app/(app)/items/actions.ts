@@ -7,6 +7,7 @@ import type { DataLang } from "@/lib/data-lang";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
+import { photoHashSchema } from "@/lib/validation/photo-hash";
 import { translateAfterSave } from "@/lib/translate/after-save";
 import {
   itemFieldsSchema,
@@ -48,6 +49,12 @@ async function removePhotoFiles(supabase: Supabase, mainPaths: string[]) {
   if (error) console.error("photo files not removed", { count: mainPaths.length, message: error.message });
 }
 
+/** Source-file hash for a photo path (duplicate check); anything malformed becomes null. */
+function hashFor(hashes: Record<string, string> | undefined, path: string): string | null {
+  const value = hashes && typeof hashes === "object" ? hashes[path] : undefined;
+  return photoHashSchema.safeParse(value).success ? (value as string) : null;
+}
+
 /** Item counts change the tree, the header and the lists: refresh the whole (app) layout. */
 function refresh() {
   revalidatePath("/", "layout");
@@ -74,7 +81,7 @@ function parseSave(input: SaveInput, mode: DataLang, current: ItemTextRow | null
  * On any failure the uploaded files are removed.
  */
 export async function createItem(
-  input: SaveInput & { id: string; photos: string[]; primary: string | null },
+  input: SaveInput & { id: string; photos: string[]; primary: string | null; hashes?: Record<string, string> },
 ): Promise<ItemResult<{ id: string }>> {
   const supabase = await createClient();
   const user = await getUser();
@@ -103,7 +110,14 @@ export async function createItem(
     const primary = input.primary && ownPhotos.includes(input.primary) ? input.primary : ownPhotos[0];
     const { error: photoError } = await supabase
       .from("item_photos")
-      .insert(ownPhotos.map((storage_path) => ({ item_id: id.data, storage_path, is_primary: storage_path === primary })));
+      .insert(
+        ownPhotos.map((storage_path) => ({
+          item_id: id.data,
+          storage_path,
+          is_primary: storage_path === primary,
+          source_hash: hashFor(input.hashes, storage_path),
+        })),
+      );
     if (photoError) {
       await supabase.from("items").delete().eq("id", id.data);
       return abort("unknown");
@@ -142,6 +156,8 @@ async function pool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]>
 export async function createItemsBatch(input: {
   location_id: string | null;
   overview: string;
+  /** SHA-256 of the original whole photo: stored on every copy of it (duplicate check). */
+  overviewHash?: string | null;
   items: BatchItemInput[];
 }): Promise<ItemResult<{ count: number }>> {
   const supabase = await createClient();
@@ -200,10 +216,11 @@ export async function createItemsBatch(input: {
   if (itemError) return abort(dataErrorKey(itemError));
 
   const overviewOf = [input.overview, ...targets];
+  const overviewHash = photoHashSchema.safeParse(input.overviewHash).success ? (input.overviewHash as string) : null;
   const { error: photoError } = await supabase.from("item_photos").insert(
     items.flatMap((it, i) => [
       { item_id: it.id, storage_path: it.photo, is_primary: true },
-      { item_id: it.id, storage_path: overviewOf[i], is_primary: false },
+      { item_id: it.id, storage_path: overviewOf[i], is_primary: false, source_hash: overviewHash },
     ]),
   );
   if (photoError) {
@@ -227,7 +244,7 @@ export async function createItemsBatch(input: {
  * main paths, `primary` = one path from keep ∪ add. Removed photos lose both files.
  */
 export async function updateItem(
-  input: SaveInput & { id: string; keep: string[]; add: string[]; primary: string | null },
+  input: SaveInput & { id: string; keep: string[]; add: string[]; primary: string | null; hashes?: Record<string, string> },
 ): Promise<ItemResult> {
   const supabase = await createClient();
   const user = await getUser();
@@ -278,7 +295,9 @@ export async function updateItem(
   if (ownAdd.length > 0) {
     const { error } = await supabase
       .from("item_photos")
-      .insert(ownAdd.map((storage_path) => ({ item_id: id.data, storage_path, is_primary: false })));
+      .insert(
+        ownAdd.map((storage_path) => ({ item_id: id.data, storage_path, is_primary: false, source_hash: hashFor(input.hashes, storage_path) })),
+      );
     if (error) return abort("unknown");
   }
 

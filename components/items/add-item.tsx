@@ -7,6 +7,7 @@ import { useOffline } from "@/components/offline-banner";
 import { Alert } from "@/components/ui/buttons";
 import type { CategoryOption } from "@/lib/items/data";
 import { MAX_PHOTOS } from "@/lib/photos/paths";
+import { fileHash } from "@/lib/photos/hash";
 import { processPhoto, UnsupportedImageError } from "@/lib/photos/process";
 import { useErrorText } from "@/lib/use-error-text";
 import { ItemForm, type ItemSeed } from "./item-form";
@@ -39,7 +40,8 @@ export function AddItem({ userId, categories }: { userId: string; categories: Ca
     const photos: ItemSeed["photos"] = [];
     for (const file of files.slice(0, MAX_PHOTOS)) {
       try {
-        photos.push(await processPhoto(file));
+        const [photo, hash] = await Promise.all([processPhoto(file), fileHash(file)]);
+        photos.push({ ...photo, hash });
       } catch (e) {
         setError(e instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
       }
