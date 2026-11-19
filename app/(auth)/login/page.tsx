@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { CircleHelp } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 import { safeNext } from "@/lib/safe-next";
 
@@ -29,6 +31,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </p>
       )}
       <LoginForm next={next} />
+      <Link href="/help" className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 self-center text-sm font-medium text-accent">
+        <CircleHelp className="size-4" aria-hidden />
+        {t("login.help")}
+      </Link>
     </>
   );
 }

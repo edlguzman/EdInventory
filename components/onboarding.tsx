@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Home, MapPin, Mic, Package, Search, Sparkles, Warehouse, Building2 } from "lucide-react";
+import { Building2, Camera, CircleHelp, Home, MapPin, Mic, Package, Search, Sparkles, Warehouse } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createLocation } from "@/app/(app)/locations/actions";
 import { setCurrentLocationId } from "@/components/locations/locations-context";
@@ -174,6 +174,10 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
               </Button>
               <Button className="w-full" disabled={pending} onClick={() => finish()}>
                 {t("later")}
+              </Button>
+              <Button variant="ghost" className="w-full" disabled={pending} onClick={() => finish("/help")}>
+                <CircleHelp className="size-5" aria-hidden />
+                {t("help")}
               </Button>
             </div>
           </div>

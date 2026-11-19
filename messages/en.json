@@ -144,7 +144,8 @@
     "signedInAs": "Signed in as",
     "signOut": "Sign out",
     "lastDbCheck": "Last database check:",
-    "never": "not yet"
+    "never": "not yet",
+    "help": "How to use"
   },
   "auth": {
     "email": "Email",
@@ -159,7 +160,8 @@
       "submit": "Sign in",
       "noAccount": "No account yet?",
       "signupLink": "Sign up",
-      "forgotLink": "Forgot password?"
+      "forgotLink": "Forgot password?",
+      "help": "How to use"
     },
     "signup": {
       "title": "Sign up",
@@ -321,12 +323,86 @@
     "howVoice": "Say where you put it: “garage, on the rack” — the place is found or created.",
     "howSearch": "Search by voice or text: “where is my drill?”",
     "addFirst": "Add the first item",
-    "later": "Later"
+    "later": "Later",
+    "help": "Full guide"
   },
   "offline": {
     "title": "No connection",
     "text": "Your data lives on the server, so the app needs the internet. Check your connection and try again.",
     "retry": "Retry",
     "banner": "Offline. Saving and AI will work again when the connection is back."
+  },
+  "help": {
+    "title": "How to use",
+    "intro": "Inventory helps you remember where your things are: take a photo, say where you put it, and find it later in seconds.",
+    "toApp": "Open the app",
+    "toLogin": "Sign in",
+    "contents": "Contents",
+    "sections": {
+      "install": {
+        "title": "Install on your phone",
+        "points": [
+          "iPhone: open the site in Safari → Share → “Add to Home Screen”.",
+          "Android: open the site in Chrome → ⋮ → “Install app”.",
+          "The app then opens from its icon like any other."
+        ]
+      },
+      "places": {
+        "title": "Places",
+        "points": [
+          "Places nest inside each other: house → room → closet → shelf, as deep as you need.",
+          "Add places in “Places” or by voice while adding an item.",
+          "Moved a closet? Move it in the app — the items inside move with it."
+        ]
+      },
+      "here": {
+        "title": "“I'm here” mode",
+        "points": [
+          "Pick a place once, e.g. “Country house → Garage → Rack”.",
+          "Every new item goes there: photograph things in a row without choosing a place each time.",
+          "The current place is shown in the header, where you can change or clear it."
+        ]
+      },
+      "add": {
+        "title": "Add an item",
+        "points": [
+          "Tap the camera at the bottom and take a photo.",
+          "AI fills in the name, description and category.",
+          "Say where you put it and what it is: “it's dad's old drill, put it in the garage on the rack”.",
+          "Check the suggestions and tap “Save”."
+        ]
+      },
+      "find": {
+        "title": "Find an item",
+        "points": [
+          "Plain search: type a word — “drill”.",
+          "Smart search: tap the mic and ask “where is my drill?” — AI adds similar words and understands places.",
+          "Results show photos and the full place path."
+        ]
+      },
+      "views": {
+        "title": "Gallery and table",
+        "points": [
+          "In “Items”, switch between a photo gallery and a compact table.",
+          "Filter by category and by place — including all nested places."
+        ]
+      },
+      "categories": {
+        "title": "Categories",
+        "points": [
+          "A standard set is ready: tools, kitchen, clothing and more.",
+          "In “Settings” you can rename and delete categories or add your own."
+        ]
+      },
+      "tips": {
+        "title": "Tips",
+        "points": [
+          "Photograph items close up on a light background — AI recognizes them better.",
+          "Say the full place path: “at the country house, in the garage, on the rack”.",
+          "Allow the microphone and camera when the browser asks.",
+          "No mic at hand? Everything works with typed text too."
+        ]
+      }
+    }
   }
 }

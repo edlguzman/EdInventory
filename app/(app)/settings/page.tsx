@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, CircleHelp, LogOut } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { signOut } from "@/app/(auth)/actions";
 import { CategoryList } from "@/components/categories/category-list";
@@ -36,6 +37,15 @@ export default async function SettingsPage() {
         <LocaleSwitcher />
 
         <CategoryList categories={categories ?? []} />
+
+        <Link
+          href="/help"
+          className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-surface px-4 font-medium"
+        >
+          <CircleHelp className="size-5 text-accent" aria-hidden />
+          <span className="flex-1">{t("help")}</span>
+          <ChevronRight className="size-5 text-muted" aria-hidden />
+        </Link>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted">{t("account")}</h2>
