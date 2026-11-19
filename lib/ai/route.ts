@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-export type AiKind = "recognize" | "voice_place" | "search" | "translate";
+export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe";
 
 /** Error codes returned by /api/ai/* as { error }. The client maps them to dictionary keys. */
 export type AiErrorCode = "unauthorized" | "accountInactive" | "badRequest" | "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed";

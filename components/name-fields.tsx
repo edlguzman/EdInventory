@@ -8,6 +8,7 @@ import { translateName } from "@/lib/ai/client";
 import { useErrorText } from "@/lib/use-error-text";
 import type { NamePairInput } from "@/lib/validation/names";
 import { useDataLang } from "./data-lang/context";
+import { DictationField } from "./dictation-field";
 import { useOffline } from "./offline-banner";
 import { Button } from "./ui/buttons";
 
@@ -46,29 +47,50 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
     const result = await translateName({ text: from === "ru" ? ru : en, from });
     setTranslating(false);
     if ("error" in result) setAiError(result.error);
-    else setValue(from === "ru" ? "name_en" : "name_ru", result.text.slice(0, max), { shouldValidate: true, shouldDirty: true });
+    else
+      setValue(from === "ru" ? "name_en" : "name_ru", result.text.slice(0, max), {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
   }
 
   const fieldError = errorText(errors.name_ru?.message ?? errors.name_en?.message);
 
   return (
     <div className="flex flex-col gap-3">
-      {edit.map((lang) => (
-        <div key={lang} className="flex flex-col gap-1.5">
-          <label htmlFor={`${id}-${lang}`} className="text-sm font-medium">
-            {!both ? t("name") : lang === "ru" ? t("nameRu") : t("nameEn")}
-          </label>
-          <input
-            id={`${id}-${lang}`}
+      {edit.map((lang) => {
+        const field = lang === "ru" ? "name_ru" : "name_en";
+        const otherField = lang === "ru" ? "name_en" : "name_ru";
+        const set = (name: "name_ru" | "name_en") => (value: string) =>
+          setValue(name, value, { shouldValidate: true, shouldDirty: true });
+        return (
+          <DictationField
+            key={lang}
+            label={!both ? t("name") : lang === "ru" ? t("nameRu") : t("nameEn")}
+            htmlFor={`${id}-${lang}`}
             lang={lang}
-            autoComplete="off"
-            maxLength={max}
-            aria-invalid={fieldError ? true : undefined}
-            className={inputClass}
-            {...register(lang === "ru" ? "name_ru" : "name_en", { onChange: () => setAiError(undefined) })}
-          />
-        </div>
-      ))}
+            kind="name"
+            max={max}
+            getValue={() => form.getValues(field)}
+            setValue={set(field)}
+            other={
+              both
+                ? { lang: lang === "ru" ? "en" : "ru", get: () => form.getValues(otherField), set: set(otherField) }
+                : undefined
+            }
+          >
+            <input
+              id={`${id}-${lang}`}
+              lang={lang}
+              autoComplete="off"
+              maxLength={max}
+              aria-invalid={fieldError ? true : undefined}
+              className={inputClass}
+              {...register(field, { onChange: () => setAiError(undefined) })}
+            />
+          </DictationField>
+        );
+      })}
       {both && (
         <Button onClick={translate} disabled={!from || offline} pending={translating} className="self-start">
           {!translating && <Languages className="size-5" aria-hidden />}
