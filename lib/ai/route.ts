@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export type AiKind = "recognize" | "voice_place" | "search" | "translate";
 
 /** Error codes returned by /api/ai/* as { error }. The client maps them to dictionary keys. */
-export type AiErrorCode = "unauthorized" | "badRequest" | "aiLimit" | "aiFailed";
+export type AiErrorCode = "unauthorized" | "badRequest" | "aiLimit" | "aiBusy" | "aiFailed";
 
 export function aiError(code: AiErrorCode, status: number) {
   return NextResponse.json({ error: code }, { status });

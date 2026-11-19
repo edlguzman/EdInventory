@@ -38,14 +38,23 @@ type GenerateOptions = {
 };
 
 const isTimeout = (e: unknown) => e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError");
-const isOverloaded = (e: unknown) => e instanceof ApiError && [500, 503].includes(e.status);
+/** 500/503: model overloaded; 429: Google's per-minute rate limit on the API key. */
+const isOverloaded = (e: unknown) => e instanceof ApiError && [429, 500, 503].includes(e.status);
 const isUnsupportedThinking = (e: unknown) => e instanceof ApiError && e.status === 400 && /thinking/i.test(e.message);
 
 /**
+ * True when the failure is temporary on Google's side (overload, rate limit, timeout):
+ * the user should simply try again a bit later.
+ */
+export function isAiBusy(error: unknown) {
+  return isTimeout(error) || isOverloaded(error);
+}
+
+/**
  * Calls Gemini with a structured JSON answer and validates it with zod.
- * Google's latency spikes a lot under load, so each attempt is short and a timed-out
- * or overloaded (500/503) attempt is retried. If the configured model does not support
- * the thinking setting, the same attempt is repeated without it.
+ * Google's latency spikes a lot under load, so each attempt is short and a timed-out,
+ * overloaded or rate-limited (429/500/503) attempt is retried. If the configured model
+ * does not support the thinking setting, the same attempt is repeated without it.
  * Throws AiOutputError if the answer does not match the schema.
  */
 export async function generateJson<S extends z.ZodType>(
@@ -80,9 +89,10 @@ export async function generateJson<S extends z.ZodType>(
         attempt--; // same attempt, without the thinking setting
         continue;
       }
-      const retriable = isTimeout(error) || isOverloaded(error);
-      if (!retriable || attempt >= attemptTimeoutsMs.length - 1) throw error;
-      await new Promise((r) => setTimeout(r, 500));
+      if (!isAiBusy(error) || attempt >= attemptTimeoutsMs.length - 1) throw error;
+      // A rate limit needs a little longer to clear than an overload blip.
+      const pause = error instanceof ApiError && error.status === 429 ? 2000 : 500;
+      await new Promise((r) => setTimeout(r, pause));
     }
   }
 
