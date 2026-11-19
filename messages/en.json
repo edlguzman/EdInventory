@@ -142,7 +142,9 @@
     },
     "account": "Account",
     "signedInAs": "Signed in as",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "lastDbCheck": "Last database check:",
+    "never": "not yet"
   },
   "auth": {
     "email": "Email",
@@ -197,7 +199,8 @@
       "signupDisabled": "Sign up is currently unavailable",
       "sessionExpired": "Session expired. Request the link again.",
       "unknown": "Something went wrong. Please try again."
-    }
+    },
+    "accountDeleted": "Your account and all data have been deleted."
   },
   "common": {
     "save": "Save",
@@ -279,5 +282,51 @@
     "suggestionTitle": "AI suggests changes to the item",
     "accept": "Accept",
     "decline": "Decline"
+  },
+  "account": {
+    "delete": "Delete account",
+    "deleteTitle": "Delete the account forever?",
+    "deleteWarning": "All your places, items, categories and photos will be deleted. This cannot be undone.",
+    "password": "Password",
+    "confirmWord": "DELETE",
+    "confirmLabel": "To confirm, type {word}",
+    "deleteForever": "Delete forever",
+    "errors": {
+      "wrongPassword": "Wrong password",
+      "confirmMismatch": "The confirmation word does not match",
+      "rateLimit": "Too many attempts. Please wait a bit.",
+      "unauthorized": "Session expired. Please sign in again.",
+      "unknown": "Could not delete the account. Please try again."
+    }
+  },
+  "onboarding": {
+    "progress": "Step {n} of {total}",
+    "skip": "Skip",
+    "welcome": "Welcome!",
+    "placeIntro": "Items live in places: a house, rooms, closets, shelves. Start with the main one — where are your things?",
+    "presets": {
+      "apartment": "Apartment",
+      "house": "House",
+      "dacha": "Country house"
+    },
+    "customPlaceholder": "Or your own name",
+    "create": "Create",
+    "hereTitle": "Are you there now?",
+    "hereIntro": "With “I'm here”, new items go straight into this place. You can change it in the app header.",
+    "hereYes": "Yes, I'm here",
+    "hereNo": "No, later",
+    "howTitle": "How it works",
+    "howPhoto": "Tap the camera below and take a photo of the item.",
+    "howAi": "AI suggests the name, description and category.",
+    "howVoice": "Say where you put it: “garage, on the rack” — the place is found or created.",
+    "howSearch": "Search by voice or text: “where is my drill?”",
+    "addFirst": "Add the first item",
+    "later": "Later"
+  },
+  "offline": {
+    "title": "No connection",
+    "text": "Your data lives on the server, so the app needs the internet. Check your connection and try again.",
+    "retry": "Retry",
+    "banner": "Offline. Saving and AI will work again when the connection is back."
   }
 }

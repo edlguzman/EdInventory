@@ -195,6 +195,21 @@ export type Database = {
           },
         ]
       }
+      system_status: {
+        Row: {
+          id: boolean
+          last_keepalive_at: string | null
+        }
+        Insert: {
+          id?: boolean
+          last_keepalive_at?: string | null
+        }
+        Update: {
+          id?: boolean
+          last_keepalive_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       location_item_counts: {
@@ -223,6 +238,7 @@ export type Database = {
         Args: { p_kind: string; p_limit: number }
         Returns: boolean
       }
+      delete_my_account: { Args: never; Returns: undefined }
       immutable_text_array_to_string: {
         Args: { arr: string[]; sep: string }
         Returns: string

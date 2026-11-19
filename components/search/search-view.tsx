@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ItemTable } from "@/components/items/item-list";
 import { useLocations } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
+import { useOffline } from "@/components/offline-banner";
 import { MicButton, RecordingStatus } from "@/components/voice-input";
 import { askSearch } from "@/lib/ai/client";
 import type { SearchResult } from "@/lib/ai/types";
@@ -72,6 +73,7 @@ export function SearchView({
 
   const recorder = useVoiceRecorder({ onAudio: (audio) => void ask({ audio }), onError: setError });
   const busy = asking || recorder.converting;
+  const offline = useOffline();
 
   // Removing an AI filter keeps the same question and terms.
   const without = (key: "loc" | "cat") => {
@@ -112,7 +114,7 @@ export function SearchView({
       </div>
 
       {text.trim() && !recorder.recording && !(ai && text.trim() === q) && (
-        <Button onClick={() => void ask({ text: text.trim() })} pending={asking} className="self-start">
+        <Button onClick={() => void ask({ text: text.trim() })} pending={asking} disabled={offline} className="self-start">
           {!asking && <Sparkles className="size-4 text-accent" aria-hidden />}
           {asking ? t("asking") : t("askAi")}
         </Button>

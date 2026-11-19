@@ -13,10 +13,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const next = safeNext(params.next);
   const linkError = params.error === "link";
+  const deleted = params.deleted === "1";
 
   return (
     <>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("login.title")}</h1>
+      {deleted && (
+        <p role="status" className="mb-4 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+          {t("accountDeleted")}
+        </p>
+      )}
       {linkError && (
         <p role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
           {t("linkError")}

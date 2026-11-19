@@ -5,8 +5,15 @@ import { signOut } from "@/app/(auth)/actions";
 import { CategoryList } from "@/components/categories/category-list";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { PageTitle } from "@/components/page-title";
+import { DbHeartbeat } from "@/components/settings/db-heartbeat";
+import { DeleteAccount } from "@/components/settings/delete-account";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+
+/** The cron runs daily; more than two days without a check means it is not running. */
+function isStale(at: string | null) {
+  return !at || Date.now() - new Date(at).getTime() > 2 * 24 * 60 * 60 * 1000;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("settings");
@@ -17,11 +24,10 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const t = await getTranslations("settings");
   const supabase = await createClient();
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name_ru, name_en")
-    .order("sort_order")
-    .order("created_at");
+  const [{ data: categories }, { data: status }] = await Promise.all([
+    supabase.from("categories").select("id, name_ru, name_en").order("sort_order").order("created_at"),
+    supabase.from("system_status").select("last_keepalive_at").maybeSingle(),
+  ]);
 
   return (
     <>
@@ -40,12 +46,17 @@ export default async function SettingsPage() {
           <form action={signOut}>
             <button
               type="submit"
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border px-4 font-medium text-red-600 dark:text-red-400"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border px-4 font-medium"
             >
               <LogOut className="size-5" aria-hidden />
               {t("signOut")}
             </button>
           </form>
+          <DeleteAccount />
+        </section>
+
+        <section className="flex flex-col gap-2 border-t border-border pt-4">
+          <DbHeartbeat at={status?.last_keepalive_at ?? null} stale={isStale(status?.last_keepalive_at ?? null)} />
         </section>
       </div>
     </>

@@ -34,7 +34,7 @@ AI_DAILY_LIMIT_PER_USER=100
 CRON_SECRET=                    # только сервер; Vercel Cron шлёт его в Authorization: Bearer …
 ```
 
-**Keepalive:** Vercel Cron (`vercel.json`, раз в сутки в 06:00 UTC) вызывает `/api/cron/keepalive`. Маршрут без `Authorization: Bearer $CRON_SECRET` отвечает 401, иначе вызывает RPC `keepalive()` (возвращает `now()` из Postgres, доступна `anon`, данных не читает). Нужно, чтобы проект Supabase Free не уходил в паузу после 7 дней без запросов.
+**Keepalive:** Vercel Cron (`vercel.json`, раз в сутки в 06:00 UTC) вызывает `/api/cron/keepalive`. Маршрут без `Authorization: Bearer $CRON_SECRET` отвечает 401, иначе вызывает RPC `keepalive()`: она записывает `now()` в однострочную таблицу `system_status.last_keepalive_at` и возвращает его (SECURITY DEFINER, доступна `anon`; что её может вызвать любой с anon key и сдвинуть время — принятый риск). В Настройках показывается «Последняя проверка базы» (логи Vercel Hobby живут час). Нужно, чтобы проект Supabase Free не уходил в паузу после 7 дней без запросов.
 
 Ключи никогда не попадают в клиентский код, в git и в логи. `.env.local` в `.gitignore`, `.env.example` держим актуальным. Service role key Supabase в приложении не используем: всё работает через сессию пользователя и RLS.
 
@@ -88,6 +88,12 @@ Storage: приватный бакет `item-photos` (только `image/jpeg`,
 - Миниатюра лежит рядом с основным файлом: `{uuid}.jpg` и `{uuid}.thumb.jpg`; в `item_photos` хранится только основной путь, путь миниатюры выводится (`lib/photos/paths.ts`). **Удаляем всегда пару файлов** (`photoFiles()`), при удалении фото и вещи.
 - Загрузка: клиент сам генерирует `item_id`, грузит файлы прямо в Storage (RLS по папке), затем server action сохраняет вещь и `item_photos`; сервер принимает только пути `{свой user_id}/{этот item_id}/{uuid}.jpg` и при ошибке удаляет загруженные файлы. Фото в server action не передаём (лимит тела 1 МБ). Не больше 10 фото на вещь, ровно одно главное.
 - Фото показываем через signed URLs (1 час), в списках — миниатюры; `next/image` для них не используем.
+- **PWA:** манифест `app/manifest.ts`, иконки в `public/icons/` (192/512 + maskable), `app/apple-icon.png`, `app/icon.svg`. Service worker — `lib/pwa/sw.ts` (Serwist, `@serwist/turbopack`), отдаётся маршрутом `/serwist/sw.js`, регистрируется только в production (`components/pwa-provider.tsx`, `cacheOnNavigation` и `reloadOnOnline` выключены). **Кешируем только статику** (`/_next/static`, иконки, шрифты). Страницы, RSC, `/api`, Supabase и фото НЕ кешируем: данные персональные, на общем телефоне кеш показал бы чужие данные после выхода. Без сети любая страница показывает предкешированный `/offline`; в приложении плашка «Нет сети» и кнопки сохранения/ИИ недоступны (`useOffline`). `lib/pwa/sw.ts` исключён из основного tsconfig (у него свой, с lib WebWorker).
+- `/serwist` и `/offline` открыты в `proxy.ts` без сессии.
+- **Заголовки безопасности** задаются в `next.config.ts` (`nosniff`, `X-Frame-Options`, CSP `frame-ancestors/base-uri/object-src`, `Referrer-Policy`, `Permissions-Policy` с камерой и микрофоном только для себя, HSTS).
+- **Онбординг** при первом входе (нет мест, нет вещей, нет `user_metadata.onboarded`): три шага, можно пропустить; по завершении `updateUser({ data: { onboarded: true } })`.
+- **Удаление аккаунта** (Настройки): пароль + слово «УДАЛИТЬ»/«DELETE»; server action заново проверяет пароль, удаляет все файлы пользователя через Storage API (прямое удаление из `storage.objects` Supabase запрещает), затем RPC `delete_my_account()` (SECURITY DEFINER, удаляет только `auth.uid()`, всё остальное каскадом).
+- Отчёт о проверке безопасности: `docs/security-review.md`. При новых таблицах и маршрутах повторяем те же проверки.
 - Изменения схемы только новой миграцией, старые миграции не редактируем.
 - Работаем маленькими шагами: короткий план → код → проверка (`npm run build`, `npm run lint`, ручная проверка в мобильном размере).
 - После каждого законченного этапа коммит с понятным сообщением.

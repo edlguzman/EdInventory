@@ -6,10 +6,11 @@ import { supabaseEnv } from "./env";
 /** Pages for signed-out users only: a signed-in user is sent home. */
 const GUEST_ONLY = ["/login", "/signup", "/forgot-password"];
 /**
- * Not redirected by the proxy: the email link handler, and API routes,
- * which check the session themselves and answer 401 JSON instead of an HTML redirect.
+ * Not redirected by the proxy: the email link handler; API routes, which check the session
+ * themselves and answer 401 JSON instead of an HTML redirect; the service worker and the
+ * offline screen, which must load without a session (the worker precaches /offline).
  */
-const PUBLIC = ["/auth", "/api"];
+const PUBLIC = ["/auth", "/api", "/serwist", "/offline"];
 
 function matches(pathname: string, paths: string[]) {
   return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));

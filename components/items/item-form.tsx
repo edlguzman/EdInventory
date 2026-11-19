@@ -22,6 +22,7 @@ import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
+import { useOffline } from "@/components/offline-banner";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
@@ -176,6 +177,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   });
 
   const busy = isSubmitting || progress !== null;
+  const offline = useOffline();
   const fieldError = (key?: string) => (key ? errorText(key) : undefined);
 
   return (
@@ -318,7 +320,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
         <Button onClick={() => router.back()} disabled={busy} className="flex-1">
           {tCommon("cancel")}
         </Button>
-        <Button variant="primary" type="submit" pending={busy} className="flex-[2]">
+        <Button variant="primary" type="submit" pending={busy} disabled={offline} className="flex-[2]">
           {progress
             ? t("uploading", { done: Math.min(progress.done + 1, progress.total), total: progress.total })
             : busy

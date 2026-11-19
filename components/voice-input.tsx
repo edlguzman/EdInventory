@@ -5,6 +5,7 @@ import { ArrowUp, LoaderCircle, Mic, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { MAX_RECORDING_MS } from "@/lib/audio/recorder";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
+import { useOffline } from "./offline-banner";
 
 export function MicButton({
   recorder,
@@ -14,12 +15,13 @@ export function MicButton({
   busy: boolean;
 }) {
   const t = useTranslations("voice");
+  const offline = useOffline();
   if (!recorder.available) return null;
   return (
     <button
       type="button"
       onClick={recorder.toggle}
-      disabled={busy || recorder.converting}
+      disabled={busy || recorder.converting || (offline && !recorder.recording)}
       aria-pressed={recorder.recording}
       aria-label={recorder.recording ? t("stop") : t("speak")}
       className={`flex size-12 shrink-0 items-center justify-center rounded-xl disabled:opacity-50 ${
@@ -71,7 +73,8 @@ export function VoiceInput({
   const t = useTranslations("voice");
   const [text, setText] = useState("");
   const recorder = useVoiceRecorder({ onAudio: (audio) => onSubmit({ audio }), onError });
-  const disabled = busy || recorder.converting;
+  const offline = useOffline();
+  const disabled = busy || recorder.converting || offline;
 
   // Not a <form>: it is used inside the item form, and forms cannot be nested.
   const submitText = () => {

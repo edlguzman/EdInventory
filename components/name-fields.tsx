@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { translateName } from "@/lib/ai/client";
 import { useErrorText } from "@/lib/use-error-text";
 import type { NamePairInput } from "@/lib/validation/names";
+import { useOffline } from "./offline-banner";
 import { Button } from "./ui/buttons";
 
 const inputClass =
@@ -22,6 +23,7 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
   const id = useId();
   const [translating, setTranslating] = useState(false);
   const [aiError, setAiError] = useState<string>();
+  const offline = useOffline();
   const {
     register,
     watch,
@@ -75,7 +77,7 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
           {...register("name_en", { onChange: () => setAiError(undefined) })}
         />
       </div>
-      <Button onClick={translate} disabled={!from} pending={translating} className="self-start">
+      <Button onClick={translate} disabled={!from || offline} pending={translating} className="self-start">
         {!translating && <Languages className="size-5" aria-hidden />}
         {translating ? t("translating") : t("translate")}
       </Button>

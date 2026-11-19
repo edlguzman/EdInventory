@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { PwaProvider } from "@/components/pwa-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t("name"), template: `%s · ${t("name")}` },
     description: t("description"),
+    applicationName: t("name"),
+    // Installed on the iPhone home screen: full screen, app title under the icon.
+    appleWebApp: { capable: true, title: t("name"), statusBarStyle: "default" },
+    formatDetection: { telephone: false },
   };
 }
 
@@ -41,7 +46,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <PwaProvider>{children}</PwaProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
