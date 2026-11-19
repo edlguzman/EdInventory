@@ -5,8 +5,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 // every page is per-user (Supabase session + locale cookie), so a static
 // shell gives little benefit while requiring Suspense around every cookie read.
 const nextConfig: NextConfig = {
-  // Keep the dev indicator away from the bottom navigation.
-  devIndicators: { position: "top-right" },
+  // The floating dev indicator overlaps the header and bottom navigation on a phone screen;
+  // build/runtime errors still show in the dev overlay.
+  devIndicators: false,
   turbopack: {
     rules: {
       "*.css": {

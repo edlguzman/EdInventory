@@ -197,6 +197,14 @@ export type Database = {
       }
     }
     Views: {
+      location_item_counts: {
+        Row: {
+          direct_items: number | null
+          location_id: string | null
+          total_items: number | null
+        }
+        Relationships: []
+      }
       location_paths: {
         Row: {
           depth: number | null
@@ -211,6 +219,10 @@ export type Database = {
       }
     }
     Functions: {
+      consume_ai_quota: {
+        Args: { p_kind: string; p_limit: number }
+        Returns: boolean
+      }
       immutable_text_array_to_string: {
         Args: { arr: string[]; sep: string }
         Returns: string

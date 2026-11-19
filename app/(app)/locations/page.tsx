@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { LocationTree } from "@/components/locations/location-tree";
 import { PageTitle } from "@/components/page-title";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,7 +14,7 @@ export default function LocationsPage() {
   return (
     <>
       <PageTitle>{t("title")}</PageTitle>
-      <p className="text-muted">{t("comingSoon")}</p>
+      <LocationTree />
     </>
   );
 }

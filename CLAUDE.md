@@ -53,17 +53,20 @@ AI_DAILY_LIMIT_PER_USER=100
   SQL-функции:
   - `location_descendants(loc_id)`: id места и всех потомков (recursive CTE), для фильтра «всё на Даче».
   - представление `location_paths` (`security_invoker`): `id, user_id, parent_id, depth, path_ru, path_en, id_path` — полный путь на обоих языках («Дача → Гараж → Стеллаж»).
+  - представление `location_item_counts` (`security_invoker`): `location_id, direct_items, total_items` — вещей прямо в месте и всего, включая вложенные.
 - **`categories`**: `id, user_id, name_ru, name_en, sort_order, created_at`. При регистрации триггер на `auth.users` создаёт стандартный набор: Мебель, Инструменты, Кухня, Электроника, Одежда, Документы, Хозтовары, Спорт и отдых, Личные вещи, Другое (с английскими названиями). Пользователь может переименовывать, добавлять и удалять свои категории; при удалении у вещей `category_id` становится null.
 - **`items`**: `id, user_id, location_id (nullable, on delete restrict), category_id (nullable, on delete set null), name_ru, name_en, description_ru, description_en, tags text[], created_at, updated_at`.
   Поиск: генерируемая колонка `search_text` (имена, описания и теги на обоих языках), нормализованная функцией `normalize_search()`: нижний регистр и **`ё` → `е`**. Поисковые слова в приложении нормализуем так же. Расширение `pg_trgm` (схема `extensions`) и GIN-индекс.
 - **`item_photos`**: `id, item_id (on delete cascade), user_id, storage_path, is_primary, created_at`. Не больше одного `is_primary` на вещь; `storage_path` строго `{user_id}/{item_id}/….jpg`. Файлы в Storage при удалении вещи сами не удаляются: это делает приложение.
-- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search'), created_at`. Для дневного лимита запросов к Gemini. **Политики только select и insert** (без update/delete): anon key есть в браузере, и с правом delete пользователь мог бы стереть свои записи и обойти лимит.
+- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search' | 'translate'), created_at`. Для дневного лимита запросов к Gemini: **общий лимит на все виды, скользящие 24 часа**. Проверка и запись атомарно через RPC `consume_ai_quota(p_kind, p_limit)` (блокировка на пользователя); квота списывается до вызова Gemini. **Политики только select и insert** (без update/delete): anon key есть в браузере, и с правом delete пользователь мог бы стереть свои записи и обойти лимит.
 
 Storage: приватный бакет `item-photos` (только `image/jpeg`, до 5 МБ), путь `{user_id}/{item_id}/{uuid}.jpg`, политики пускают только в папку своего `user_id`. Фото показываем через signed URLs.
 
 ## Работа с Gemini
 
-- Все вызовы в `lib/ai/` и в маршрутах `app/api/ai/*`. Каждый маршрут: проверяет сессию Supabase, проверяет и записывает `ai_usage`, валидирует вход и выход через `zod`.
+- Все вызовы в `lib/ai/` и в маршрутах `app/api/ai/*`. Каждый маршрут: валидирует вход через `zod`, затем `guardAiRequest(kind)` из `lib/ai/route.ts` (сессия + `consume_ai_quota`), затем `generateJson()` из `lib/ai/gemini.ts` (схема для Gemini строится из той же zod-схемы, что проверяет ответ). В логи пишем только тип ошибки и статус, без текста запроса.
+- Задержки Gemini под нагрузкой сильно скачут: `generateJson()` делает короткие попытки (10 с + 15 с) с повтором при таймауте и 500/503. Для простых задач передаём `thinking: "low"`; если модель не поддерживает этот параметр, запрос повторяется без него.
+- **Перевод названий** (`/api/ai/translate`): `{ text, from: 'ru' | 'en' }` → `{ text }`. Для мест и категорий, кнопка «Перевести» активна, когда заполнено одно поле.
 - Ответы только структурированным JSON (`responseMimeType: application/json` + `responseSchema`).
 - Голос: записываем на клиенте через `MediaRecorder` и отправляем аудио в Gemini вместе с задачей (Gemini сам распознаёт речь на русском и английском). Проверять формат записи на iPhone (Safari пишет `audio/mp4`). Текстовое поле всегда доступно как альтернатива голосу.
 - **Распознавание по фото** (`/api/ai/recognize`): фото + список категорий пользователя → `{ name_ru, name_en, description_ru, description_en, category_id | null, tags[] }`.

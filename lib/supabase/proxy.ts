@@ -5,8 +5,11 @@ import { supabaseEnv } from "./env";
 
 /** Pages for signed-out users only: a signed-in user is sent home. */
 const GUEST_ONLY = ["/login", "/signup", "/forgot-password"];
-/** Open to everyone: the email link handler. */
-const PUBLIC = ["/auth"];
+/**
+ * Not redirected by the proxy: the email link handler, and API routes,
+ * which check the session themselves and answer 401 JSON instead of an HTML redirect.
+ */
+const PUBLIC = ["/auth", "/api"];
 
 function matches(pathname: string, paths: string[]) {
   return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
