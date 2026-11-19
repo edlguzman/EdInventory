@@ -103,6 +103,7 @@ export async function updatePassword(input: ResetPasswordInput): Promise<AuthAct
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // This device only: signing out on the phone must not end the session on the computer.
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }

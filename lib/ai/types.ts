@@ -44,3 +44,8 @@ export type ItemContext = {
   description_en: string;
   tags: string[];
 };
+
+/** One item found on a photo of several items; box = [ymin, xmin, ymax, xmax], 0–1000. */
+export type DetectedItem = RecognizeResult & { box: [number, number, number, number] };
+
+export type RecognizeMultiResult = { items: DetectedItem[] };

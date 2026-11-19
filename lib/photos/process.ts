@@ -84,14 +84,63 @@ function render(source: Source, maxSide: number, quality: number): Promise<Blob>
   );
 }
 
+async function processSource(source: Source): Promise<ProcessedPhoto> {
+  const main = await render(source, MAIN_MAX_SIDE, MAIN_QUALITY);
+  const thumb = await render(source, THUMB_MAX_SIDE, THUMB_QUALITY);
+  const scale = Math.min(1, MAIN_MAX_SIDE / Math.max(source.width, source.height));
+  return { main, thumb, width: Math.round(source.width * scale), height: Math.round(source.height * scale) };
+}
+
 export async function processPhoto(file: File): Promise<ProcessedPhoto> {
   const source = await decode(file);
   try {
-    const main = await render(source, MAIN_MAX_SIDE, MAIN_QUALITY);
-    const thumb = await render(source, THUMB_MAX_SIDE, THUMB_QUALITY);
-    const scale = Math.min(1, MAIN_MAX_SIDE / Math.max(source.width, source.height));
-    return { main, thumb, width: Math.round(source.width * scale), height: Math.round(source.height * scale) };
+    return await processSource(source);
   } finally {
     source.close?.();
   }
+}
+
+/** Box from Gemini object detection: [ymin, xmin, ymax, xmax], normalized to 0–1000. */
+export type Box2d = [number, number, number, number];
+
+/** Margin around a detected box, as a share of the box size (the box is often tight). */
+const CROP_PADDING = 0.06;
+
+/** Crop rectangle in source pixels: the box plus padding, kept inside the image. */
+export function cropRect(box: Box2d, width: number, height: number) {
+  const [ymin, xmin, ymax, xmax] = box;
+  const padX = ((xmax - xmin) / 1000) * width * CROP_PADDING;
+  const padY = ((ymax - ymin) / 1000) * height * CROP_PADDING;
+  const x0 = Math.max(0, Math.floor((xmin / 1000) * width - padX));
+  const y0 = Math.max(0, Math.floor((ymin / 1000) * height - padY));
+  const x1 = Math.min(width, Math.ceil((xmax / 1000) * width + padX));
+  const y1 = Math.min(height, Math.ceil((ymax / 1000) * height + padY));
+  return { x: x0, y: y0, width: Math.max(1, x1 - x0), height: Math.max(1, y1 - y0) };
+}
+
+function cropSource(source: Source, box: Box2d): Source {
+  const r = cropRect(box, source.width, source.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = r.width;
+  canvas.height = r.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new UnsupportedImageError("canvas unavailable");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, r.width, r.height);
+  ctx.drawImage(source.image, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height);
+  return { image: canvas, width: r.width, height: r.height };
+}
+
+/**
+ * A photo decoded once, for "several items in one photo": the whole picture is processed
+ * as usual, and each detected box is cut from the full-resolution source (not from the
+ * reduced copy) and compressed like any photo, with its thumbnail. Call close() when done.
+ */
+export async function openPhoto(file: File) {
+  const source = await decode(file);
+  return {
+    process: () => processSource(source),
+    crop: (box: Box2d) => processSource(cropSource(source, box)),
+    close: () => source.close?.(),
+  };
 }

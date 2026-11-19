@@ -1,7 +1,7 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,15 +28,21 @@ import { useOffline } from "@/components/offline-banner";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
+/**
+ * A new item handed over with ready photos (the first is primary) and, optionally, what the AI
+ * already recognized. Without a recognition the first photo is recognized right away.
+ */
+export type ItemSeed = { photos: { main: Blob; thumb: Blob }[]; recognition: RecognizeResult | null };
+
 type Props = { userId: string; categories: CategoryOption[] } & (
-  | { mode: "create"; item?: undefined }
-  | { mode: "edit"; item: ItemDetail }
+  | { mode: "create"; item?: undefined; seed?: ItemSeed; onCancel?: () => void }
+  | { mode: "edit"; item: ItemDetail; seed?: undefined; onCancel?: undefined }
 );
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base outline-none focus:border-accent aria-invalid:border-red-500";
 
-export function ItemForm({ mode, item, userId, categories }: Props) {
+export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Props) {
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
@@ -46,13 +52,16 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const { byId, path } = useLocations();
   const here = useCurrentLocation();
 
-  const [photos, setPhotos] = useState<PhotoDraft[]>(
-    () => item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? [],
+  const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
+    seed
+      ? seed.photos.map((p, i) => ({ key: `seed-${i}`, kind: "new" as const, main: p.main, thumb: p.thumb, preview: URL.createObjectURL(p.thumb) }))
+      : (item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? []),
   );
   const [primaryKey, setPrimaryKey] = useState<string | null>(
-    () => item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null,
+    () => (seed ? (seed.photos.length ? "seed-0" : null) : (item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null)),
   );
-  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null);
+  const seeded = seed?.recognition ?? null;
+  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? seeded?.category_id ?? null);
   // undefined = not chosen yet: a new item then follows the "I'm here" place, which is known
   // only after hydration (it lives in localStorage), so it is derived instead of copied once.
   const [chosenLocation, setLocationId] = useState<string | null | undefined>(mode === "edit" ? item.locationId : undefined);
@@ -61,7 +70,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const [error, setError] = useState<string>();
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [recognizing, setRecognizing] = useState(false);
-  const [recognized, setRecognized] = useState(false);
+  const [recognized, setRecognized] = useState(!!seeded);
   const [aiError, setAiError] = useState<string>();
   const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
 
@@ -70,11 +79,11 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
     // Hidden-language text stays in the form values (not shown); the server decides what
     // to write. Tags hidden in this mode are not shown and are kept by the server.
     defaultValues: {
-      name_ru: item?.nameRu ?? "",
-      name_en: item?.nameEn ?? "",
-      description_ru: item?.descriptionRu ?? "",
-      description_en: item?.descriptionEn ?? "",
-      tags: (item?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
+      name_ru: item?.nameRu ?? seeded?.name_ru ?? "",
+      name_en: item?.nameEn ?? seeded?.name_en ?? "",
+      description_ru: item?.descriptionRu ?? seeded?.description_ru ?? "",
+      description_en: item?.descriptionEn ?? seeded?.description_en ?? "",
+      tags: (item?.tags ?? seeded?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
     },
   });
   const {
@@ -119,6 +128,17 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
       setRecognizing(false);
     }
   }
+
+  // Photos handed over without a recognition: recognize the first one once (1 AI request),
+  // as when the first photo is added in the form. The ref keeps it to one request.
+  const autoRecognized = useRef(false);
+  useEffect(() => {
+    if (autoRecognized.current || !seed || seed.recognition || photos.length === 0) return;
+    autoRecognized.current = true;
+    void recognize(photos[0]);
+    // Runs once on mount for the seeded photos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function acceptSuggestion(s: ItemSuggestion) {
     const opts = { shouldDirty: true, shouldValidate: true };
@@ -321,7 +341,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
       {errors.tags && <p className="-mt-4 text-sm text-red-600 dark:text-red-400">{fieldError(errors.tags.message ?? errors.tags[0]?.message)}</p>}
 
       <div className="flex gap-2">
-        <Button onClick={() => router.back()} disabled={busy} className="flex-1">
+        <Button onClick={() => (onCancel ? onCancel() : router.back())} disabled={busy} className="flex-1">
           {tCommon("cancel")}
         </Button>
         <Button variant="primary" type="submit" pending={busy} disabled={offline} className="flex-[2]">

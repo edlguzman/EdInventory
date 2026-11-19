@@ -7,6 +7,8 @@ export const ITEM_NAME_MAX = LOCATION_NAME_MAX; // 200, same as the DB check
 export const DESCRIPTION_MAX = 2000;
 export const TAG_MAX = 50;
 export const TAGS_MAX = 50;
+/** At most this many items are found and saved from one photo of several items. */
+export const MAX_BATCH_ITEMS = 30;
 
 const name = z.string().trim().max(ITEM_NAME_MAX, { error: "nameTooLong" });
 const description = z.string().trim().max(DESCRIPTION_MAX, { error: "descriptionTooLong" });
