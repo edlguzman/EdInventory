@@ -376,7 +376,8 @@
           "Pick a place once, e.g. “Country house → Garage → Rack”.",
           "Every new item goes there: photograph things in a row without choosing a place each time.",
           "The current place is shown in the header, where you can change or clear it.",
-          "The place you choose while adding an item (from the list or by voice) is your \"I'm here\": it stays on every screen. Reset it with the × in the header."
+          "The place you choose while adding an item (from the list or by voice) is your \"I'm here\": it stays on every screen. Reset it with the × in the header.",
+          "The Items tab opens on your \"I'm here\" place (with everything nested). Pick another place or \"All places\" in the filter."
         ]
       },
       "languages": {
