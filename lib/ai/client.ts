@@ -2,9 +2,9 @@ import type { TranslateRequest } from "./translate-schema";
 import type { ItemContext, PlaceMode, PlaceResult, RecognizeResult, SearchResult } from "./types";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
-export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "network";
+export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "accountInactive" | "network";
 
-const KNOWN: readonly string[] = ["aiLimit", "aiBusy", "aiProviderQuota", "aiFailed", "unauthorized"];
+const KNOWN: readonly string[] = ["aiLimit", "aiBusy", "aiProviderQuota", "aiFailed", "unauthorized", "accountInactive"];
 
 type AiResponse<T> = T | { error: AiClientError };
 

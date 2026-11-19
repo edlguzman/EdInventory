@@ -2,7 +2,9 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth-errors";
+import { notifyAdmin } from "@/lib/notify/admin-email";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -50,6 +52,13 @@ export async function signUp(input: SignupInput): Promise<AuthActionResult> {
     options: { emailRedirectTo: `${await requestOrigin()}/auth/confirm?next=/` },
   });
   if (error) return { error: authErrorKey(error) };
+
+  // A new account waits for approval: tell the admin. With email confirmation on, Supabase
+  // answers an already registered email with a fake user without identities: no email then.
+  if (data.user?.identities?.length) {
+    const email = parsed.data.email;
+    after(() => notifyAdmin({ kind: "signup", email }));
+  }
 
   // Email confirmation off: Supabase returns a session right away.
   if (data.session) redirect("/");

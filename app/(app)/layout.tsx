@@ -1,10 +1,12 @@
+import { AccountBlocked } from "@/components/account-blocked";
 import { BottomNav } from "@/components/bottom-nav";
 import { CurrentLocationBar } from "@/components/current-location-bar";
 import { LocationDialogsProvider } from "@/components/locations/location-dialogs";
 import { LocationsProvider } from "@/components/locations/locations-context";
 import { Onboarding } from "@/components/onboarding";
 import { OfflineBanner } from "@/components/offline-banner";
-import { getUser } from "@/lib/auth";
+import { getPendingCount } from "@/lib/admin/data";
+import { getProfile, getUser, requireUser } from "@/lib/auth";
 import { getLocations } from "@/lib/locations/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,11 +20,19 @@ async function needsOnboarding(placeCount: number) {
 }
 
 /**
+ * Pending and disabled accounts see only the "awaiting approval" / "disabled" screen.
  * Loads the user's places once for all (app) screens: the "I'm here" bar,
  * the tree and the picker share them. Server actions revalidate this layout.
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const locations = await getLocations();
+  const user = await requireUser();
+  const profile = await getProfile();
+  // Pending or disabled: nothing else is rendered (and RLS returns no data anyway).
+  if (!profile || profile.status !== "active") {
+    return <AccountBlocked status={profile?.status === "disabled" ? "disabled" : "pending"} email={user.email ?? ""} />;
+  }
+
+  const [locations, pendingCount] = await Promise.all([getLocations(), profile.isAdmin ? getPendingCount() : 0]);
   const onboarding = await needsOnboarding(locations.length);
 
   return (
@@ -33,7 +43,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
           {children}
         </main>
-        <BottomNav />
+        <BottomNav settingsBadge={pendingCount} />
         <Onboarding initialOpen={onboarding} />
       </LocationDialogsProvider>
     </LocationsProvider>

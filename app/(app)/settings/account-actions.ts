@@ -1,39 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
-import { PHOTO_BUCKET } from "@/lib/photos/paths";
+import { notifyAdmin } from "@/lib/notify/admin-email";
+import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
-
-type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 export type DeleteAccountError = "wrongPassword" | "confirmMismatch" | "rateLimit" | "unauthorized" | "unknown";
 
 const CONFIRM_WORDS = ["УДАЛИТЬ", "DELETE"];
-
-/** Every file under {userId}/ (folders are item ids), page by page. */
-async function listAllFiles(supabase: Supabase, userId: string): Promise<string[]> {
-  const storage = supabase.storage.from(PHOTO_BUCKET);
-  const page = async (prefix: string) => {
-    const out: { name: string; isFolder: boolean }[] = [];
-    for (let offset = 0; ; offset += 100) {
-      const { data, error } = await storage.list(prefix, { limit: 100, offset });
-      if (error) throw new Error(`storage list failed: ${error.message}`);
-      out.push(...data.map((e) => ({ name: e.name, isFolder: e.id === null })));
-      if (data.length < 100) return out;
-    }
-  };
-  const files: string[] = [];
-  for (const entry of await page(userId)) {
-    if (entry.isFolder) {
-      for (const f of await page(`${userId}/${entry.name}`)) if (!f.isFolder) files.push(`${userId}/${entry.name}/${f.name}`);
-    } else {
-      files.push(`${userId}/${entry.name}`);
-    }
-  }
-  return files;
-}
 
 /**
  * Deletes the account with all data and photos.
@@ -54,15 +31,7 @@ export async function deleteAccount(input: { password: string; confirm: string }
   if (authError) return { error: authError.status === 429 ? "rateLimit" : "wrongPassword" };
 
   try {
-    const files = await listAllFiles(supabase, user.id);
-    for (let i = 0; i < files.length; i += 100) {
-      const { error } = await supabase.storage.from(PHOTO_BUCKET).remove(files.slice(i, i + 100));
-      if (error) throw new Error(`storage remove failed: ${error.message}`);
-    }
-    // Anything left (e.g. a file uploaded in another tab meanwhile) must not block deletion,
-    // but it is worth knowing about.
-    const leftover = await listAllFiles(supabase, user.id);
-    if (leftover.length) console.error("account deletion: files left after cleanup", { count: leftover.length });
+    await removeUserFiles(supabase, user.id);
   } catch (error) {
     console.error("account deletion: storage cleanup failed", { message: error instanceof Error ? error.message : "unknown" });
     return { error: "unknown" };
@@ -73,6 +42,9 @@ export async function deleteAccount(input: { password: string; confirm: string }
     console.error("account deletion: rpc failed", { code: rpcError.code });
     return { error: "unknown" };
   }
+
+  const email = user.email;
+  after(() => notifyAdmin({ kind: "deleted", email }));
 
   // The user no longer exists: drop the session cookies locally (the server call may fail).
   await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);

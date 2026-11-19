@@ -18,7 +18,19 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: LucideIcon; active: boolean }) {
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  badge,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  badge?: { count: number; label: string };
+}) {
   return (
     <Link
       href={href}
@@ -27,13 +39,25 @@ function NavLink({ href, label, icon: Icon, active }: { href: string; label: str
         active ? "text-accent" : "text-muted"
       }`}
     >
-      <Icon className="size-6" aria-hidden />
+      <span className="relative">
+        <Icon className="size-6" aria-hidden />
+        {badge && (
+          <span
+            className="absolute -top-1.5 -right-2.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[0.6875rem] leading-none font-semibold text-white"
+            aria-hidden
+          >
+            {badge.count > 99 ? "99+" : badge.count}
+          </span>
+        )}
+      </span>
       <span>{label}</span>
+      {badge && <span className="sr-only">, {badge.label}</span>}
     </Link>
   );
 }
 
-export function BottomNav() {
+/** settingsBadge: accounts awaiting approval (shown to the admin only, 0 hides it). */
+export function BottomNav({ settingsBadge = 0 }: { settingsBadge?: number }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const [left, right] = [sideItems.slice(0, 2), sideItems.slice(2)];
@@ -61,7 +85,18 @@ export function BottomNav() {
         </div>
 
         {right.map((item) => (
-          <NavLink key={item.key} href={item.href} label={t(item.key)} icon={item.icon} active={isActive(pathname, item.href)} />
+          <NavLink
+            key={item.key}
+            href={item.href}
+            label={t(item.key)}
+            icon={item.icon}
+            active={isActive(pathname, item.href)}
+            badge={
+              item.key === "settings" && settingsBadge > 0
+                ? { count: settingsBadge, label: t("pendingBadge", { n: settingsBadge }) }
+                : undefined
+            }
+          />
         ))}
       </div>
     </nav>

@@ -195,6 +195,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          role: string
+          status: string
+          status_changed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role?: string
+          status?: string
+          status_changed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          status?: string
+          status_changed_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_status: {
         Row: {
           id: boolean
@@ -234,6 +258,26 @@ export type Database = {
       }
     }
     Functions: {
+      admin_check_delete: { Args: { p_user_id: string }; Returns: string }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          ai_24h: number
+          ai_total: number
+          created_at: string
+          email: string
+          items_count: number
+          last_sign_in_at: string
+          role: string
+          status: string
+          user_id: string
+        }[]
+      }
+      admin_pending_count: { Args: never; Returns: number }
+      admin_set_status: {
+        Args: { p_status: string; p_user_id: string }
+        Returns: undefined
+      }
       consume_ai_quota: {
         Args: { p_kind: string; p_limit: number }
         Returns: boolean
@@ -243,6 +287,8 @@ export type Database = {
         Args: { arr: string[]; sep: string }
         Returns: string
       }
+      is_active: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       keepalive: { Args: never; Returns: string }
       location_descendants: { Args: { loc_id: string }; Returns: string[] }
       normalize_search: { Args: { t: string }; Returns: string }

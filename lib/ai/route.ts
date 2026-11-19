@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export type AiKind = "recognize" | "voice_place" | "search" | "translate";
 
 /** Error codes returned by /api/ai/* as { error }. The client maps them to dictionary keys. */
-export type AiErrorCode = "unauthorized" | "badRequest" | "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed";
+export type AiErrorCode = "unauthorized" | "accountInactive" | "badRequest" | "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed";
 
 export function aiError(code: AiErrorCode, status: number) {
   return NextResponse.json({ error: code }, { status });
@@ -23,7 +23,8 @@ type Guard =
 
 /**
  * Common start of every AI route: session check, then the daily quota
- * (checked and recorded atomically in the database, rolling 24 hours, shared by all kinds).
+ * (checked and recorded atomically in the database, rolling 24 hours, shared by all kinds;
+ * the same database call refuses pending and disabled accounts).
  * Call it after validating the input, so malformed requests do not spend the quota.
  */
 export async function guardAiRequest(kind: AiKind): Promise<Guard> {
@@ -34,6 +35,8 @@ export async function guardAiRequest(kind: AiKind): Promise<Guard> {
   if (!user) return { ok: false, response: aiError("unauthorized", 401) };
 
   const { data: allowed, error } = await supabase.rpc("consume_ai_quota", { p_kind: kind, p_limit: dailyLimit() });
+  // 42501 from consume_ai_quota: the account is pending or disabled (checked in the database).
+  if (error?.code === "42501") return { ok: false, response: aiError("accountInactive", 403) };
   if (error) {
     console.error("consume_ai_quota failed", { code: error.code });
     return { ok: false, response: aiError("aiFailed", 500) };

@@ -1,10 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { Activity } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-
-const subscribeNever = () => () => {};
+import { useTimeZone } from "@/lib/use-time-zone";
 
 /**
  * "Last database check: …" in the viewer's own time zone. The server (Vercel) runs in UTC,
@@ -13,11 +11,7 @@ const subscribeNever = () => () => {};
 export function DbHeartbeat({ at, stale }: { at: string | null; stale: boolean }) {
   const t = useTranslations("settings");
   const format = useFormatter();
-  const timeZone = useSyncExternalStore(
-    subscribeNever,
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    () => null,
-  );
+  const timeZone = useTimeZone();
   const date = at ? new Date(at) : null;
 
   return (
