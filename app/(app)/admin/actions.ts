@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { getProfile } from "@/lib/auth";
+import { isDataLang } from "@/lib/data-lang";
+import { notifyUser } from "@/lib/notify/user-email";
 import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -21,7 +24,8 @@ function mapError(code: string | undefined): AdminActionError {
 
 /**
  * Activate or disable an account. The database function checks again that the caller
- * is an active admin, that the target is not the caller and not another admin.
+ * is an active admin, that the target is not the caller and not another admin, and returns
+ * the user's email, data language and previous status for the notification email.
  */
 export async function setUserStatus(userId: string, status: "active" | "disabled"): Promise<AdminActionResult> {
   const id = userIdSchema.safeParse(userId);
@@ -30,8 +34,17 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
   if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_status", { p_user_id: id.data, p_status: st.data });
+  const { data, error } = await supabase.rpc("admin_set_status", { p_user_id: id.data, p_status: st.data });
   if (error) return { ok: false, error: mapError(error.code) };
+
+  // Tell the user, only when the status really changed (in the background; a mail error
+  // never affects the action). Skipped until MAIL_FROM is configured.
+  const contact = data?.[0];
+  if (contact && contact.old_status !== st.data) {
+    const kind = st.data === "disabled" ? "disabled" : contact.old_status === "pending" ? "approved" : "reactivated";
+    const dataLang = isDataLang(contact.data_lang) ? contact.data_lang : "en";
+    after(() => notifyUser({ kind, to: contact.email, dataLang }));
+  }
 
   revalidatePath("/", "layout"); // the pending badge in the bottom navigation
   return { ok: true };

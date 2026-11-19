@@ -7,6 +7,7 @@ import { getLocale } from "next-intl/server";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth-errors";
 import { dataLangForLocale } from "@/lib/data-lang";
 import { notifyAdmin } from "@/lib/notify/admin-email";
+import { notifyUser } from "@/lib/notify/user-email";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -48,22 +49,23 @@ export async function signUp(input: SignupInput): Promise<AuthActionResult> {
   if (!parsed.success) return { error: "unknown" };
 
   const supabase = await createClient();
+  const dataLang = dataLangForLocale(await getLocale());
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       emailRedirectTo: `${await requestOrigin()}/auth/confirm?next=/`,
       // Data language mode from the interface language (read once by the profile trigger).
-      data: { data_lang: dataLangForLocale(await getLocale()) },
+      data: { data_lang: dataLang },
     },
   });
   if (error) return { error: authErrorKey(error) };
 
-  // A new account waits for approval: tell the admin. With email confirmation on, Supabase
+  // A new account waits for approval: tell the admin and the user. With email confirmation on, Supabase
   // answers an already registered email with a fake user without identities: no email then.
   if (data.user?.identities?.length) {
     const email = parsed.data.email;
-    after(() => notifyAdmin({ kind: "signup", email }));
+    after(() => Promise.all([notifyAdmin({ kind: "signup", email }), notifyUser({ kind: "registered", to: email, dataLang })]));
   }
 
   // Email confirmation off: Supabase returns a session right away.

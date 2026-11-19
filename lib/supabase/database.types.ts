@@ -279,7 +279,11 @@ export type Database = {
       admin_pending_count: { Args: never; Returns: number }
       admin_set_status: {
         Args: { p_status: string; p_user_id: string }
-        Returns: undefined
+        Returns: {
+          data_lang: string
+          email: string
+          old_status: string
+        }[]
       }
       consume_ai_quota: {
         Args: { p_kind: string; p_limit: number }

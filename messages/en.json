@@ -508,5 +508,25 @@
     "stop": "Stop",
     "close": "Close",
     "translateRecord": "Translate"
+  },
+  "userMail": {
+    "link": "Inventory:",
+    "footer": "This is an automatic email; there is no need to reply.",
+    "registered": {
+      "subject": "Sign-up received",
+      "body": "Hello!\n\nYou have signed up for Inventory. Your account is waiting for the administrator’s approval; we will email you when access is open."
+    },
+    "approved": {
+      "subject": "Your account is approved",
+      "body": "Hello!\n\nThe administrator has approved your Inventory account. You can sign in and start using the app."
+    },
+    "reactivated": {
+      "subject": "Access to your account is restored",
+      "body": "Hello!\n\nAccess to your Inventory account is open again. All your data is in place."
+    },
+    "disabled": {
+      "subject": "Access to your account is closed",
+      "body": "Hello!\n\nThe administrator has closed access to your Inventory account. Your data has not been deleted."
+    }
   }
 }
