@@ -7,6 +7,7 @@ import { ArrowRightLeft, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Ta
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { deleteItem, moveItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
+import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useLocations } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Photo } from "@/components/ui/photo";
@@ -200,6 +201,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
         allowRoot
         rootLabel={t("noPlaceSelected")}
         onSelect={move}
+        extra={<PlaceAssistant mode="move" onPlace={move} />}
       />
 
       <Sheet

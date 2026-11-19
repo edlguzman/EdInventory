@@ -72,12 +72,27 @@
     "allNested": "All items including nested places ({count})",
     "notFound": "Item not found",
     "backToList": "All items",
-    "photo": "Photo"
+    "photo": "Photo",
+    "recognize": "Recognize from photo",
+    "recognizeAgain": "Recognize again",
+    "recognizing": "AI is recognizing the item…",
+    "recognized": "Filled in by AI — please check.",
+    "placeVoiceHint": "Or say where you put it, details about the item welcome:"
   },
   "search": {
     "title": "Search",
-    "placeholder": "For example: where is my drill?",
-    "comingSoon": "Voice and text search will arrive in the next stages."
+    "placeholder": "For example: drill",
+    "hint": "Type a word for a plain search, or tap the mic and ask: “where is my drill?”",
+    "askAi": "Ask AI",
+    "asking": "AI is thinking…",
+    "aiSection": "Smart search",
+    "youAsked": "You asked:",
+    "removeFilter": "Remove filter",
+    "searchedFor": "Searched for:",
+    "searching": "Searching…",
+    "nothing": "Nothing found. Try “Ask AI”: it adds synonyms.",
+    "nothingAi": "Nothing found.",
+    "found": "{count, plural, one {# item found} other {# items found}}"
   },
   "add": {
     "title": "Add item"
@@ -218,7 +233,13 @@
     "photoTooMany": "No more than 10 photos per item",
     "photoInvalid": "The photos could not be saved. Please try again.",
     "photoUnsupported": "This image format is not supported. Try JPEG or PNG.",
-    "photoUpload": "Could not upload the photo. Check your internet and try again."
+    "photoUpload": "Could not upload the photo. Check your internet and try again.",
+    "micDenied": "No access to the microphone. Allow it in the browser settings or type instead.",
+    "micUnsupported": "Voice recording is not available in this browser. Type instead.",
+    "recordingTooShort": "The recording is too short. Tap the mic, say the phrase, tap again.",
+    "recordingFailed": "Could not process the recording. Try again or type instead.",
+    "aiNoPlace": "Could not tell which place. Say it more precisely or pick from the list.",
+    "aiNoTerms": "Could not tell what to look for. Try saying it differently."
   },
   "here": {
     "label": "I'm here",
@@ -240,5 +261,23 @@
     "deleteTitle": "Delete “{name}”?",
     "deleteConfirm": "Items in this category will have no category. The items themselves stay.",
     "empty": "No categories"
+  },
+  "voice": {
+    "speak": "Speak",
+    "stop": "Stop recording",
+    "send": "Send",
+    "listening": "Listening… {seconds} s of {max}",
+    "placeLabel": "Where did you put it?",
+    "placePlaceholder": "Where did you put it? E.g. garage, on the rack",
+    "heard": "Heard:",
+    "placeSet": "Place:",
+    "createInside": "Create <b>{names}</b> inside <b>{parent}</b>?",
+    "createTop": "Create a new place <b>{names}</b>?",
+    "create": "Create",
+    "no": "No",
+    "whichPlace": "Which place?",
+    "suggestionTitle": "AI suggests changes to the item",
+    "accept": "Accept",
+    "decline": "Decline"
   }
 }

@@ -22,7 +22,7 @@ function shortPath(full: string) {
   return parts.length > 2 ? `… → ${parts.slice(-2).join(" → ")}` : full;
 }
 
-function useItemLabels(categories: CategoryOption[]) {
+function useItemLabels(categories: CategoryOption[], fullPath = false) {
   const locale = useLocale();
   const { byId, path } = useLocations();
   const categoryById = new Map(categories.map((c) => [c.id, c]));
@@ -30,7 +30,7 @@ function useItemLabels(categories: CategoryOption[]) {
     name: (i: ItemSummary) => pickText(i.nameRu, i.nameEn, locale),
     place: (i: ItemSummary) => {
       const loc = i.locationId ? byId.get(i.locationId) : undefined;
-      return loc ? shortPath(path(loc)) : null;
+      return loc ? (fullPath ? path(loc) : shortPath(path(loc))) : null;
     },
     category: (i: ItemSummary) => {
       const c = i.categoryId ? categoryById.get(i.categoryId) : undefined;
@@ -71,9 +71,18 @@ export function ItemGallery({ items, categories }: { items: ItemSummary[]; categ
   );
 }
 
-export function ItemTable({ items, categories }: { items: ItemSummary[]; categories: CategoryOption[] }) {
+export function ItemTable({
+  items,
+  categories,
+  fullPath = false,
+}: {
+  items: ItemSummary[];
+  categories: CategoryOption[];
+  /** Show the whole place path (search results), not only its end. */
+  fullPath?: boolean;
+}) {
   const t = useTranslations("items");
-  const labels = useItemLabels(categories);
+  const labels = useItemLabels(categories, fullPath);
   return (
     <table className="w-full border-collapse text-sm">
       <thead className="hidden sm:table-header-group">
@@ -101,7 +110,7 @@ export function ItemTable({ items, categories }: { items: ItemSummary[]; categor
                 <Link href={`/items/${item.id}`} className="block truncate font-medium after:absolute after:inset-0">
                   {name}
                 </Link>
-                <span className="block truncate text-xs text-muted sm:hidden">
+                <span className={`block text-xs text-muted sm:hidden ${fullPath ? "" : "truncate"}`}>
                   {[place, category].filter(Boolean).join(" · ")}
                 </span>
               </td>

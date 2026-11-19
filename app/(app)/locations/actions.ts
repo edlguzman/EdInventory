@@ -90,3 +90,42 @@ export async function deleteLocation(input: { id: string }): Promise<ActionResul
   refresh();
   return { ok: true, data: undefined };
 }
+
+/**
+ * Creates a chain of nested places under `parent_id` (null = top level), outer to inner,
+ * after the user confirmed the AI suggestion ("Create 'Top shelf' inside 'Dacha → Bedroom → Closet'?").
+ * Returns the id of the innermost place. If a step fails, the places created so far are removed.
+ */
+export async function createLocationChain(input: {
+  parent_id: string | null;
+  names: NamePairInput[];
+}): Promise<ActionResult<{ id: string }>> {
+  const parent = id.nullable().safeParse(input.parent_id);
+  if (!parent.success) return fail("parentNotFound");
+  if (!Array.isArray(input.names) || input.names.length === 0 || input.names.length > 5) return fail("nameRequired");
+  const parsed = input.names.map((n) => locationNamesSchema.safeParse(n));
+  const bad = parsed.find((p) => !p.success);
+  if (bad && !bad.success) return fail(zodError(bad.error));
+
+  const supabase = await createClient();
+  const created: string[] = [];
+  let parentId = parent.data;
+  for (const p of parsed) {
+    if (!p.success) continue;
+    const { data, error } = await supabase
+      .from("locations")
+      .insert({ ...p.data, parent_id: parentId })
+      .select("id")
+      .single();
+    if (error) {
+      // Undo inner-first so the restrict FK on parent_id is satisfied.
+      for (const done of created.reverse()) await supabase.from("locations").delete().eq("id", done);
+      return fail(dataErrorKey(error));
+    }
+    created.push(data.id);
+    parentId = data.id;
+  }
+
+  refresh();
+  return { ok: true, data: { id: parentId! } };
+}

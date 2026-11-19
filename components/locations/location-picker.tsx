@@ -21,6 +21,8 @@ type Props = {
   allowRoot?: boolean;
   /** Label of the root choice, e.g. "All places" in a filter (default "Top level"). */
   rootLabel?: string;
+  /** Extra content above the search field (e.g. the voice place assistant for "Move"). */
+  extra?: React.ReactNode;
 };
 
 /**
@@ -32,7 +34,7 @@ export function LocationPicker(props: Props) {
   return props.open ? <PickerSheet key={`${props.initialId ?? ""}`} {...props} /> : null;
 }
 
-function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, allowRoot = false, rootLabel }: Props) {
+function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, allowRoot = false, rootLabel, extra }: Props) {
   const t = useTranslations("locations");
   const { all, byId, childrenOf, subtreeIds, name, path, locale } = useLocations();
   const excluded = useMemo(() => (excludeId ? subtreeIds(excludeId) : new Set<string>()), [excludeId, subtreeIds]);
@@ -69,6 +71,7 @@ function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, al
 
   return (
     <Sheet open onClose={onClose} title={title ?? t("pickerTitle")} footer={footer}>
+      {extra && <div className="mb-4 border-b border-border pb-4">{extra}</div>}
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
         <input

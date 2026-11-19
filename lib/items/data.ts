@@ -135,3 +135,33 @@ export async function getCategories(): Promise<CategoryOption[]> {
   const { data } = await supabase.from("categories").select("id, name_ru, name_en").order("sort_order").order("created_at");
   return data ?? [];
 }
+
+/** Items by id, in the given order (search results ranked by search_items). */
+export async function getItemsByIds(ids: string[]): Promise<ItemSummary[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("items").select(SUMMARY_COLUMNS).in("id", ids);
+  if (error) throw new Error(`Failed to load items: ${error.code}`);
+  const order = new Map(ids.map((id, i) => [id, i]));
+  const rows = (data as SummaryRow[]).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  return toSummaries(supabase, rows);
+}
+
+/** Ranked search over the user's items (SQL function search_items, RLS applies). */
+export async function searchItems(input: {
+  terms: string[];
+  location: string | null;
+  category: string | null;
+  limit?: number;
+}): Promise<ItemSummary[]> {
+  if (input.terms.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("search_items", {
+    p_terms: input.terms,
+    p_location_id: input.location ?? undefined,
+    p_category_id: input.category ?? undefined,
+    p_limit: input.limit ?? 50,
+  });
+  if (error) throw new Error(`search_items failed: ${error.code}`);
+  return getItemsByIds((data ?? []).map((r) => r.id));
+}

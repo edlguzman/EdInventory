@@ -4,13 +4,16 @@ import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
+import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
 import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
+import { recognizeItem } from "@/lib/ai/client";
+import type { ItemSuggestion, RecognizeResult } from "@/lib/ai/types";
 import type { CategoryOption } from "@/lib/items/data";
 import type { ItemDetail } from "@/lib/items/types";
 import { PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
@@ -19,6 +22,7 @@ import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
+import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
 type Props = { userId: string; categories: CategoryOption[] } & (
@@ -40,7 +44,7 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const here = useCurrentLocation();
 
   const [photos, setPhotos] = useState<PhotoDraft[]>(
-    () => item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl })) ?? [],
+    () => item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? [],
   );
   const [primaryKey, setPrimaryKey] = useState<string | null>(
     () => item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null,
@@ -53,6 +57,10 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string>();
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [recognizing, setRecognizing] = useState(false);
+  const [recognized, setRecognized] = useState(false);
+  const [aiError, setAiError] = useState<string>();
+  const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
 
   const form = useForm<ItemFieldsInput>({
     resolver: zodResolver(itemFieldsSchema),
@@ -73,6 +81,53 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
   const tags = useWatch({ control, name: "tags" });
 
   const place = locationId ? byId.get(locationId) : undefined;
+
+  /** AI prefills only empty fields: what the user typed is never overwritten. */
+  function applyRecognition(r: RecognizeResult) {
+    const v = form.getValues();
+    const fill = (name: "name_ru" | "name_en" | "description_ru" | "description_en", value: string) => {
+      if (value && !v[name].trim()) setValue(name, value, { shouldDirty: true, shouldValidate: name.startsWith("name") });
+    };
+    fill("name_ru", r.name_ru);
+    fill("name_en", r.name_en);
+    fill("description_ru", r.description_ru);
+    fill("description_en", r.description_en);
+    if (r.tags.length && v.tags.length === 0) setValue("tags", r.tags, { shouldDirty: true });
+    if (r.category_id) setCategoryId((current) => current ?? r.category_id);
+  }
+
+  async function recognize(photo: PhotoDraft | undefined) {
+    if (!photo) return;
+    setAiError(undefined);
+    setRecognizing(true);
+    try {
+      // New photo: the processed JPEG; stored photo: download it through its signed URL.
+      const image = photo.kind === "new" ? photo.main : photo.url ? await (await fetch(photo.url)).blob() : null;
+      if (!image) return setAiError("aiFailed");
+      const r = await recognizeItem(new Blob([image], { type: "image/jpeg" }), locale);
+      if ("error" in r) return setAiError(r.error);
+      applyRecognition(r);
+      setRecognized(true);
+    } catch {
+      setAiError("network");
+    } finally {
+      setRecognizing(false);
+    }
+  }
+
+  function acceptSuggestion(s: ItemSuggestion) {
+    const opts = { shouldDirty: true, shouldValidate: true };
+    if (s.name_ru) setValue("name_ru", s.name_ru, opts);
+    if (s.name_en) setValue("name_en", s.name_en, opts);
+    if (s.description_ru) setValue("description_ru", s.description_ru, opts);
+    if (s.description_en) setValue("description_en", s.description_en, opts);
+    if (s.tags_add.length) {
+      const current = form.getValues("tags");
+      const lower = new Set(current.map((x) => x.toLowerCase()));
+      setValue("tags", [...current, ...s.tags_add.filter((x) => !lower.has(x.toLowerCase()))].slice(0, 50), opts);
+    }
+    setSuggestion(null);
+  }
   const label = (c: CategoryOption) => (locale === "en" ? c.name_en || c.name_ru : c.name_ru || c.name_en);
 
   const submit = form.handleSubmit(async (fields) => {
@@ -130,10 +185,40 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
         primaryKey={primaryKey}
         onError={setError}
         onChange={(next, primary) => {
+          // First photo of an item with no name yet: recognize it automatically (1 AI request).
+          const v = form.getValues();
+          const firstPhoto = photos.length === 0 && next.length > 0;
+          if (firstPhoto && !v.name_ru.trim() && !v.name_en.trim() && !recognized) {
+            void recognize(next.find((p) => p.key === primary) ?? next[0]);
+          }
           setPhotos(next);
           setPrimaryKey(primary);
         }}
       />
+
+      {(recognizing || photos.length > 0) && (
+        <div className="-mt-2 flex flex-col gap-2">
+          {recognizing ? (
+            <p role="status" className="flex min-h-11 items-center gap-2 text-sm text-muted">
+              <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              {t("recognizing")}
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3">
+              {recognized && <span className="text-sm text-muted">{t("recognized")}</span>}
+              <Button
+                variant="ghost"
+                className="-ml-4 text-sm"
+                onClick={() => void recognize(photos.find((p) => p.key === primaryKey) ?? photos[0])}
+              >
+                <Sparkles className="size-4" aria-hidden />
+                {recognized ? t("recognizeAgain") : t("recognize")}
+              </Button>
+            </div>
+          )}
+          {aiError && <Alert>{errorText(aiError)}</Alert>}
+        </div>
+      )}
 
       {error && <Alert>{errorText(error)}</Alert>}
 
@@ -204,6 +289,26 @@ export function ItemForm({ mode, item, userId, categories }: Props) {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="-mt-3 flex flex-col gap-2">
+        <span className="text-sm text-muted">{t("placeVoiceHint")}</span>
+        <PlaceAssistant
+          mode="form"
+          getItemContext={() => {
+            const v = form.getValues();
+            return { ...v, tags: v.tags };
+          }}
+          onPlace={(next) => setLocationId(next)}
+          onItemSuggestion={setSuggestion}
+        />
+        {suggestion && (
+          <ItemSuggestionCard
+            suggestion={suggestion}
+            onAccept={() => acceptSuggestion(suggestion)}
+            onDecline={() => setSuggestion(null)}
+          />
+        )}
       </div>
 
       <TagsInput value={tags} onChange={(tags) => setValue("tags", tags, { shouldValidate: true, shouldDirty: true })} />

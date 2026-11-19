@@ -9,7 +9,7 @@ import { Photo } from "@/components/ui/photo";
 
 /** A photo in the form: either already stored (existing) or processed and waiting for upload (new). */
 export type PhotoDraft =
-  | { key: string; kind: "existing"; path: string; preview: string | null }
+  | { key: string; kind: "existing"; path: string; preview: string | null; url: string | null }
   | { key: string; kind: "new"; main: Blob; thumb: Blob; preview: string };
 
 export function PhotoPicker({

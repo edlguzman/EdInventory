@@ -230,6 +230,18 @@ export type Database = {
       keepalive: { Args: never; Returns: string }
       location_descendants: { Args: { loc_id: string }; Returns: string[] }
       normalize_search: { Args: { t: string }; Returns: string }
+      search_items: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_terms: string[]
+        }
+        Returns: {
+          id: string
+          score: number
+        }[]
+      }
       seed_default_categories: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {
