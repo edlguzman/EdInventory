@@ -3,6 +3,13 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.1.0 — 2026-11-19
+
+- **Several items in one photo:** a photo of a shelf, a tool board or a drawer → the AI finds up to 30 items (one AI request), each is cut out of the photo. Review list with checkboxes, names, categories, one place for all (by voice too), "Save N items". Each item gets its cut-out as the main photo and the whole photo as the second one. Zero or one item found → the usual form, already filled in.
+- **Add screen:** two equal cards — "Several items in one photo" and "One item", each with "Take photo" / "From gallery".
+- **Fix:** endless redirect (`ERR_TOO_MANY_REDIRECTS`) after signing out on another device; "Sign out" now signs out of this device only.
+- Help: section "A whole shelf or tool board".
+
 ## v1.0.1 — 2026-11-19
 
 Release process only, no change to the app.
