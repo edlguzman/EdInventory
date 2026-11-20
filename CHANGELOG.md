@@ -7,6 +7,14 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v1.8.0 — 2026-11-21
+
+- **Books:** a photo of a cover fills in the title (as printed, not translated), author, and the year and ISBN if visible. A shelf of books in "Several items in one photo" gives a card per book, read from the spines.
+- **ISBN barcode:** a photo of the back cover is read on the phone; the book is looked up in Open Library, missing fields from Google Books. No AI request is spent; "Recognize from photo" stays available.
+- Books go to a "Books" category; if there is none, the app offers to create it.
+- Author, year and ISBN on items (one value, any data language mode): shown as "Author · year" in the item card, gallery and table; search finds authors and ISBNs (with or without hyphens).
+- Database: new nullable book columns, a new search column and search_items_v2 (the old search stays for rollback).
+
 ## v1.7.0 — 2026-11-20
 
 - **Admin in sections:** /admin opens two cards — Users (count, red badge of accounts awaiting approval) and Plans (count). "Back" goes from a section to /admin, from /admin to Settings.
