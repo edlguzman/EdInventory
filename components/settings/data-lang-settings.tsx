@@ -5,6 +5,7 @@ import { Check, Languages } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { setDataLang } from "@/app/(app)/settings/data-lang-actions";
 import { useDataLang } from "@/components/data-lang/context";
+import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
@@ -21,6 +22,8 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
   const tErrors = useTranslations("errors");
   const { mode, job, startTranslation } = useDataLang();
   const offline = useOffline();
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
   const [pending, startTransition] = useTransition();
   const [ask, setAsk] = useState<{ missing: number; langs: TextLang[] } | null>(null);
   const [error, setError] = useState(false);
@@ -77,7 +80,7 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
         <div className="flex items-center gap-3 rounded-xl bg-surface px-4 py-2">
           <Languages className="size-5 shrink-0 text-accent" aria-hidden />
           <span className="min-w-0 flex-1 text-sm">{t("untranslated", { count: untranslated })}</span>
-          <Button variant="ghost" disabled={offline} onClick={() => startTranslation(promptLangs(mode), untranslated)} className="-mr-3">
+          <Button variant="ghost" disabled={offline || aiOff} title={limitText} onClick={() => startTranslation(promptLangs(mode), untranslated)} className="-mr-3">
             {t("translateAll")}
           </Button>
         </div>
@@ -94,7 +97,8 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
             </Button>
             <Button
               variant="primary"
-              disabled={offline}
+              disabled={offline || aiOff}
+              title={limitText}
               className="flex-1"
               onClick={() => {
                 if (ask) startTranslation(ask.langs, ask.missing);

@@ -6,6 +6,7 @@ export type DataErrorKey =
   | "locationNotEmpty"
   | "parentNotFound"
   | "notFound"
+  | "planLimit"
   | "unknown";
 
 type PgError = { code?: string; message?: string; hint?: string | null; details?: string | null } | null;
@@ -21,6 +22,8 @@ export function dataErrorKey(error: PgError, context: "save" | "delete" = "save"
       return context === "delete" ? "locationNotEmpty" : "parentNotFound";
     case "PGRST116": // .single() found no row (missing or not the user's)
       return "notFound";
+    case "P0010": // items_enforce_plan_limit: the plan's item limit is reached
+      return "planLimit";
   }
   return "unknown";
 }

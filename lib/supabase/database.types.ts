@@ -198,32 +198,104 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          ai_daily_limit: number | null
+          code: string
+          created_at: string
+          item_limit: number | null
+          name_en: string
+          name_ru: string
+          sort_order: number
+          stripe_price_month: string | null
+          stripe_price_year: string | null
+        }
+        Insert: {
+          ai_daily_limit?: number | null
+          code: string
+          created_at?: string
+          item_limit?: number | null
+          name_en: string
+          name_ru: string
+          sort_order?: number
+          stripe_price_month?: string | null
+          stripe_price_year?: string | null
+        }
+        Update: {
+          ai_daily_limit?: number | null
+          code?: string
+          created_at?: string
+          item_limit?: number | null
+          name_en?: string
+          name_ru?: string
+          sort_order?: number
+          stripe_price_month?: string | null
+          stripe_price_year?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           data_lang: string
+          manual_plan: string | null
+          manual_until: string | null
           role: string
           status: string
           status_changed_at: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_period_end: string | null
+          subscription_plan: string | null
+          subscription_status: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           data_lang?: string
+          manual_plan?: string | null
+          manual_until?: string | null
           role?: string
           status?: string
           status_changed_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           data_lang?: string
+          manual_plan?: string | null
+          manual_until?: string | null
           role?: string
           status?: string
           status_changed_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_manual_plan_fkey"
+            columns: ["manual_plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "profiles_subscription_plan_fkey"
+            columns: ["subscription_plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       system_status: {
         Row: {
@@ -279,7 +351,30 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_users_v2: {
+        Args: never
+        Returns: {
+          ai_24h: number
+          ai_total: number
+          created_at: string
+          email: string
+          items_count: number
+          last_sign_in_at: string
+          manual_plan: string
+          manual_until: string
+          plan_code: string
+          plan_source: string
+          plan_until: string
+          role: string
+          status: string
+          user_id: string
+        }[]
+      }
       admin_pending_count: { Args: never; Returns: number }
+      admin_set_plan: {
+        Args: { p_plan: string; p_until: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_set_status: {
         Args: { p_status: string; p_user_id: string }
         Returns: {
@@ -288,11 +383,34 @@ export type Database = {
           old_status: string
         }[]
       }
+      admin_update_plan: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_name_en: string
+          p_name_ru: string
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
       consume_ai_quota: {
         Args: { p_kind: string; p_limit: number }
         Returns: boolean
       }
+      consume_ai_quota_v2: {
+        Args: { p_fallback: number; p_kind: string }
+        Returns: string
+      }
       delete_my_account: { Args: never; Returns: undefined }
+      effective_plan: {
+        Args: { p_user: string }
+        Returns: {
+          code: string
+          source: string
+          until: string
+        }[]
+      }
       immutable_text_array_to_string: {
         Args: { arr: string[]; sep: string }
         Returns: string
@@ -301,6 +419,21 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       keepalive: { Args: never; Returns: string }
       location_descendants: { Args: { loc_id: string }; Returns: string[] }
+      my_plan: {
+        Args: never
+        Returns: {
+          ai_daily_limit: number
+          ai_used_24h: number
+          code: string
+          is_admin: boolean
+          item_limit: number
+          items_count: number
+          name_en: string
+          name_ru: string
+          source: string
+          until: string
+        }[]
+      }
       normalize_search: { Args: { t: string }; Returns: string }
       search_items: {
         Args: {

@@ -10,9 +10,17 @@ import type {
 } from "./types";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
-export type AiClientError = "aiLimit" | "aiBusy" | "aiProviderQuota" | "aiFailed" | "unauthorized" | "accountInactive" | "network";
+export type AiClientError =
+  | "aiLimit"
+  | "itemsLimit"
+  | "aiBusy"
+  | "aiProviderQuota"
+  | "aiFailed"
+  | "unauthorized"
+  | "accountInactive"
+  | "network";
 
-const KNOWN: readonly string[] = ["aiLimit", "aiBusy", "aiProviderQuota", "aiFailed", "unauthorized", "accountInactive"];
+const KNOWN: readonly string[] = ["aiLimit", "itemsLimit", "aiBusy", "aiProviderQuota", "aiFailed", "unauthorized", "accountInactive"];
 
 type AiResponse<T> = T | { error: AiClientError };
 

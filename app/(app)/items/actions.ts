@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDataLang, getUser } from "@/lib/auth";
+import { getMyPlan } from "@/lib/plans";
 import type { DataLang } from "@/lib/data-lang";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
@@ -99,6 +100,8 @@ export async function createItem(
   if (!id.success) return abort("unknown");
   if (!photos.success) return abort(firstIssue(photos.error));
   if (ownPhotos.length !== photos.data.length) return abort("photoInvalid");
+  // Plan limit: a clear message instead of a database error (the database enforces it too).
+  if ((await getMyPlan())?.atItemLimit) return abort("planLimit");
   const mode = await getDataLang();
   const parsed = parseSave(input, mode, null);
   if ("error" in parsed) return abort(parsed.error ?? "unknown");
@@ -159,7 +162,7 @@ export async function createItemsBatch(input: {
   /** SHA-256 of the original whole photo: stored on every copy of it (duplicate check). */
   overviewHash?: string | null;
   items: BatchItemInput[];
-}): Promise<ItemResult<{ count: number }>> {
+}): Promise<ItemResult<{ count: number; skipped: number }>> {
   const supabase = await createClient();
   const storage = supabase.storage.from(PHOTO_BUCKET);
   const user = await getUser();
@@ -190,15 +193,26 @@ export async function createItemsBatch(input: {
   if (uploaded.length !== items.length + 1 || new Set(uploaded).size !== uploaded.length) return abort("photoInvalid");
 
   const mode = await getDataLang();
-  const rows = [];
+  const parsedRows = [];
   for (const it of items) {
     const parsed = parseSave({ fields: it.fields, category_id: it.category_id, location_id: input.location_id }, mode, null);
     if ("error" in parsed) return abort(parsed.error ?? "unknown");
-    rows.push({ id: it.id, ...parsed.row });
+    parsedRows.push({ id: it.id, ...parsed.row });
   }
 
+  // Plan limit: save as many as fit, in the user's order; the rest lose their cut-outs and the
+  // client says how many did not fit. (The database trigger enforces the limit as well.)
+  const plan = await getMyPlan();
+  const room =
+    !plan || plan.isAdmin || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
+  if (room === 0) return abort("planLimit");
+  const saved = items.slice(0, room);
+  const rows = parsedRows.slice(0, room);
+  const skipped = items.length - saved.length;
+  if (skipped > 0) await removePhotoFiles(supabase, items.slice(room).map((it) => it.photo));
+
   // Copy the whole photo into the other items' folders (server side, no second upload).
-  const targets = items.slice(1).map((it) => photoPath(user.id, it.id, crypto.randomUUID()));
+  const targets = saved.slice(1).map((it) => photoPath(user.id, it.id, crypto.randomUUID()));
   const copied = await pool(
     targets.map((to) => async () => {
       const [a, b] = await Promise.all([
@@ -218,13 +232,13 @@ export async function createItemsBatch(input: {
   const overviewOf = [input.overview, ...targets];
   const overviewHash = photoHashSchema.safeParse(input.overviewHash).success ? (input.overviewHash as string) : null;
   const { error: photoError } = await supabase.from("item_photos").insert(
-    items.flatMap((it, i) => [
+    saved.flatMap((it, i) => [
       { item_id: it.id, storage_path: it.photo, is_primary: true },
       { item_id: it.id, storage_path: overviewOf[i], is_primary: false, source_hash: overviewHash },
     ]),
   );
   if (photoError) {
-    await supabase.from("items").delete().in("id", items.map((it) => it.id));
+    await supabase.from("items").delete().in("id", saved.map((it) => it.id));
     return abort("unknown");
   }
 
@@ -236,7 +250,7 @@ export async function createItemsBatch(input: {
       .map((r) => ({ type: "item" as const, id: r.id })),
   );
   refresh();
-  return { ok: true, data: { count: items.length } };
+  return { ok: true, data: { count: saved.length, skipped } };
 }
 
 /**

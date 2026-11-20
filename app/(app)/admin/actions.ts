@@ -10,7 +10,7 @@ import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export type AdminActionError = "forbidden" | "notFound" | "unknown";
+export type AdminActionError = "forbidden" | "notFound" | "invalid" | "unknown";
 export type AdminActionResult = { ok: true } | { ok: false; error: AdminActionError };
 
 const userIdSchema = z.uuid();
@@ -19,6 +19,7 @@ const userIdSchema = z.uuid();
 function mapError(code: string | undefined): AdminActionError {
   if (code === "42501") return "forbidden";
   if (code === "P0002") return "notFound";
+  if (code === "22023" || code === "23514") return "invalid";
   return "unknown";
 }
 
@@ -77,5 +78,60 @@ export async function deleteUser(userId: string): Promise<AdminActionResult> {
   }
 
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+const planCode = z.string().regex(/^[a-z0-9_]{1,32}$/);
+
+/**
+ * Assign a manual plan (null = remove it: the user falls back to a subscription or free),
+ * optionally until a date (ISO; after it the user is back on free by themselves).
+ * admin_set_plan() checks again: caller is an active admin, target is not the caller or an admin.
+ */
+export async function setUserPlan(userId: string, plan: string | null, until: string | null): Promise<AdminActionResult> {
+  const id = userIdSchema.safeParse(userId);
+  const code = planCode.nullable().safeParse(plan);
+  const end = z.iso.datetime({ offset: true }).nullable().safeParse(until);
+  if (!id.success) return { ok: false, error: "notFound" };
+  if (!code.success || !end.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan", {
+    p_user_id: id.data,
+    p_plan: code.data as string,
+    p_until: (code.data ? end.data : null) as string,
+  });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+const planSchema = z.object({
+  code: planCode,
+  name_ru: z.string().trim().min(1).max(50),
+  name_en: z.string().trim().min(1).max(50),
+  item_limit: z.number().int().min(0).max(1_000_000).nullable(),
+  ai_daily_limit: z.number().int().min(0).max(100_000).nullable(),
+  sort_order: z.number().int().min(-1000).max(1000),
+});
+
+/** Edit a plan's names and limits (null limit = none / the default AI limit). Takes effect at once. */
+export async function updatePlan(input: z.input<typeof planSchema>): Promise<AdminActionResult> {
+  const v = planSchema.safeParse(input);
+  if (!v.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_update_plan", {
+    p_code: v.data.code,
+    p_name_ru: v.data.name_ru,
+    p_name_en: v.data.name_en,
+    p_item_limit: v.data.item_limit as number,
+    p_ai_daily_limit: v.data.ai_daily_limit as number,
+    p_sort_order: v.data.sort_order,
+  });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/", "layout"); // limits are shown everywhere
   return { ok: true };
 }

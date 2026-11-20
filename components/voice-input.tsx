@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { MAX_RECORDING_MS } from "@/lib/audio/recorder";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
 import { useOffline } from "./offline-banner";
+import { useAiOff, usePlanLimitText } from "./plan-context";
 
 export function MicButton({
   recorder,
@@ -16,12 +17,15 @@ export function MicButton({
 }) {
   const t = useTranslations("voice");
   const offline = useOffline();
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
   if (!recorder.available) return null;
   return (
     <button
       type="button"
       onClick={recorder.toggle}
-      disabled={busy || recorder.converting || (offline && !recorder.recording)}
+      disabled={busy || recorder.converting || ((offline || aiOff) && !recorder.recording)}
+      title={limitText}
       aria-pressed={recorder.recording}
       aria-label={recorder.recording ? t("stop") : t("speak")}
       className={`flex size-12 shrink-0 items-center justify-center rounded-xl disabled:opacity-50 ${
@@ -74,7 +78,9 @@ export function VoiceInput({
   const [text, setText] = useState("");
   const recorder = useVoiceRecorder({ onAudio: (audio) => onSubmit({ audio }), onError });
   const offline = useOffline();
-  const disabled = busy || recorder.converting || offline;
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
+  const disabled = busy || recorder.converting || offline || aiOff;
 
   // Not a <form>: it is used inside the item form, and forms cannot be nested.
   const submitText = () => {
@@ -90,7 +96,7 @@ export function VoiceInput({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={placeholder}
+          placeholder={limitText ?? placeholder}
           aria-label={label}
           maxLength={500}
           enterKeyHint="send"

@@ -7,9 +7,11 @@ import { LocationDialogsProvider } from "@/components/locations/location-dialogs
 import { LocationsProvider } from "@/components/locations/locations-context";
 import { Onboarding } from "@/components/onboarding";
 import { OfflineBanner } from "@/components/offline-banner";
+import { PlanLimitBanner, PlanProvider } from "@/components/plan-context";
 import { getPendingCount } from "@/lib/admin/data";
 import { getProfile, getUser, requireUser } from "@/lib/auth";
 import { getLocations } from "@/lib/locations/data";
+import { getMyPlan } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { countMissing } from "@/lib/translate/records";
 
@@ -36,28 +38,40 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   }
 
   const mode = profile.dataLang;
-  const [locations, pendingCount, silentMissingEn] = await Promise.all([
+  const [locations, pendingCount, missingEn, plan] = await Promise.all([
     getLocations(),
     profile.isAdmin ? getPendingCount() : 0,
     // Ru mode keeps English filled in the background; catch up what a failed save left.
     mode === "ru" ? createClient().then((supabase) => countMissing(supabase, ["en"])) : 0,
+    getMyPlan(),
   ]);
+  // Plan item limit reached: all AI is off, including the silent background translation.
+  const silentMissingEn = plan?.atItemLimit ? 0 : missingEn;
+  const planState = plan && {
+    nameRu: plan.nameRu,
+    nameEn: plan.nameEn,
+    itemLimit: plan.itemLimit,
+    atItemLimit: plan.atItemLimit,
+  };
   const onboarding = await needsOnboarding(locations.length);
 
   return (
-    <DataLangProvider mode={mode} silentMissingEn={silentMissingEn}>
-      <LocationsProvider locations={locations} userId={user.id}>
-        <LocationDialogsProvider>
-          <CurrentLocationBar />
-          <OfflineBanner />
-          <TranslationProgress />
-          <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-            {children}
-          </main>
-          <BottomNav settingsBadge={pendingCount} />
-          <Onboarding initialOpen={onboarding} />
-        </LocationDialogsProvider>
-      </LocationsProvider>
-    </DataLangProvider>
+    <PlanProvider plan={planState}>
+      <DataLangProvider mode={mode} silentMissingEn={silentMissingEn}>
+        <LocationsProvider locations={locations} userId={user.id}>
+          <LocationDialogsProvider>
+            <CurrentLocationBar />
+            <OfflineBanner />
+            <PlanLimitBanner />
+            <TranslationProgress />
+            <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+              {children}
+            </main>
+            <BottomNav settingsBadge={pendingCount} />
+            <Onboarding initialOpen={onboarding} />
+          </LocationDialogsProvider>
+        </LocationsProvider>
+      </DataLangProvider>
+    </PlanProvider>
   );
 }

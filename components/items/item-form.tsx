@@ -26,6 +26,7 @@ import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
+import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { PhotoUsedNotice } from "./duplicate-notice";
 import { ItemSuggestionCard } from "./item-suggestion";
@@ -51,6 +52,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
+  const aiOff = useAiOff();
   const router = useRouter();
   const id = useId();
   const { byId, path } = useLocations();
@@ -127,7 +129,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   }
 
   async function recognize(photo: PhotoDraft | undefined) {
-    if (!photo) return;
+    if (!photo || aiOff) return; // plan limit reached: no AI (the server refuses it as well)
     setAiError(undefined);
     setRecognizing(true);
     try {
@@ -246,6 +248,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
 
   const busy = isSubmitting || progress !== null;
   const offline = useOffline();
+  const limitText = usePlanLimitText();
   const fieldError = (key?: string) => (key ? errorText(key) : undefined);
 
   return (
@@ -282,6 +285,8 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
                 variant="ghost"
                 className="-ml-4 text-sm"
                 onClick={() => void recognize(photos.find((p) => p.key === primaryKey) ?? photos[0])}
+                disabled={aiOff}
+                title={limitText}
               >
                 <Sparkles className="size-4" aria-hidden />
                 {recognized ? t("recognizeAgain") : t("recognize")}
@@ -422,7 +427,14 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
         <Button onClick={() => (onCancel ? onCancel() : router.back())} disabled={busy} className="flex-1">
           {tCommon("cancel")}
         </Button>
-        <Button variant="primary" type="submit" pending={busy} disabled={offline} className="flex-[2]">
+        <Button
+          variant="primary"
+          type="submit"
+          pending={busy}
+          disabled={offline || (mode === "create" && aiOff)}
+          title={mode === "create" ? limitText : undefined}
+          className="flex-[2]"
+        >
           {progress
             ? t("uploading", { done: Math.min(progress.done + 1, progress.total), total: progress.total })
             : busy

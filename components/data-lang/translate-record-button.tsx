@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Languages } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert, Button } from "@/components/ui/buttons";
 import { translateBatch } from "@/lib/ai/client";
@@ -42,6 +43,8 @@ export function TranslateRecordButton({
   const router = useRouter();
   const { mode } = useDataLang();
   const offline = useOffline();
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   if (!lacksVisibleText(mode, texts)) return null;
@@ -60,9 +63,9 @@ export function TranslateRecordButton({
       <button
         type="button"
         onClick={translate}
-        disabled={pending || offline}
+        disabled={pending || offline || aiOff}
         aria-label={t("translateRecord")}
-        title={error ? errorText(error) : t("translateRecord")}
+        title={limitText ?? (error ? errorText(error) : t("translateRecord"))}
         className={`flex size-11 items-center justify-center rounded-xl disabled:opacity-50 ${error ? "text-red-600" : "text-accent"}`}
       >
         <Languages className={`size-5 ${pending ? "animate-pulse" : ""}`} aria-hidden />
@@ -71,7 +74,7 @@ export function TranslateRecordButton({
   }
   return (
     <div className="flex flex-col gap-2">
-      <Button onClick={translate} pending={pending} disabled={offline} className="self-start">
+      <Button onClick={translate} pending={pending} disabled={offline || aiOff} title={limitText} className="self-start">
         {!pending && <Languages className="size-5" aria-hidden />}
         {t("translateRecord")}
       </Button>
