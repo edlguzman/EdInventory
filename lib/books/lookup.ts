@@ -15,13 +15,24 @@ const cache = new Map<string, { value: BookLookup | null; expires: number }>();
 type Partial = Omit<BookLookup, "isbn">;
 const EMPTY: Partial = { title: null, author: null, year: null, description: null, language: null };
 
+/** A catalogue answered with an HTTP error; only the status is kept (never the URL: it may hold the key). */
+class CatalogueError extends Error {
+  constructor(readonly status: number) {
+    super(`status ${status}`);
+  }
+}
+
+/** Log fields of a failed lookup: the HTTP status or the error type, nothing else. */
+const failure = (error: unknown) =>
+  error instanceof CatalogueError ? { status: error.status } : { error: error instanceof Error ? error.name : "unknown" };
+
 async function getJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { Accept: "application/json", "User-Agent": "InventoryApp/1.0 (personal home inventory)" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`status ${res.status}`);
+  if (!res.ok) throw new CatalogueError(res.status);
   return res.json();
 }
 
@@ -94,14 +105,14 @@ export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
     merge(await openLibrary(key));
   } catch (error) {
     failures++;
-    console.error("open library lookup failed", { message: error instanceof Error ? error.name : "unknown" });
+    console.error("open library lookup failed", failure(error));
   }
   if (!filled(result)) {
     try {
       merge(await googleBooks(key));
     } catch (error) {
       failures++;
-      console.error("google books lookup failed", { message: error instanceof Error ? error.name : "unknown" });
+      console.error("google books lookup failed", { ...failure(error), keyed: !!process.env.GOOGLE_BOOKS_API_KEY });
     }
   }
 
