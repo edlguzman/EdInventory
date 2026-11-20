@@ -10,7 +10,7 @@ import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export type AdminActionError = "forbidden" | "notFound" | "invalid" | "unknown";
+export type AdminActionError = "forbidden" | "notFound" | "invalid" | "exists" | "inUse" | "unknown";
 export type AdminActionResult = { ok: true } | { ok: false; error: AdminActionError };
 
 const userIdSchema = z.uuid();
@@ -20,6 +20,8 @@ function mapError(code: string | undefined): AdminActionError {
   if (code === "42501") return "forbidden";
   if (code === "P0002") return "notFound";
   if (code === "22023" || code === "23514") return "invalid";
+  if (code === "23505") return "exists";
+  if (code === "P0011" || code === "23503") return "inUse";
   return "unknown";
 }
 
@@ -103,7 +105,7 @@ export async function setUserPlan(userId: string, plan: string | null, until: st
     p_until: (code.data ? end.data : null) as string,
   });
   if (error) return { ok: false, error: mapError(error.code) };
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout"); // the user list and the plan counts
   return { ok: true };
 }
 
@@ -133,5 +135,52 @@ export async function updatePlan(input: z.input<typeof planSchema>): Promise<Adm
   });
   if (error) return { ok: false, error: mapError(error.code) };
   revalidatePath("/", "layout"); // limits are shown everywhere
+  return { ok: true };
+}
+
+const newPlanSchema = planSchema.omit({ sort_order: true });
+
+/** Add a plan (placed last). The code is permanent: latin letters, digits, "_". */
+export async function createPlan(input: z.input<typeof newPlanSchema>): Promise<AdminActionResult> {
+  const v = newPlanSchema.safeParse(input);
+  if (!v.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_plan", {
+    p_code: v.data.code,
+    p_name_ru: v.data.name_ru,
+    p_name_en: v.data.name_en,
+    p_item_limit: v.data.item_limit as number,
+    p_ai_daily_limit: v.data.ai_daily_limit as number,
+  });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Delete a plan nobody is linked to (the database refuses "free" and plans in use). */
+export async function deletePlan(code: string): Promise<AdminActionResult> {
+  const c = planCode.safeParse(code);
+  if (!c.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_plan", { p_code: c.data });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** New order of all plans (every code once). */
+export async function reorderPlans(codes: string[]): Promise<AdminActionResult> {
+  const c = z.array(planCode).min(1).max(100).safeParse(codes);
+  if (!c.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_reorder_plans", { p_codes: c.data });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/", "layout");
   return { ok: true };
 }

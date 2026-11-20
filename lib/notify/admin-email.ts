@@ -19,7 +19,12 @@ export async function notifyAdmin({ kind, email }: Event) {
     from: mailFrom() ?? "Inventory <onboarding@resend.dev>",
     to,
     subject: t(`${kind}.subject`, { email }),
-    text: [t(`${kind}.body`, { email, time }), "", `${t("adminLink")} ${siteUrl()}/admin`].join("\n"),
+    // A new registration: straight to the accounts awaiting approval.
+    text: [
+      t(`${kind}.body`, { email, time }),
+      "",
+      `${t("adminLink")} ${siteUrl()}${kind === "signup" ? "/admin/users?status=pending" : "/admin/users"}`,
+    ].join("\n"),
     tag: `admin-${kind}`,
   });
 }

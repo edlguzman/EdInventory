@@ -24,6 +24,7 @@ function useParentPath(): string | null {
     return parent ? `/locations/${parent}` : "/locations";
   }
   if (pathname === "/admin") return "/settings";
+  if (pathname === "/admin/users" || pathname === "/admin/plans") return "/admin";
   return null;
 }
 
