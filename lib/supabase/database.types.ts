@@ -337,20 +337,6 @@ export type Database = {
     }
     Functions: {
       admin_check_delete: { Args: { p_user_id: string }; Returns: string }
-      admin_list_users: {
-        Args: never
-        Returns: {
-          ai_24h: number
-          ai_total: number
-          created_at: string
-          email: string
-          items_count: number
-          last_sign_in_at: string
-          role: string
-          status: string
-          user_id: string
-        }[]
-      }
       admin_list_users_v2: {
         Args: never
         Returns: {
@@ -393,10 +379,6 @@ export type Database = {
           p_sort_order: number
         }
         Returns: undefined
-      }
-      consume_ai_quota: {
-        Args: { p_kind: string; p_limit: number }
-        Returns: boolean
       }
       consume_ai_quota_v2: {
         Args: { p_fallback: number; p_kind: string }
