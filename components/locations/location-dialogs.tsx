@@ -15,7 +15,7 @@ import { LOCATION_NAME_MAX, locationNamesSchema, type NamePairInput } from "@/li
 import { useDataLang } from "@/components/data-lang/context";
 import { expandAll } from "./expanded-store";
 import { LocationPicker } from "./location-picker";
-import { setCurrentLocationId, useCurrentLocation, useLocations } from "./locations-context";
+import { useCurrentLocation, useLocations, useSetCurrentLocation } from "./locations-context";
 
 type Dialog =
   | { kind: "menu"; id: string }
@@ -46,6 +46,7 @@ export function LocationDialogsProvider({ children }: { children: React.ReactNod
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const close = useCallback(() => setDialog(null), []);
+  const setCurrentLocationId = useSetCurrentLocation();
 
   useEffect(() => {
     if (!notice) return;
@@ -62,7 +63,7 @@ export function LocationDialogsProvider({ children }: { children: React.ReactNod
       openDelete: (id) => setDialog({ kind: "delete", id }),
       setHere: (id) => setCurrentLocationId(id),
     }),
-    [],
+    [setCurrentLocationId],
   );
 
   return (
@@ -97,6 +98,7 @@ function MenuSheet({ id, onClose, open }: { id: string; onClose: () => void; ope
   const tCommon = useTranslations("common");
   const { byId, path } = useLocations();
   const current = useCurrentLocation();
+  const setCurrentLocationId = useSetCurrentLocation();
   const loc = byId.get(id);
   if (!loc) return null;
   const isHere = current?.id === id;
@@ -304,7 +306,7 @@ function DeleteSheet({ id, onClose, notify }: { id: string; onClose: () => void;
   const errorText = useErrorText();
   const router = useRouter();
   const pathname = usePathname();
-  const { byId, childrenOf, name } = useLocations();
+  const { byId, childrenOf, name, here } = useLocations();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const loc = byId.get(id);
@@ -319,6 +321,7 @@ function DeleteSheet({ id, onClose, notify }: { id: string; onClose: () => void;
       setError(undefined);
       const result = await deleteLocation({ id });
       if (!result.ok) return setError(result.error);
+      if (here.get() === id) here.set(null); // the place itself is gone: "I'm here" is reset
       if (pathname === `/locations/${id}`) router.replace(loc.parentId ? `/locations/${loc.parentId}` : "/locations");
       notify({ text: t("deleted"), tone: "ok" });
       onClose();

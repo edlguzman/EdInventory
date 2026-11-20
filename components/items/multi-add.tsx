@@ -8,7 +8,7 @@ import { createItemsBatch } from "@/app/(app)/items/actions";
 import { useDataLang } from "@/components/data-lang/context";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
-import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
+import { useHerePlace, useLocations } from "@/components/locations/locations-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Photo } from "@/components/ui/photo";
@@ -89,7 +89,6 @@ export function MultiAdd({
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const { byId, path } = useLocations();
-  const here = useCurrentLocation();
   const offline = useOffline();
   const id = useId();
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -103,8 +102,8 @@ export function MultiAdd({
   const [error, setError] = useState<string>();
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [showBox, setShowBox] = useState<Found | null>(null);
-  const [chosenLocation, setLocationId] = useState<string | null | undefined>(undefined);
-  const locationId = chosenLocation === undefined ? (here?.id ?? null) : chosenLocation;
+  // The place for all items is "I'm here" itself: choosing it here changes it everywhere.
+  const [locationId, setLocationId] = useHerePlace();
   const place = locationId ? byId.get(locationId) : undefined;
   const [picking, setPicking] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -452,6 +451,7 @@ export function MultiAdd({
             <>
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">{t("placeForAll")}</span>
+                <span className="-mt-1 text-sm text-muted">{tItems("placeIsHere")}</span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"

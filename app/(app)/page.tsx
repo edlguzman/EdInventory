@@ -15,6 +15,8 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
   // Filters live in the URL, so back/forward and reload keep them. Invalid values are ignored.
   const rawCategory = one(params.category);
   const category = rawCategory === "none" || z.uuid().safeParse(rawCategory).success ? rawCategory! : null;
+  // location: a place id, or "all" (chosen explicitly). Without it the client opens the list
+  // on "I'm here" (stored on the device, so only the client knows it).
   const rawLocation = one(params.location);
   const location = z.uuid().safeParse(rawLocation).success ? rawLocation! : null;
   const n = Number.parseInt(one(params.n) ?? "", 10);

@@ -40,3 +40,13 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
+
+/*
+ * iOS Safari / installed PWA: no rubber-band bounce of the whole page. During the bounce
+ * the fixed bottom navigation and the sticky header moved together with the page.
+ * Inner scrollers (sheets, the photo strip) keep their own overscroll settings.
+ */
+html,
+body {
+  overscroll-behavior-y: none;
+}

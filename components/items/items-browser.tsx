@@ -1,13 +1,13 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, List, MapPin, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocationPicker } from "@/components/locations/location-picker";
-import { useLocations } from "@/components/locations/locations-context";
+import { useCurrentLocation, useLocations } from "@/components/locations/locations-context";
 import type { CategoryOption } from "@/lib/items/data";
 import { pickText, type ItemSummary } from "@/lib/items/types";
 import { ItemGallery, ItemTable, viewStore } from "./item-list";
@@ -44,13 +44,28 @@ export function ItemsBrowser({
     const merged = { ...filters, ...next };
     const params = new URLSearchParams();
     if (merged.category) params.set("category", merged.category);
-    if (merged.location) params.set("location", merged.location);
+    // Always explicit: a place id or "all". Only a bare URL follows "I'm here".
+    params.set("location", merged.location ?? "all");
     if (merged.limit > pageSize) params.set("n", String(merged.limit));
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   };
   // A new filter starts from the first page again.
   const apply = (next: Partial<BrowserFilters>) => router.push(href({ ...next, limit: pageSize }), { scroll: false });
+
+  // No place in the URL (e.g. the "Items" tab): open the list on "I'm here", if it is set.
+  const searchParams = useSearchParams();
+  const locationInUrl = searchParams.has("location");
+  const here = useCurrentLocation();
+  const hereId = here?.id ?? null;
+  useEffect(() => {
+    if (!locationInUrl && hereId) router.replace(href({ location: hereId }), { scroll: false });
+    // href depends on the current filters; this runs only when the URL has no place yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationInUrl, hereId]);
+
+  // Until then the unfiltered list is not shown (no flash of "all places").
+  const openingHere = !locationInUrl && !!hereId;
 
   const place = filters.location ? byId.get(filters.location) : undefined;
   const hasFilters = Boolean(filters.category || filters.location);
@@ -117,7 +132,11 @@ export function ItemsBrowser({
       </div>
       {place && <p className="-mt-2 text-xs text-muted">{t("nestedIncluded")}</p>}
 
-      {items.length === 0 ? (
+      {openingHere ? (
+        <p role="status" className="flex justify-center p-6 text-muted">
+          <LoaderCircle className="size-6 animate-spin" aria-hidden />
+        </p>
+      ) : items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-muted">
           {hasFilters ? t("emptyFiltered") : t("empty")}
         </p>
@@ -127,7 +146,7 @@ export function ItemsBrowser({
         <ItemGallery items={items} categories={categories} />
       )}
 
-      {hasMore && (
+      {hasMore && !openingHere && (
         <Link
           href={href({ limit: filters.limit + pageSize })}
           scroll={false}
