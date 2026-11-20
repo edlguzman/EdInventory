@@ -48,7 +48,7 @@ async function signUrls(supabase: Supabase, paths: string[]): Promise<Map<string
 }
 
 const SUMMARY_COLUMNS =
-  "id, name_ru, name_en, category_id, location_id, tags, created_at, item_photos(storage_path, is_primary)";
+  "id, name_ru, name_en, category_id, location_id, tags, book_author, book_year, created_at, item_photos(storage_path, is_primary)";
 
 type SummaryRow = {
   id: string;
@@ -57,6 +57,8 @@ type SummaryRow = {
   category_id: string | null;
   location_id: string | null;
   tags: string[];
+  book_author: string | null;
+  book_year: number | null;
   created_at: string;
   item_photos: { storage_path: string; is_primary: boolean }[];
 };
@@ -74,6 +76,8 @@ async function toSummaries(supabase: Supabase, rows: SummaryRow[]): Promise<Item
       categoryId: r.category_id,
       locationId: r.location_id,
       tags: r.tags,
+      bookAuthor: r.book_author,
+      bookYear: r.book_year,
       createdAt: r.created_at,
       thumbUrl: primary ? (urls.get(thumbPath(primary)) ?? null) : null,
       photoCount: r.item_photos.length,
@@ -127,7 +131,7 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   const { data, error } = await supabase
     .from("items")
     .select(
-      "id, name_ru, name_en, description_ru, description_en, category_id, location_id, tags, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
+      "id, name_ru, name_en, description_ru, description_en, category_id, location_id, tags, book_author, book_year, book_isbn, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -147,6 +151,9 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
     categoryId: data.category_id,
     locationId: data.location_id,
     tags: data.tags,
+    bookAuthor: data.book_author,
+    bookYear: data.book_year,
+    bookIsbn: data.book_isbn,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     photos: photos.map((p) => ({
@@ -178,7 +185,7 @@ export async function getItemsByIds(ids: string[]): Promise<ItemSummary[]> {
   return toSummaries(supabase, rows);
 }
 
-/** Ranked search over the user's items (SQL function search_items, RLS applies). */
+/** Ranked search over the user's items, authors and ISBNs too (SQL function search_items_v2, RLS applies). */
 export async function searchItems(input: {
   terms: string[];
   location: string | null;
@@ -187,12 +194,12 @@ export async function searchItems(input: {
 }): Promise<ItemSummary[]> {
   if (input.terms.length === 0) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_items", {
+  const { data, error } = await supabase.rpc("search_items_v2", {
     p_terms: input.terms,
     p_location_id: input.location ?? undefined,
     p_category_id: input.category ?? undefined,
     p_limit: input.limit ?? 50,
   });
-  if (error) throw new Error(`search_items failed: ${error.code}`);
+  if (error) throw new Error(`search_items_v2 failed: ${error.code}`);
   return getItemsByIds((data ?? []).map((r) => r.id));
 }

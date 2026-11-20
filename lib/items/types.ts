@@ -8,6 +8,9 @@ export type ItemSummary = {
   categoryId: string | null;
   locationId: string | null;
   tags: string[];
+  /** Book fields (null when not a book / not known). */
+  bookAuthor: string | null;
+  bookYear: number | null;
   createdAt: string;
   thumbUrl: string | null;
   photoCount: number;
@@ -25,6 +28,7 @@ export type ItemPhoto = {
 export type ItemDetail = Omit<ItemSummary, "thumbUrl" | "photoCount"> & {
   descriptionRu: string | null;
   descriptionEn: string | null;
+  bookIsbn: string | null;
   updatedAt: string;
   photos: ItemPhoto[];
 };

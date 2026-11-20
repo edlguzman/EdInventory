@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_PHOTOS } from "@/lib/photos/paths";
+import { BOOK_AUTHOR_MAX, normalizeIsbn, parseYear } from "@/lib/books/isbn";
 import { hasRequiredName, isVisibleTag, resolvePair, type DataLang } from "@/lib/data-lang";
 import { LOCATION_NAME_MAX } from "./names";
 
@@ -13,6 +14,21 @@ export const MAX_BATCH_ITEMS = 30;
 const name = z.string().trim().max(ITEM_NAME_MAX, { error: "nameTooLong" });
 const description = z.string().trim().max(DESCRIPTION_MAX, { error: "descriptionTooLong" });
 
+/**
+ * Book fields as the form holds them (strings; "" = none). Optional: a caller that does not
+ * send them leaves the stored values alone. Language-neutral (one value, every data mode).
+ */
+const bookAuthor = z.string().trim().max(BOOK_AUTHOR_MAX, { error: "authorTooLong" });
+const bookYear = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || (/^[0-9]{4}$/.test(v) && parseYear(v) !== null), { error: "yearInvalid" });
+const bookIsbn = z
+  .string()
+  .trim()
+  .max(20, { error: "isbnInvalid" })
+  .refine((v) => v === "" || normalizeIsbn(v) !== null, { error: "isbnInvalid" });
+
 /** Editable text fields of an item (what the form holds); the required name depends on the mode. */
 export const itemFieldsSchema = (mode: DataLang) =>
   z
@@ -24,6 +40,9 @@ export const itemFieldsSchema = (mode: DataLang) =>
       tags: z
         .array(z.string().trim().min(1).max(TAG_MAX, { error: "tagTooLong" }))
         .max(TAGS_MAX, { error: "tooManyTags" }),
+      book_author: bookAuthor.optional(),
+      book_year: bookYear.optional(),
+      book_isbn: bookIsbn.optional(),
     })
     .refine((v) => hasRequiredName(mode, v.name_ru, v.name_en), {
       error: "nameRequired",
@@ -31,6 +50,8 @@ export const itemFieldsSchema = (mode: DataLang) =>
     });
 
 export type ItemFieldsInput = z.input<ReturnType<typeof itemFieldsSchema>>;
+
+type BookRow = { book_author: string | null; book_year: number | null; book_isbn: string | null };
 
 export type ItemTextRow = {
   name_ru: string | null;
@@ -63,7 +84,11 @@ export function toItemRow(v: z.output<ReturnType<typeof itemFieldsSchema>>, mode
     seen.add(key);
     return true;
   });
-  const row: Partial<ItemTextRow> & { tags: string[] } = { tags: tags.slice(0, TAGS_MAX) };
+  const row: Partial<ItemTextRow & BookRow> & { tags: string[] } = { tags: tags.slice(0, TAGS_MAX) };
+  // Book fields: written only when sent (the same in every data language mode).
+  if (v.book_author !== undefined) row.book_author = v.book_author || null;
+  if (v.book_year !== undefined) row.book_year = v.book_year ? parseYear(v.book_year) : null;
+  if (v.book_isbn !== undefined) row.book_isbn = normalizeIsbn(v.book_isbn);
   if ("ru" in names) row.name_ru = names.ru;
   if ("en" in names) row.name_en = names.en;
   if ("ru" in descriptions) row.description_ru = descriptions.ru;

@@ -25,6 +25,9 @@ export type ItemErrorKey =
   | "descriptionTooLong"
   | "tagTooLong"
   | "tooManyTags"
+  | "authorTooLong"
+  | "yearInvalid"
+  | "isbnInvalid"
   | "photoTooMany"
   | "photoInvalid"
   | "photoUpload"
@@ -39,7 +42,17 @@ const fail = (error: ItemErrorKey): { ok: false; error: ItemErrorKey } => ({ ok:
 
 function firstIssue(error: z.ZodError): ItemErrorKey {
   const key = error.issues[0]?.message;
-  const known: ItemErrorKey[] = ["nameRequired", "nameTooLong", "descriptionTooLong", "tagTooLong", "tooManyTags", "photoTooMany"];
+  const known: ItemErrorKey[] = [
+    "nameRequired",
+    "nameTooLong",
+    "descriptionTooLong",
+    "tagTooLong",
+    "tooManyTags",
+    "authorTooLong",
+    "yearInvalid",
+    "isbnInvalid",
+    "photoTooMany",
+  ];
   return known.includes(key as ItemErrorKey) ? (key as ItemErrorKey) : "unknown";
 }
 

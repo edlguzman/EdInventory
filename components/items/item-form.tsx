@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
+import { BookOpen, ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
 import { findPhotoUses, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
@@ -16,6 +16,9 @@ import { DictationField } from "@/components/dictation-field";
 import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
 import { recognizeItem } from "@/lib/ai/client";
+import { findIsbnBarcode } from "@/lib/books/barcode";
+import { lookupBook } from "@/lib/books/client";
+import { formatIsbn, isBooksCategoryName, type BookInfo, type BookLookup } from "@/lib/books/isbn";
 import type { ItemSuggestion, RecognizeResult } from "@/lib/ai/types";
 import type { CategoryOption } from "@/lib/items/data";
 import type { ItemDetail } from "@/lib/items/types";
@@ -28,6 +31,7 @@ import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
 import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
+import { BookFields, BooksCategoryCard, useBooksCategory } from "./books";
 import { PhotoUsedNotice } from "./duplicate-notice";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
@@ -46,13 +50,15 @@ type Props = { userId: string; categories: CategoryOption[] } & (
 const fieldClass =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base outline-none focus:border-accent aria-invalid:border-red-500";
 
-export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Props) {
+export function ItemForm({ mode, item, userId, categories: initialCategories, seed, onCancel }: Props) {
   const t = useTranslations("items");
+  const tBooks = useTranslations("books");
   const tCommon = useTranslations("common");
   const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
   const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
   const aiOff = useAiOff();
+  const offline = useOffline();
   const router = useRouter();
   const id = useId();
   const { byId, path } = useLocations();
@@ -73,6 +79,9 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
     () => (seed ? (seed.photos.length ? "seed-0" : null) : (item?.photos.find((p) => p.isPrimary)?.id ?? item?.photos[0]?.id ?? null)),
   );
   const seeded = seed?.recognition ?? null;
+  // Categories plus a "Books" category created from this form.
+  const books = useBooksCategory(initialCategories);
+  const categories = books.categories;
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? seeded?.category_id ?? null);
   // New item: the place IS "I'm here" (choosing it here changes it everywhere).
   // Editing an item: the place belongs to that item only.
@@ -91,6 +100,11 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   const [photoUses, setPhotoUses] = useState<ExistingItem[] | null>(null);
   const [heldRecognition, setHeldRecognition] = useState<PhotoDraft | null>(null);
   const checkedHashes = useRef(new Set<string>());
+  // Books: the author/year/ISBN block, "create the Books category?", a book found by its barcode.
+  const [showBook, setShowBook] = useState(!!(item?.bookAuthor || item?.bookYear || item?.bookIsbn || seeded?.book));
+  const [askBooksCategory, setAskBooksCategory] = useState(!!seeded?.book && !books.booksId);
+  const [scanning, setScanning] = useState(false);
+  const [foundIsbn, setFoundIsbn] = useState<string | null>(null);
 
   const form = useForm<ItemFieldsInput>({
     resolver: zodResolver(itemFieldsSchema(dataMode)),
@@ -102,6 +116,9 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
       description_ru: item?.descriptionRu ?? seeded?.description_ru ?? "",
       description_en: item?.descriptionEn ?? seeded?.description_en ?? "",
       tags: (item?.tags ?? seeded?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
+      book_author: item?.bookAuthor ?? seeded?.book?.author ?? "",
+      book_year: String(item?.bookYear ?? seeded?.book?.year ?? ""),
+      book_isbn: item?.bookIsbn ?? seeded?.book?.isbn ?? "",
     },
   });
   const {
@@ -126,6 +143,70 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
     fill("description_en", r.description_en);
     if (r.tags.length && v.tags.length === 0) setValue("tags", r.tags, { shouldDirty: true });
     if (r.category_id) setCategoryId((current) => current ?? r.category_id);
+    if (r.book) applyBook(r.book);
+  }
+
+  /** Book fields: only empty ones are filled; the block opens; the Books category is chosen or offered. */
+  function applyBook(b: BookInfo) {
+    const v = form.getValues();
+    const opts = { shouldDirty: true, shouldValidate: true };
+    if (b.author && !v.book_author?.trim()) setValue("book_author", b.author, opts);
+    if (b.year && !v.book_year?.trim()) setValue("book_year", String(b.year), opts);
+    if (b.isbn && !v.book_isbn?.trim()) setValue("book_isbn", b.isbn, opts);
+    setShowBook(true);
+    if (books.booksId) setCategoryId((current) => current ?? books.booksId);
+    else setAskBooksCategory(true);
+  }
+
+  /**
+   * A catalogue answer (by ISBN): the title goes into the empty name fields shown in this data
+   * mode (as published, not translated); the description into the field of the book's language.
+   */
+  function applyLookup(b: BookLookup) {
+    const v = form.getValues();
+    const opts = { shouldDirty: true, shouldValidate: true };
+    if (b.title) {
+      for (const lang of editLangs) {
+        const field = lang === "ru" ? "name_ru" : "name_en";
+        if (!v[field].trim()) setValue(field, b.title.slice(0, ITEM_NAME_MAX), opts);
+      }
+    }
+    const descLang = b.language === "ru" || b.language === "en" ? b.language : null;
+    if (b.description && descLang && editLangs.includes(descLang)) {
+      const field = descLang === "ru" ? "description_ru" : "description_en";
+      if (!v[field].trim()) setValue(field, b.description.slice(0, DESCRIPTION_MAX), opts);
+    }
+    applyBook({ author: b.author, year: b.year, isbn: b.isbn });
+  }
+
+  /**
+   * An ISBN barcode on the photo (read on the phone, no AI): look the book up in the catalogues.
+   * Found -> the form is filled and true is returned (no AI request). Not found -> only the
+   * ISBN is kept, and the photo is recognized as usual.
+   */
+  async function fillFromBarcode(photo: PhotoDraft): Promise<boolean> {
+    if (photo.kind !== "new") return false;
+    setScanning(true);
+    try {
+      const isbn = await findIsbnBarcode(photo.main);
+      if (!isbn) return false;
+      const r = await lookupBook(isbn);
+      if ("error" in r || !r.book) {
+        applyBook({ author: null, year: null, isbn });
+        return false;
+      }
+      applyLookup(r.book);
+      setFoundIsbn(isbn);
+      return true;
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  /** First photo of a new item: a book barcode first (free), else the AI recognition. */
+  async function scanThenRecognize(photo: PhotoDraft) {
+    if (await fillFromBarcode(photo)) return;
+    void recognize(photo);
   }
 
   async function recognize(photo: PhotoDraft | undefined) {
@@ -165,7 +246,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   /** First photo of a new item: check for a repeat first, so a known photo costs no AI request. */
   async function checkThenRecognize(photo: PhotoDraft, list: PhotoDraft[]) {
     if (await photosAlreadyUsed(list)) return setHeldRecognition(photo);
-    void recognize(photo);
+    void scanThenRecognize(photo);
   }
 
   // Photos handed over without a recognition: recognize the first one once (1 AI request),
@@ -247,7 +328,6 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
   });
 
   const busy = isSubmitting || progress !== null;
-  const offline = useOffline();
   const limitText = usePlanLimitText();
   const fieldError = (key?: string) => (key ? errorText(key) : undefined);
 
@@ -271,12 +351,12 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
         }}
       />
 
-      {(recognizing || photos.length > 0) && (
+      {(recognizing || scanning || photos.length > 0) && (
         <div className="-mt-2 flex flex-col gap-2">
-          {recognizing ? (
+          {recognizing || scanning ? (
             <p role="status" className="flex min-h-11 items-center gap-2 text-sm text-muted">
               <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              {t("recognizing")}
+              {scanning ? tBooks("scanning") : t("recognizing")}
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-x-3">
@@ -293,6 +373,12 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
               </Button>
             </div>
           )}
+          {foundIsbn && !recognizing && (
+            <p role="status" className="flex items-start gap-2 text-sm text-muted">
+              <BookOpen className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
+              {tBooks("foundByBarcode", { isbn: formatIsbn(foundIsbn) })}
+            </p>
+          )}
           {aiError && <Alert>{errorText(aiError)}</Alert>}
         </div>
       )}
@@ -304,7 +390,7 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
             <Button
               onClick={() => {
                 setPhotoUses(null);
-                if (heldRecognition) void recognize(heldRecognition);
+                if (heldRecognition) void scanThenRecognize(heldRecognition);
                 setHeldRecognition(null);
               }}
             >
@@ -361,7 +447,12 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
         <select
           id={`${id}-category`}
           value={categoryId ?? ""}
-          onChange={(e) => setCategoryId(e.target.value || null)}
+          onChange={(e) => {
+            const next = e.target.value || null;
+            setCategoryId(next);
+            const c = categories.find((x) => x.id === next);
+            if (c && (isBooksCategoryName(c.name_ru) || isBooksCategoryName(c.name_en))) setShowBook(true);
+          }}
           className={`${fieldClass} min-h-12 appearance-none`}
         >
           <option value="">{t("noCategory")}</option>
@@ -372,6 +463,30 @@ export function ItemForm({ mode, item, userId, categories, seed, onCancel }: Pro
           ))}
         </select>
       </div>
+
+      {askBooksCategory && !books.booksId && (
+        <BooksCategoryCard
+          pending={books.pending}
+          failed={books.failed}
+          onDismiss={() => setAskBooksCategory(false)}
+          onCreate={async () => {
+            const created = await books.create({ ru: tBooks("categoryRu"), en: tBooks("categoryEn") });
+            if (created) {
+              setCategoryId(created);
+              setAskBooksCategory(false);
+            }
+          }}
+        />
+      )}
+
+      {showBook ? (
+        <BookFields form={form} onFound={applyLookup} disabled={offline} />
+      ) : (
+        <Button variant="ghost" className="-mt-3 -ml-4 self-start text-sm" onClick={() => setShowBook(true)}>
+          <BookOpen className="size-4" aria-hidden />
+          {tBooks("addBookData")}
+        </Button>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">{t("place")}</span>

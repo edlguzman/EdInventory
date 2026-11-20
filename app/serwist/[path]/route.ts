@@ -10,4 +10,6 @@ export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
   additionalPrecacheEntries: [{ url: "/offline", revision: randomUUID() }],
   // Keep the precache small: big lazy chunks (e.g. the HEIC decoder) load on demand instead.
   maximumFileSizeToCacheInBytes: 1024 * 1024,
+  // The barcode reader's wasm (~0.9 MB) is fetched only when a book barcode is scanned.
+  globIgnores: ["public/zxing/**"],
 });

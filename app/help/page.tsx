@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  BookOpen,
   Camera,
   FolderTree,
   Gauge,
@@ -27,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" | "add" | "multi" | "dictation" | "find" | "views" | "categories" | "plan" | "tips"; icon: LucideIcon }[] = [
+const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" | "add" | "multi" | "books" | "dictation" | "find" | "views" | "categories" | "plan" | "tips"; icon: LucideIcon }[] = [
   { key: "approval", icon: UserCheck },
   { key: "install", icon: Smartphone },
   { key: "places", icon: FolderTree },
@@ -35,6 +36,7 @@ const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" 
   { key: "languages", icon: Languages },
   { key: "add", icon: Camera },
   { key: "multi", icon: ScanSearch },
+  { key: "books", icon: BookOpen },
   { key: "dictation", icon: Mic },
   { key: "find", icon: Search },
   { key: "views", icon: LayoutGrid },

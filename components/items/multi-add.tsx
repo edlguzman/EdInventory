@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { Camera, Check, ChevronRight, ImagePlus, LoaderCircle, ScanSearch, X } from "lucide-react";
+import { BookOpen, Camera, Check, ChevronRight, ImagePlus, LoaderCircle, ScanSearch, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createItemsBatch } from "@/app/(app)/items/actions";
 import { useDataLang } from "@/components/data-lang/context";
@@ -25,6 +25,7 @@ import { ITEM_NAME_MAX } from "@/lib/validation/items";
 import { findPhotoUses, findSimilarItems, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
 import { setBackOverride } from "@/lib/nav-history";
 import { fileHash } from "@/lib/photos/hash";
+import { BooksCategoryCard, useBooksCategory } from "./books";
 import { PhotoUsedNotice, SimilarNote } from "./duplicate-notice";
 import type { ItemSeed } from "./item-form";
 
@@ -71,7 +72,7 @@ async function runPool(tasks: (() => Promise<boolean>)[], limit: number) {
  */
 export function MultiAdd({
   userId,
-  categories,
+  categories: initialCategories,
   initialFile,
   onSingle,
   onCancel,
@@ -84,6 +85,11 @@ export function MultiAdd({
   onCancel: () => void;
 }) {
   const t = useTranslations("multi");
+  const tBooks = useTranslations("books");
+  // Categories plus a "Books" category created here; books found without one -> offer it.
+  const books = useBooksCategory(initialCategories);
+  const categories = books.categories;
+  const [askBooksCategory, setAskBooksCategory] = useState(false);
   const tItems = useTranslations("items");
   const tCommon = useTranslations("common");
   const tDup = useTranslations("duplicates");
@@ -181,6 +187,7 @@ export function MultiAdd({
         });
       }
       setFound(items);
+      setAskBooksCategory(!books.booksId && items.some((f) => f.ai.book));
       setStage({ kind: "review" });
     } catch (e) {
       setError(e instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
@@ -314,6 +321,11 @@ export function MultiAdd({
           description_ru: f.ai.description_ru,
           description_en: f.ai.description_en,
           tags: f.ai.tags,
+          ...(f.ai.book && {
+            book_author: f.ai.book.author ?? "",
+            book_year: f.ai.book.year ? String(f.ai.book.year) : "",
+            book_isbn: f.ai.book.isbn ?? "",
+          }),
         },
       })),
     });
@@ -438,6 +450,21 @@ export function MultiAdd({
 
       {stage.kind === "review" && overview && (
         <>
+          {askBooksCategory && !books.booksId && found.length > 1 && (
+            <BooksCategoryCard
+              many
+              pending={books.pending}
+              failed={books.failed}
+              onDismiss={() => setAskBooksCategory(false)}
+              onCreate={async () => {
+                const created = await books.create({ ru: tBooks("categoryRu"), en: tBooks("categoryEn") });
+                if (!created) return;
+                // Every found book without a category goes there.
+                setFound((list) => list.map((f) => (f.ai.book && !f.category_id ? { ...f, category_id: created } : f)));
+                setAskBooksCategory(false);
+              }}
+            />
+          )}
           {found.length <= 1 && (
             <div className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3">
               <p>{found.length === 0 ? t("noneFound") : t("oneFound")}</p>
@@ -580,6 +607,14 @@ export function MultiAdd({
                           </span>
                         </button>
                       </div>
+                      {f.ai.book && (f.ai.book.author || f.ai.book.year) && (
+                        <p className="flex items-center gap-1.5 px-1 text-sm text-muted">
+                          <BookOpen className="size-4 shrink-0 text-accent" aria-label={tBooks("title")} />
+                          <span className="min-w-0 truncate">
+                            {[f.ai.book.author, f.ai.book.year].filter(Boolean).join(" · ")}
+                          </span>
+                        </p>
+                      )}
                       {similar[f.key] && <SimilarNote item={similar[f.key]} />}
                     </li>
                   );
