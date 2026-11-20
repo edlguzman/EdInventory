@@ -253,7 +253,9 @@
     "aiNoTerms": "Could not tell what to look for. Try saying it differently.",
     "accountInactive": "Your account is not approved yet or has been disabled.",
     "multiNameRequired": "Enter a name for the selected items (marked in red).",
-    "dictationEmpty": "Could not hear anything. Tap the mic and say it again."
+    "dictationEmpty": "Could not hear anything. Tap the mic and say it again.",
+    "planLimit": "Your plan's item limit is reached. Delete something or ask the administrator to change the plan.",
+    "itemsLimit": "The AI is off: the plan's item limit is reached. Delete something or change the plan."
   },
   "here": {
     "label": "I'm here",
@@ -443,6 +445,15 @@
           "In “Settings” you can rename and delete categories or add your own."
         ]
       },
+      "plan": {
+        "title": "Plan",
+        "points": [
+          "Settings show your plan: items out of the limit and AI requests in 24 hours.",
+          "When you reach the plan's item limit, new items and every AI feature are turned off. Browsing, editing, plain search and deleting keep working.",
+          "A lower plan deletes nothing. Delete what you do not need and everything works again.",
+          "The administrator sets your plan, sometimes until a date; after it the plan goes back to Free by itself."
+        ]
+      },
       "tips": {
         "title": "Tips",
         "points": [
@@ -492,8 +503,29 @@
     "errors": {
       "forbidden": "This action is not available.",
       "notFound": "User not found. Refresh the page.",
-      "unknown": "Something went wrong. Please try again."
-    }
+      "unknown": "Something went wrong. Please try again.",
+      "invalid": "Check the values: end date in the future, names up to 50 characters, numbers not below 0."
+    },
+    "plan": "Plan",
+    "manualPlan": "Manual plan",
+    "planNone": "Not set",
+    "until": "Until (optional)",
+    "savePlan": "Save plan",
+    "saved": "Saved",
+    "untilDate": "until {date}",
+    "source": {
+      "manual": "manual",
+      "subscription": "subscription",
+      "default": "default"
+    },
+    "plans": "Plans",
+    "plansIntro": "Changes apply at once. An empty item limit means no limit; an empty AI limit means the server default.",
+    "planNameRu": "Name (RU)",
+    "planNameEn": "Name (EN)",
+    "itemLimit": "Items",
+    "aiLimit": "AI per day",
+    "order": "Order",
+    "save": "Save"
   },
   "notify": {
     "adminLink": "Admin page:",
@@ -588,7 +620,8 @@
     "cancelTitle": "Cancel?",
     "cancelText": "{count, plural, one {The # item found will not be saved.} other {The # items found will not be saved.}}",
     "keepReviewing": "Back to the list",
-    "discard": "Cancel"
+    "discard": "Cancel",
+    "skippedByPlan": "{count, plural, one {Your plan had no room for # item — it was not saved.} other {Your plan had no room for # items — they were not saved.}}"
   },
   "addChoice": {
     "multi": {
@@ -619,5 +652,20 @@
     "append": "Append to the end",
     "updateTranslation": "Update translation ({lang})",
     "skip": "No need"
+  },
+  "plan": {
+    "title": "Plan",
+    "planName": "Plan: {plan}",
+    "items": "{count} of {limit} items",
+    "itemsUnlimited": "Items: {count}, no limit",
+    "ai": "AI: {used} of {limit} requests in 24 hours",
+    "aiUnlimited": "AI: {used} requests in 24 hours, no limit",
+    "nearLimit": "{left, plural, one {Room for # more item.} other {Room for # more items.}} After that, adding items and the AI are off.",
+    "limitReached": "The item limit of the {plan} plan is reached. Delete something or change the plan.",
+    "sourceManual": "set by the administrator",
+    "sourceManualUntil": "set by the administrator until {date}",
+    "sourceSubscription": "subscription until {date}",
+    "sourceAdmin": "administrator, no limits",
+    "howToChange": "The administrator can change your plan. A lower limit deletes nothing: only new items and the AI become unavailable."
   }
 }

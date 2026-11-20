@@ -7,6 +7,7 @@ import { transcribe, translateName } from "@/lib/ai/client";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
 import { useErrorText } from "@/lib/use-error-text";
 import { useOffline } from "./offline-banner";
+import { useAiOff, usePlanLimitText } from "./plan-context";
 import { Button } from "./ui/buttons";
 import { RecordingStatus } from "./voice-input";
 
@@ -59,6 +60,8 @@ export function DictationField({
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const offline = useOffline();
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
   const [state, setState] = useState<State>({ kind: "idle" });
   const [error, setError] = useState<string>();
 
@@ -118,7 +121,8 @@ export function DictationField({
               if (!recorder.recording) setState({ kind: "idle" });
               recorder.toggle();
             }}
-            disabled={busy || state.kind === "translating" || (offline && !recorder.recording)}
+            disabled={busy || state.kind === "translating" || ((offline || aiOff) && !recorder.recording)}
+            title={limitText}
             aria-pressed={recorder.recording}
             aria-label={recorder.recording ? t("stop") : t("dictate", { field: label })}
             className={`-my-1 flex size-11 shrink-0 items-center justify-center rounded-xl disabled:opacity-40 ${
@@ -177,7 +181,7 @@ export function DictationField({
           <Button
             onClick={() => state.kind === "offerTranslation" && void updateTranslation(state.text)}
             pending={state.kind === "translating"}
-            disabled={offline}
+            disabled={offline || aiOff}
           >
             {state.kind !== "translating" && <Languages className="size-5" aria-hidden />}
             {t("updateTranslation", { lang: other.lang.toUpperCase() })}

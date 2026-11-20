@@ -46,7 +46,7 @@ type Stage =
   | { kind: "working"; step: "processing" | "detecting" | "cutting" }
   | { kind: "review" }
   | { kind: "used"; items: ExistingItem[] }
-  | { kind: "done"; count: number; locationId: string | null };
+  | { kind: "done"; count: number; skipped: number; locationId: string | null };
 
 const fieldClass =
   "w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-base outline-none focus:border-accent aria-invalid:border-red-500";
@@ -322,7 +322,7 @@ export function MultiAdd({
     releaseAll();
     setFound([]);
     setOverview(null);
-    setStage({ kind: "done", count: result.data.count, locationId });
+    setStage({ kind: "done", count: result.data.count, skipped: result.data.skipped, locationId });
   }
 
   const fileInput = (ref: React.RefObject<HTMLInputElement | null>, camera: boolean) => (
@@ -347,6 +347,7 @@ export function MultiAdd({
           <Check className="size-6 shrink-0 text-accent" aria-hidden />
           {t("saved", { count: stage.count })}
         </p>
+        {stage.skipped > 0 && <Alert tone="warning">{t("skippedByPlan", { count: stage.skipped })}</Alert>}
         <Link
           href={stage.locationId ? `/locations/${stage.locationId}` : "/"}
           className="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 font-semibold text-accent-foreground"

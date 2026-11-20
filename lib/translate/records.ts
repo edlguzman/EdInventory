@@ -135,6 +135,7 @@ export async function translateRecords(
   const quota = await consumeQuota(supabase, "translate");
   if (quota === "inactive") return { ok: false, error: "accountInactive", status: 403 };
   if (quota === "limit") return { ok: false, error: "aiLimit", status: 429 };
+  if (quota === "itemsLimit") return { ok: false, error: "itemsLimit", status: 403 };
   if (quota === "error") return { ok: false, error: "aiFailed", status: 500 };
 
   let result: z.output<typeof outputSchema>;

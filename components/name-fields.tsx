@@ -10,6 +10,7 @@ import type { NamePairInput } from "@/lib/validation/names";
 import { useDataLang } from "./data-lang/context";
 import { DictationField } from "./dictation-field";
 import { useOffline } from "./offline-banner";
+import { useAiOff, usePlanLimitText } from "./plan-context";
 import { Button } from "./ui/buttons";
 
 const inputClass =
@@ -27,6 +28,8 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
   const [translating, setTranslating] = useState(false);
   const [aiError, setAiError] = useState<string>();
   const offline = useOffline();
+  const aiOff = useAiOff();
+  const limitText = usePlanLimitText();
   const { edit } = useDataLang();
   const both = edit.length === 2;
   const {
@@ -92,7 +95,7 @@ export function NameFields({ form, max }: { form: UseFormReturn<NamePairInput>; 
         );
       })}
       {both && (
-        <Button onClick={translate} disabled={!from || offline} pending={translating} className="self-start">
+        <Button onClick={translate} disabled={!from || offline || aiOff} title={limitText} pending={translating} className="self-start">
           {!translating && <Languages className="size-5" aria-hidden />}
           {translating ? t("translating") : t("translate")}
         </Button>

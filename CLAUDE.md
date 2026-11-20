@@ -30,7 +30,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=                 # только сервер
 GEMINI_MODEL=gemini-3.6-flash   # имя модели берём из env, не хардкодим (gemini-2.5-flash новым пользователям недоступна, 404)
-AI_DAILY_LIMIT_PER_USER=100
+AI_DAILY_LIMIT_PER_USER=100     # запасной дневной лимит ИИ, если у тарифа plans.ai_daily_limit пуст
 CRON_SECRET=                    # только сервер; Vercel Cron шлёт его в Authorization: Bearer …
 SUPABASE_SERVICE_ROLE_KEY=      # только сервер, только для удаления пользователя админом
 RESEND_API_KEY=                 # только сервер; письма админу (необязательно)
@@ -45,12 +45,36 @@ MAIL_FROM=                      # "Inventory <noreply@домен>", домен �
 ## Одобрение аккаунтов и админ
 
 - **`profiles`**: `user_id, status ('pending' | 'active' | 'disabled'), role ('user' | 'admin'), created_at, status_changed_at`. Новая регистрация получает `pending` (триггер на `auth.users`). Пользователь может только читать свою строку; прав на запись нет ни у кого, кроме админских функций. Статус хранится в таблице, а не в JWT: изменение действует сразу.
-- **Блокировка в базе:** все политики RLS (таблицы и Storage) содержат `(select public.is_active())`; `consume_ai_quota` у неактивного аккаунта падает с 42501, маршруты ИИ отвечают 403 `accountInactive`. Новые таблицы и политики делаем так же. В интерфейсе layout `(app)` показывает неактивным только экран «ожидает одобрения» / «отключён» и «Выйти».
-- **Админ** (`role = 'admin'`, назначается SQL-командой, не через приложение). `/admin` (404 для остальных): аккаунты, статус, даты, число вещей и запросов к ИИ; кнопки «Активировать», «Отключить», «Удалить». Функции `admin_list_users`, `admin_pending_count`, `admin_set_status`, `admin_check_delete` (SECURITY DEFINER) сами проверяют `is_admin()`, не трогают себя и других админов и **не возвращают вещи, места и фото**. Счётчик ожидающих — на иконке «Настройки» и на ссылке «Админ».
+- **Блокировка в базе:** все политики RLS (таблицы и Storage) содержат `(select public.is_active())`; `consume_ai_quota_v2` у неактивного аккаунта падает с 42501, маршруты ИИ отвечают 403 `accountInactive`. Новые таблицы и политики делаем так же. В интерфейсе layout `(app)` показывает неактивным только экран «ожидает одобрения» / «отключён» и «Выйти».
+- **Админ** (`role = 'admin'`, назначается SQL-командой, не через приложение). `/admin` (404 для остальных): аккаунты, статус, даты, число вещей и запросов к ИИ; кнопки «Активировать», «Отключить», «Удалить». Функции `admin_list_users_v2`, `admin_pending_count`, `admin_set_status`, `admin_check_delete`, `admin_set_plan`, `admin_update_plan` (SECURITY DEFINER) сами проверяют `is_admin()`, не трогают себя и других админов и **не возвращают вещи, места и фото**. Счётчик ожидающих — на иконке «Настройки» и на ссылке «Админ».
 - **Письма** (Resend, `lib/notify/`, всегда в `after()`, ошибка почты не мешает действию, только простой текст):
   - админу (`admin-email.ts`): о новой регистрации (`signUp`) и об удалении аккаунта самим пользователем;
   - пользователю (`user-email.ts`): «регистрация получена», «аккаунт одобрен», «доступ восстановлен», «доступ закрыт» — только при реальной смене статуса (`admin_set_status` возвращает прежний статус, email и `data_lang`). Язык письма: `en` → английский, иначе русский. **Отправляются, только если задан `MAIL_FROM`** с доменом, подтверждённым в Resend (тестовый отправитель Resend доставляет только владельцу аккаунта).
 - Общее для писем: ссылка в письме строится из `VERCEL_PROJECT_PRODUCTION_URL`, а не из заголовков запроса. Регистрация в обход приложения (прямо через API Supabase) письма не даёт — принятый риск: такой аккаунт всё равно `pending` и виден в `/admin`.
+
+## Тарифы
+
+- **`plans`**: `code` (ключ), `name_ru`, `name_en`, `item_limit` (null = без лимита), `ai_daily_limit` (null = запасной `AI_DAILY_LIMIT_PER_USER`), `sort_order`, `stripe_price_month`, `stripe_price_year` (nullable, для будущей оплаты). Стартовые: free 200/20, plus 500/100, pro 1000/300, unlimited ∞/1000. Читают активные пользователи, пишет только `admin_update_plan()` (`/admin` → «Тарифы», действует сразу).
+- **`profiles`**: два независимых набора полей, подписка никогда не перезаписывает решение админа:
+  - ручной тариф: `manual_plan` (null = не назначен), `manual_until` (null = бессрочно) — назначает админ в `/admin` (`admin_set_plan(user, code, until)`);
+  - подписка (заполнит webhook Stripe): `subscription_plan`, `subscription_status`, `subscription_period_end`, `stripe_customer_id`, `stripe_subscription_id`.
+  Пользователь эти колонки менять не может (колоночный grant только на `data_lang`).
+- **Действующий тариф** считает только `effective_plan(user)` (SECURITY DEFINER, пользователям недоступна): ручной, если назначен и срок не вышел → иначе подписка при `active`/`trialing`/`past_due` и `subscription_period_end > now()` → иначе `free`; возвращает код, источник (`manual` | `subscription` | `default`) и дату окончания. Окончание срока или подписки возвращает на free без фоновых задач; данные не удаляются. Наружу: `my_plan()` (свой тариф, число вещей, запросы ИИ за 24 ч), `admin_list_users_v2()`.
+- **Лимит вещей**: приложение проверяет до сохранения (`getMyPlan()` в `lib/plans.ts`, ошибка `planLimit`), «Несколько вещей» сохраняет сколько помещается и сообщает, сколько не поместилось (файлы остальных удаляются). В базе — триггер `items_enforce_plan_limit` (BEFORE INSERT, блокировка на пользователя, видит строки той же пачки; код ошибки `P0010` → `planLimit`), обойти через API нельзя. Админы без лимитов. Понижение лимита ничего не удаляет.
+- **ИИ по тарифу**: `consume_ai_quota_v2` → `ok` | `limit` (дневной лимит тарифа) | `items_limit` (вещей ≥ лимита: **весь ИИ отключён**, включая фоновый и пакетный перевод; квота не списывается). Маршруты отвечают 403 `itemsLimit`. Клиент: `PlanProvider` в layout, `useAiOff()` отключает кнопки ИИ и добавление вещей, `PlanLimitBanner` и подсказка `usePlanLimitText()`. Работают просмотр, правка, обычный поиск, удаление. Админ: без лимитов, запросы только записываются.
+- Настройки: «Тариф: Free · 45 из 200 вещей», полоса, «ИИ: 7 из 20 запросов за 24 часа», предупреждение с 90 %, сообщение при лимите.
+
+### Подключение Stripe (будущая задача, сейчас не сделано)
+
+1. Ключи только на сервере: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; в `plans` заполнить `stripe_price_month` / `stripe_price_year` (id цен из Stripe).
+2. **Оформление**: server action создаёт Checkout Session (`mode: subscription`, `price` из тарифа, `client_reference_id = user_id`, `customer` = `stripe_customer_id`, если уже есть), редирект на Stripe. Управление/отмена — ссылка на Customer Portal (`billing_portal.sessions.create`).
+3. **Webhook** `app/api/stripe/webhook/route.ts`: тело читать как raw text, проверить подпись (`stripe.webhooks.constructEvent`), ответить 400 при ошибке. Только здесь service role (`lib/supabase/admin.ts`), как в удалении пользователя. Маршрут открыть в `proxy.ts` (без сессии).
+4. **События**:
+   - `checkout.session.completed` → записать `stripe_customer_id` (и `stripe_subscription_id`) пользователю из `client_reference_id`;
+   - `customer.subscription.created` / `.updated` / `.deleted` → найти пользователя по `stripe_customer_id`, записать `subscription_plan` (по `items.data[0].price.id` → `plans.stripe_price_*`), `subscription_status` (`status` как есть), `subscription_period_end` (`current_period_end`), `stripe_subscription_id`; при `.deleted` — статус `canceled`;
+   - `invoice.payment_failed` / `invoice.paid` — только для уведомлений (статус придёт в `subscription.updated`).
+5. **Правила**: webhook пишет **только поля подписки**, никогда `manual_*` (ручной тариф имеет приоритет сам по себе в `effective_plan`). Идемпотентность: таблица `stripe_events (id text primary key, received_at)` без доступа для пользователей; уже обработанный `event.id` пропускать. Порядок событий не гарантирован: брать данные подписки из события (или `stripe.subscriptions.retrieve`), а не вычислять приращения.
+6. Миграция для этого: только новая таблица `stripe_events` (безопасная). Проверки: подпись, повтор события, ручной тариф не перезаписан, отмена → free после `period_end`.
 
 ## Языки записей
 
@@ -84,13 +108,13 @@ MAIL_FROM=                      # "Inventory <noreply@домен>", домен �
 - **`items`**: `id, user_id, location_id (nullable, on delete restrict), category_id (nullable, on delete set null), name_ru, name_en, description_ru, description_en, tags text[], created_at, updated_at`.
   Поиск: генерируемая колонка `search_text` (имена, описания и теги на обоих языках), нормализованная функцией `normalize_search()`: нижний регистр и **`ё` → `е`**. Поисковые слова в приложении нормализуем так же. Расширение `pg_trgm` (схема `extensions`) и GIN-индекс.
 - **`item_photos`**: `id, item_id (on delete cascade), user_id, storage_path, is_primary, created_at`. Не больше одного `is_primary` на вещь; `storage_path` строго `{user_id}/{item_id}/….jpg`. Файлы в Storage при удалении вещи сами не удаляются: это делает приложение.
-- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search' | 'translate' | 'transcribe'), created_at`. Для дневного лимита запросов к Gemini: **общий лимит на все виды, скользящие 24 часа**. Проверка и запись атомарно через RPC `consume_ai_quota(p_kind, p_limit)` (блокировка на пользователя); квота списывается до вызова Gemini. **Политики только select и insert** (без update/delete): anon key есть в браузере, и с правом delete пользователь мог бы стереть свои записи и обойти лимит.
+- **`ai_usage`**: `id, user_id, kind ('recognize' | 'voice_place' | 'search' | 'translate' | 'transcribe'), created_at`. Для дневного лимита запросов к Gemini: **общий лимит на все виды, скользящие 24 часа**. Проверка и запись атомарно через RPC `consume_ai_quota_v2(p_kind, p_fallback)` (блокировка на пользователя): лимит берётся из тарифа (см. «Тарифы»), квота списывается до вызова Gemini. **Политики только select и insert** (без update/delete): anon key есть в браузере, и с правом delete пользователь мог бы стереть свои записи и обойти лимит.
 
 Storage: приватный бакет `item-photos` (только `image/jpeg`, до 5 МБ), путь `{user_id}/{item_id}/{uuid}.jpg`, политики пускают только в папку своего `user_id`. Фото показываем через signed URLs.
 
 ## Работа с Gemini
 
-- Все вызовы в `lib/ai/` и в маршрутах `app/api/ai/*`. Каждый маршрут: валидирует вход через `zod`, затем `guardAiRequest(kind)` из `lib/ai/route.ts` (сессия + `consume_ai_quota`), затем `generateJson()` из `lib/ai/gemini.ts` (схема для Gemini строится из той же zod-схемы, что проверяет ответ). В логи пишем только тип ошибки и статус, без текста запроса.
+- Все вызовы в `lib/ai/` и в маршрутах `app/api/ai/*`. Каждый маршрут: валидирует вход через `zod`, затем `guardAiRequest(kind)` из `lib/ai/route.ts` (сессия + `consume_ai_quota_v2`: тариф, лимит вещей, дневной лимит), затем `generateJson()` из `lib/ai/gemini.ts` (схема для Gemini строится из той же zod-схемы, что проверяет ответ). В логи пишем только тип ошибки и статус, без текста запроса.
 - Задержки Gemini под нагрузкой сильно скачут: `generateJson()` делает короткие попытки (10 с + 15 с) с повтором при таймауте и 500/503. Для простых задач передаём `thinking: "low"`; если модель не поддерживает этот параметр, запрос повторяется без него.
 - **Перевод названий** (`/api/ai/translate`): `{ text, from: 'ru' | 'en', kind?: 'name' | 'description' }` → `{ text }` (название до 200, описание до 2000 символов). Только в режиме `ru_en`, кнопка «Перевести» в форме активна, когда заполнено одно поле.
 - **Пакетный перевод записей** (`/api/ai/translate-batch`, `lib/translate/records.ts`): сервер сам берёт из базы следующую пачку записей без нужного языка (до 40 записей и ~8000 символов) → один запрос к Gemini = 1 единица лимита → пишет **только пустые поля** (`update … where поле is null`). Без работы квота не тратится. Те же функции: кнопка «Перевести» у записи (`targets`), фоновый перевод после сохранения в режиме `ru` (`translateAfterSave`, `after()`), тихое догоняние в режиме `ru` при открытии приложения.

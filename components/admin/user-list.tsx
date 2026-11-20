@@ -7,7 +7,8 @@ import { useFormatter, useTranslations } from "next-intl";
 import { deleteUser, setUserStatus, type AdminActionError } from "@/app/(app)/admin/actions";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
-import type { AdminUser } from "@/lib/admin/data";
+import type { AdminUser, PlanRow } from "@/lib/admin/data";
+import { UserPlan } from "./plan-controls";
 import { useTimeZone } from "@/lib/use-time-zone";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -22,8 +23,10 @@ export function AdminUserList({
   pendingCount,
   totalCount,
   selfId,
+  plans,
 }: {
   users: AdminUser[];
+  plans: PlanRow[];
   filter: "pending" | "all";
   pendingCount: number;
   totalCount: number;
@@ -79,6 +82,7 @@ export function AdminUserList({
               key={u.user_id}
               user={u}
               isSelf={u.user_id === selfId}
+              plans={plans}
               busy={pending && busyId === u.user_id}
               disabled={pending}
               onActivate={() => run(u.user_id, () => setUserStatus(u.user_id, "active"))}
@@ -122,6 +126,7 @@ export function AdminUserList({
 
 function UserCard({
   user,
+  plans,
   isSelf,
   busy,
   disabled,
@@ -130,6 +135,7 @@ function UserCard({
   onDelete,
 }: {
   user: AdminUser;
+  plans: PlanRow[];
   isSelf: boolean;
   busy: boolean;
   disabled: boolean;
@@ -181,6 +187,8 @@ function UserCard({
           </div>
         ))}
       </dl>
+
+      <UserPlan user={user} plans={plans} editable={!isAdmin} />
 
       {!isAdmin && (
         <div className="flex flex-wrap gap-2">

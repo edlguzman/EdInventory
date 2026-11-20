@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, LoaderCircle, Package, ScanSearch, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useAiOff } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert } from "@/components/ui/buttons";
 import type { CategoryOption } from "@/lib/items/data";
@@ -110,9 +111,10 @@ function ChoiceCard({
   const t = useTranslations("addChoice");
   const tItems = useTranslations("items");
   const offline = useOffline();
+  const aiOff = useAiOff(); // plan item limit reached: no new items at all
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const off = disabled || (ns === "multi" && offline); // finding items needs the AI
+  const off = disabled || aiOff || (ns === "multi" && offline); // finding items needs the AI
 
   const input = (ref: React.RefObject<HTMLInputElement | null>, camera: boolean) => (
     <input

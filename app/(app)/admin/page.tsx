@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { AdminPlans } from "@/components/admin/plan-controls";
 import { AdminUserList } from "@/components/admin/user-list";
 import { PageTitle } from "@/components/page-title";
-import { listUsers } from "@/lib/admin/data";
+import { listPlans, listUsers } from "@/lib/admin/data";
 import { requireAdmin } from "@/lib/auth";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const user = await requireAdmin();
-  const [t, users, { show }] = await Promise.all([getTranslations("admin"), listUsers(), searchParams]);
+  const [t, users, plans, { show }] = await Promise.all([getTranslations("admin"), listUsers(), listPlans(), searchParams]);
   const pendingCount = users.filter((u) => u.status === "pending").length;
   const filter = show === "all" || (show !== "pending" && pendingCount === 0) ? "all" : "pending";
 
@@ -30,7 +31,11 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         pendingCount={pendingCount}
         totalCount={users.length}
         selfId={user.id}
+        plans={plans}
       />
+      <div className="mt-8">
+        <AdminPlans plans={plans} />
+      </div>
     </>
   );
 }
