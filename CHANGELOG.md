@@ -3,6 +3,10 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.4.1 — 2026-11-19
+
+- **One "I'm here" everywhere:** the place filter on the Items tab is "I'm here" too — choosing a place there (or opening "all items in this place") sets it, "All places" and "Reset" clear it, and changing it in the header rebuilds the list at once. Choosing a place for an item or a place ("Move", parent of a new place) still does not change it.
+
 ## v1.4.0 — 2026-11-19
 
 - **"I'm here" is one place everywhere:** the place chosen while adding an item (list, voice or reset) is "I'm here" itself — the header, every tab and the next add form show it. Editing an item's place or "Move" do not change it.
