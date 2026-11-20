@@ -3,6 +3,14 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.6.0 — 2026-11-20
+
+- **Plans:** free (200 items, 20 AI requests a day), plus (500/100), pro (1000/300), unlimited (no item limit, 1000 AI). Names and limits are edited in /admin → Plans and apply at once.
+- The administrator assigns a plan per user, optionally until a date (then back to free). The data model is ready for paid subscriptions (Stripe) with the admin's plan taking priority; the payment itself is not connected yet.
+- At the item limit new items and every AI feature are off (with a clear message); browsing, editing, plain search and deleting work. "Several items" saves what fits and says how many did not. A lower plan deletes nothing.
+- Settings show the plan: items of the limit, AI requests in 24 hours, a warning from 90%.
+- Database: plans table, plan fields in profiles, effective_plan(); the item limit is enforced by the database itself (deferred step applied after deploy).
+
 ## v1.5.0 — 2026-11-20
 
 - **Back button:** a "←" arrow in the header of inner screens (item, edit, place, admin) and on Help. It steps back to the previous app screen with the same filters, gallery/table view and scroll position; opened by a link (or as the first screen of the installed app) it goes to the logical parent: item → Items, edit → item, place → the place above or Places, admin/help → Settings. On the Add screen it returns to the two cards ("several items": asks first, like Cancel). iOS swipe-back keeps working.
