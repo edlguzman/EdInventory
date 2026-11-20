@@ -5,8 +5,15 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 ## Planned (not started)
 
-- **Admin for many users** (`feature/admin-scale`): search by email; filters by status (pending / active / disabled) and plan; sorting by registration, last sign-in, items, AI requests; pages of 50 selected in the database; compact rows on phones (tap to open the full card with actions), a table on wide screens. Needs one safe migration: a new function `admin_list_users_v3(search, status, plan, sort, limit, offset)` returning the rows and the total count (checks `is_admin()` inside; existing functions unchanged).
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
+
+## v1.7.0 — 2026-11-20
+
+- **Admin in sections:** /admin opens two cards — Users (count, red badge of accounts awaiting approval) and Plans (count). "Back" goes from a section to /admin, from /admin to Settings.
+- **Users** (/admin/users): search by email while typing, filters by status and plan, sorting (newest, oldest, email, most items, most AI in 24 h, recently signed in; pending always on top), pages of 50 picked in the database. Compact rows on phones open into the full card with the actions; wide screens show more columns.
+- **Plans** (/admin/plans): names, limits, order by arrows, how many users are on each plan; add a plan; delete a plan only when nobody is linked to it (never "free").
+- The admin email about a new registration links straight to the accounts awaiting approval.
+- Database: new admin functions only (admin_list_users_v3, admin_overview, admin_plan_stats, admin_create_plan, admin_delete_plan, admin_reorder_plans).
 
 ## v1.6.1 — 2026-11-20
 
