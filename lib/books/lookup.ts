@@ -2,9 +2,10 @@ import "server-only";
 import { parseYear, toIsbn13, type BookLookup } from "./isbn";
 
 /**
- * Book data by ISBN from public catalogues, without keys: Open Library first (good for English
- * books), then Google Books (optional GOOGLE_BOOKS_API_KEY) fills whatever is still missing (it knows Russian books better) or
- * answers alone. Only the ISBN leaves the server. Answers are cached in memory for a day.
+ * Book data by ISBN from public catalogues: Open Library first (good for English books), then
+ * Google Books (optional GOOGLE_BOOKS_API_KEY) fills whatever is still missing; for Russian-language
+ * ISBN groups the order is reversed (catalogueOrder). Only the ISBN leaves the server. Answers
+ * are cached in memory for a day.
  */
 
 const TIMEOUT_MS = 5000;
@@ -84,6 +85,22 @@ async function googleBooks(isbn: string): Promise<Partial | null> {
 
 const filled = (p: Partial) => !!(p.title && p.author && p.year && p.description && p.language);
 
+/**
+ * ISBN registration groups of Russian-language publishing (978-5: Russia and the former USSR;
+ * 978-985 Belarus; 978-966 Ukraine; 978-601 Kazakhstan). Open Library knows these books badly
+ * (wrong authors, transliterated titles), Google Books much better: for them Google answers first.
+ */
+const GOOGLE_FIRST_PREFIXES = ["9785", "978985", "978966", "978601"];
+
+type Source = { name: "open library" | "google books"; fetch: (isbn13: string) => Promise<Partial | null> };
+const OPEN_LIBRARY: Source = { name: "open library", fetch: openLibrary };
+const GOOGLE_BOOKS: Source = { name: "google books", fetch: googleBooks };
+
+/** Which catalogue answers first for this ISBN-13 (the other one only fills missing fields). */
+export function catalogueOrder(isbn13: string): Source["name"][] {
+  return GOOGLE_FIRST_PREFIXES.some((p) => isbn13.startsWith(p)) ? ["google books", "open library"] : ["open library", "google books"];
+}
+
 /** Book by a valid ISBN (normalizeIsbn), or null if neither catalogue knows it (or both fail). */
 export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
   const key = toIsbn13(isbn);
@@ -101,18 +118,15 @@ export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
   };
 
   let failures = 0;
-  try {
-    merge(await openLibrary(key));
-  } catch (error) {
-    failures++;
-    console.error("open library lookup failed", failure(error));
-  }
-  if (!filled(result)) {
+  for (const name of catalogueOrder(key)) {
+    if (filled(result)) break;
+    const source = name === "google books" ? GOOGLE_BOOKS : OPEN_LIBRARY;
     try {
-      merge(await googleBooks(key));
+      merge(await source.fetch(key));
     } catch (error) {
       failures++;
-      console.error("google books lookup failed", { ...failure(error), keyed: !!process.env.GOOGLE_BOOKS_API_KEY });
+      const extra = name === "google books" ? { keyed: !!process.env.GOOGLE_BOOKS_API_KEY } : {};
+      console.error(`${name} lookup failed`, { ...failure(error), ...extra });
     }
   }
 
