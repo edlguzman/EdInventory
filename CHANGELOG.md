@@ -3,6 +3,10 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.5.0 — 2026-11-20
+
+- **Back button:** a "←" arrow in the header of inner screens (item, edit, place, admin) and on Help. It steps back to the previous app screen with the same filters, gallery/table view and scroll position; opened by a link (or as the first screen of the installed app) it goes to the logical parent: item → Items, edit → item, place → the place above or Places, admin/help → Settings. On the Add screen it returns to the two cards ("several items": asks first, like Cancel). iOS swipe-back keeps working.
+
 ## v1.4.1 — 2026-11-19
 
 - **One "I'm here" everywhere:** the place filter on the Items tab is "I'm here" too — choosing a place there (or opening "all items in this place") sets it, "All places" and "Reset" clear it, and changing it in the header rebuilds the list at once. Choosing a place for an item or a place ("Move", parent of a new place) still does not change it.
