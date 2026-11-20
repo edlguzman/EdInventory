@@ -59,7 +59,8 @@ export function ItemGallery({ items, categories }: { items: ItemSummary[]; categ
         const name = labels.name(item);
         const place = labels.place(item);
         return (
-          <li key={item.id}>
+          // Off-screen cards are not laid out or painted (long lists stay smooth on phones).
+          <li key={item.id} className="[contain-intrinsic-size:auto_220px] [content-visibility:auto]">
             <Link href={`/items/${item.id}`} className="flex flex-col gap-1.5 rounded-xl active:opacity-80">
               <Thumb item={item} alt={name} className="aspect-square w-full rounded-xl" />
               <span className="line-clamp-2 text-sm font-medium leading-snug">{name}</span>
