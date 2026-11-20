@@ -3,6 +3,13 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.4.0 — 2026-11-19
+
+- **"I'm here" is one place everywhere:** the place chosen while adding an item (list, voice or reset) is "I'm here" itself — the header, every tab and the next add form show it. Editing an item's place or "Move" do not change it.
+- **Items tab opens on "I'm here"** (with nested places); another place or "All places" can be chosen in the filter.
+- **Fix:** "I'm here" was wiped when switching accounts on one device or right after creating a place. It is now stored per user and never erased automatically (only by you, or when that place is deleted).
+- **Fix (iPhone):** the bottom bar and the header no longer move with the page on rubber-band scrolling.
+
 ## v1.3.0 — 2026-11-19
 
 - **Voice in text fields:** a mic next to item names and descriptions, place names and category names (new and edit forms). The recording becomes text in the field's language (the EN field always gets English), with obvious recognition mistakes fixed and punctuation, never retold. It is offered under the field: Insert / Replace / Append to the end / Cancel — nothing changes without a tap. One recording = one AI request.
