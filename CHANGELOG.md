@@ -7,6 +7,11 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v1.8.1 — 2026-11-21
+
+- **Russian books by ISBN:** for Russian-language ISBN groups (978-5, 978-985, 978-966, 978-601) Google Books now answers first and Open Library only fills missing fields — Open Library often had wrong authors or transliterated titles for them. Other books keep Open Library first.
+- The server log of a failed catalogue lookup shows the HTTP status (no address, no key).
+
 ## v1.8.0 — 2026-11-21
 
 - **Books:** a photo of a cover fills in the title (as printed, not translated), author, and the year and ISBN if visible. A shelf of books in "Several items in one photo" gives a card per book, read from the spines.
