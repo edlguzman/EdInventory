@@ -29,6 +29,8 @@ function useItemLabels(categories: CategoryOption[], fullPath = false) {
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   return {
     name: (i: ItemSummary) => pickText(i.nameRu, i.nameEn, locale),
+    /** "Author · 1999" for books, else null. */
+    book: (i: ItemSummary) => [i.bookAuthor, i.bookYear].filter(Boolean).join(" · ") || null,
     place: (i: ItemSummary) => {
       const loc = i.locationId ? byId.get(i.locationId) : undefined;
       return loc ? (fullPath ? path(loc) : shortPath(path(loc))) : null;
@@ -64,6 +66,7 @@ export function ItemGallery({ items, categories }: { items: ItemSummary[]; categ
             <Link href={`/items/${item.id}`} className="flex flex-col gap-1.5 rounded-xl active:opacity-80">
               <Thumb item={item} alt={name} className="aspect-square w-full rounded-xl" />
               <span className="line-clamp-2 text-sm font-medium leading-snug">{name}</span>
+              {labels.book(item) && <span className="-mt-1 truncate text-xs">{labels.book(item)}</span>}
               {place && <span className="-mt-1 truncate text-xs text-muted">{place}</span>}
             </Link>
           </li>
@@ -112,6 +115,7 @@ export function ItemTable({
                 <Link href={`/items/${item.id}`} className="block truncate font-medium after:absolute after:inset-0">
                   {name}
                 </Link>
+                {labels.book(item) && <span className="block truncate text-xs">{labels.book(item)}</span>}
                 <span className={`block text-xs text-muted sm:hidden ${fullPath ? "" : "truncate"}`}>
                   {[place, category].filter(Boolean).join(" · ")}
                 </span>

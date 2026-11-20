@@ -1,4 +1,5 @@
 import "server-only";
+import { isBooksCategoryName } from "@/lib/books/isbn";
 import type { DataLang } from "@/lib/data-lang";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,8 @@ export async function aiCategories(supabase: Supabase) {
   const rows = data ?? [];
   return {
     ids: new Set(rows.map((c) => c.id)),
+    /** The user's "Books" category (by name, any language), where recognized books go. */
+    booksId: rows.find((c) => isBooksCategoryName(c.name_ru) || isBooksCategoryName(c.name_en))?.id ?? null,
     prompt: rows.map((c) => `${c.id} | ${c.name_ru ?? c.name_en} | ${c.name_en ?? c.name_ru}`).join("\n") || "(none)",
   };
 }

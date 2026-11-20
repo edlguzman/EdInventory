@@ -256,7 +256,11 @@
     "multiNameRequired": "Enter a name for the selected items (marked in red).",
     "dictationEmpty": "Could not hear anything. Tap the mic and say it again.",
     "planLimit": "Your plan's item limit is reached. Delete something or ask the administrator to change the plan.",
-    "itemsLimit": "The AI is off: the plan's item limit is reached. Delete something or change the plan."
+    "itemsLimit": "The AI is off: the plan's item limit is reached. Delete something or change the plan.",
+    "authorTooLong": "Author: at most 300 characters.",
+    "yearInvalid": "Year: four digits, from 1400 to 2100.",
+    "isbnInvalid": "This ISBN is not valid: 10 or 13 digits with a correct check digit.",
+    "badRequest": "Invalid request."
   },
   "here": {
     "label": "I'm here",
@@ -413,6 +417,16 @@
           "Check the list: untick what you do not need, fix names and categories. One place for all — \"I'm here\" by default.",
           "Each item gets its cut-out as the main photo and the whole photo as the second. Shoot straight on, in good light, items not covering each other.",
           "Repeats: if the same photo was added before, the app says so before asking the AI. Found items similar to ones you already have come unticked — you decide."
+        ]
+      },
+      "books": {
+        "title": "Books",
+        "points": [
+          "Take a photo of the cover: the AI fills in the title (as printed, not translated), the author, and the year and ISBN if they are visible.",
+          "Take a photo of the back cover with the barcode: the app reads the ISBN itself and finds the book in open catalogues. No AI is used. Need more — \"Recognize from photo\".",
+          "A shelf of books: \"Several items in one photo\" — every book becomes its own card, titles and authors are read from the spines.",
+          "Books go to the \"Books\" category. If you have none, the app offers to create it.",
+          "Search by author or ISBN: \"Tolkien\" or the number with or without hyphens."
         ]
       },
       "dictation": {
@@ -701,5 +715,24 @@
     "sourceSubscription": "subscription until {date}",
     "sourceAdmin": "administrator, no limits",
     "howToChange": "The administrator can change your plan. A lower limit deletes nothing: only new items and the AI become unavailable."
+  },
+  "books": {
+    "title": "Book",
+    "author": "Author",
+    "year": "Year",
+    "findByIsbn": "Find the book by ISBN",
+    "found": "Catalogue data was added to the empty fields — please check.",
+    "notFound": "No book with this ISBN was found in the catalogues.",
+    "lookupRateLimited": "Too many requests. Wait a minute.",
+    "scanning": "Looking for a book barcode…",
+    "foundByBarcode": "Book found by its barcode (ISBN {isbn}), no AI needed. Check the data or tap \"Recognize from photo\".",
+    "addBookData": "It's a book: author, year, ISBN",
+    "createCategoryQuestion": "This looks like a book, and you have no \"Books\" category. Create it?",
+    "createCategory": "Create \"Books\"",
+    "createCategoryFailed": "Could not create the category. Try again.",
+    "notNow": "Not now",
+    "categoryRu": "Книги",
+    "categoryEn": "Books",
+    "createCategoryQuestionMany": "There seem to be books here, and you have no \"Books\" category. Create it?"
   }
 }

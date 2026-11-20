@@ -1,9 +1,11 @@
 {
   "name": "inventory",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-zxing.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-zxing.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,6 +17,7 @@
     "@serwist/turbopack": "^9.5.15",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.1",
+    "barcode-detector": "3.2.4",
     "esbuild": "^0.28.2",
     "heic-to": "^1.6.7",
     "lucide-react": "^1.75.0",

@@ -6,7 +6,7 @@ import { useDataLang } from "@/components/data-lang/context";
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightLeft, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookOpen, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { deleteItem, moveItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
@@ -16,6 +16,7 @@ import { Alert, Button } from "@/components/ui/buttons";
 import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
 import type { CategoryOption } from "@/lib/items/data";
+import { formatIsbn } from "@/lib/books/isbn";
 import { pickText, type ItemDetail, type ItemPhoto } from "@/lib/items/types";
 import { useErrorText } from "@/lib/use-error-text";
 
@@ -98,6 +99,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
   const t = useTranslations("items");
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
+  const tBooks = useTranslations("books");
   const format = useFormatter();
   const { display: locale, mode } = useDataLang();
   const router = useRouter();
@@ -135,6 +137,12 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
 
       <div>
         <h1 className="text-2xl font-semibold tracking-tight break-words">{name}</h1>
+        {(item.bookAuthor || item.bookYear) && (
+          <p className="mt-1 flex items-start gap-1.5 text-lg">
+            <BookOpen className="mt-1 size-4 shrink-0 text-accent" aria-label={tBooks("title")} />
+            <span className="min-w-0 break-words">{[item.bookAuthor, item.bookYear].filter(Boolean).join(" · ")}</span>
+          </p>
+        )}
         {category && <p className="mt-1 text-muted">{pickText(category.name_ru, category.name_en, locale)}</p>}
       </div>
 
@@ -183,6 +191,12 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
             )}
           </dd>
         </div>
+        {item.bookIsbn && (
+          <div>
+            <dt className="text-sm text-muted">ISBN</dt>
+            <dd className="tabular-nums select-all">{formatIsbn(item.bookIsbn)}</dd>
+          </div>
+        )}
         {description && (
           <div>
             <dt className="text-sm text-muted">{t("description")}</dt>

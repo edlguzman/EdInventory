@@ -102,6 +102,9 @@ export type Database = {
       }
       items: {
         Row: {
+          book_author: string | null
+          book_isbn: string | null
+          book_year: number | null
           category_id: string | null
           created_at: string
           description_en: string | null
@@ -111,11 +114,15 @@ export type Database = {
           name_en: string | null
           name_ru: string | null
           search_text: string | null
+          search_text_v2: string | null
           tags: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
+          book_author?: string | null
+          book_isbn?: string | null
+          book_year?: number | null
           category_id?: string | null
           created_at?: string
           description_en?: string | null
@@ -125,11 +132,15 @@ export type Database = {
           name_en?: string | null
           name_ru?: string | null
           search_text?: string | null
+          search_text_v2?: string | null
           tags?: string[]
           updated_at?: string
           user_id?: string
         }
         Update: {
+          book_author?: string | null
+          book_isbn?: string | null
+          book_year?: number | null
           category_id?: string | null
           created_at?: string
           description_en?: string | null
@@ -139,6 +150,7 @@ export type Database = {
           name_en?: string | null
           name_ru?: string | null
           search_text?: string | null
+          search_text_v2?: string | null
           tags?: string[]
           updated_at?: string
           user_id?: string
@@ -473,6 +485,18 @@ export type Database = {
       }
       normalize_search: { Args: { t: string }; Returns: string }
       search_items: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_terms: string[]
+        }
+        Returns: {
+          id: string
+          score: number
+        }[]
+      }
+      search_items_v2: {
         Args: {
           p_category_id?: string
           p_limit?: number

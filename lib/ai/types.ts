@@ -1,5 +1,7 @@
 /** Answers of /api/ai/* routes after server-side checks (ids belong to the user, "" -> null). */
 
+import type { BookInfo } from "@/lib/books/isbn";
+
 export type RecognizeResult = {
   name_ru: string;
   name_en: string;
@@ -7,7 +9,12 @@ export type RecognizeResult = {
   description_en: string;
   category_id: string | null;
   tags: string[];
+  /** A book: author, year, ISBN as recognized (null = not a book). */
+  book: BookInfo | null;
 };
+
+/** A single recognition with the hint that a book was found but the user has no "Books" category. */
+export type RecognizeSingleResult = RecognizeResult & { booksCategoryMissing: boolean };
 
 /** Changes to the item mentioned in a voice phrase ("it's dad's old drill, broken"). null = no change. */
 export type ItemSuggestion = {
@@ -48,7 +55,7 @@ export type ItemContext = {
 /** One item found on a photo of several items; box = [ymin, xmin, ymax, xmax], 0–1000. */
 export type DetectedItem = RecognizeResult & { box: [number, number, number, number] };
 
-export type RecognizeMultiResult = { items: DetectedItem[] };
+export type RecognizeMultiResult = { items: DetectedItem[]; booksCategoryMissing: boolean };
 
 /** Dictation into a text field: the text in the field's language ("" = nothing intelligible). */
 export type TranscribeResult = { text: string };

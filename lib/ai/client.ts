@@ -4,7 +4,7 @@ import type {
   PlaceMode,
   PlaceResult,
   RecognizeMultiResult,
-  RecognizeResult,
+  RecognizeSingleResult,
   SearchResult,
   TranscribeResult,
 } from "./types";
@@ -58,10 +58,10 @@ function form(parts: { audio?: Blob | null; image?: Blob | null; text?: string; 
 }
 
 export function recognizeItem(image: Blob, locale: string) {
-  return call<RecognizeResult>(
+  return call<RecognizeSingleResult>(
     "/api/ai/recognize",
     form({ image, meta: { locale } }),
-    (d): d is RecognizeResult => isObject(d) && typeof d.name_ru === "string",
+    (d): d is RecognizeSingleResult => isObject(d) && typeof d.name_ru === "string",
   );
 }
 
