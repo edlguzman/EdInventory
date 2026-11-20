@@ -29,3 +29,8 @@ npm run db:types               # обновить типы TypeScript из сх�
     - **Confirm signup:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
     - **Reset password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
   - `/auth/confirm` уже поддерживает оба формата: `token_hash` и стандартный `code`.
+
+## Запланировано
+
+- **Админка для большого числа пользователей:** поиск по email, фильтры по статусу и тарифу, сортировка, страницы по 50 (отбор в базе), компактные строки на телефоне и таблица на широком экране. Нужна одна безопасная миграция (новая функция `admin_list_users_v3`). Подробно — в `CHANGELOG.md`, раздел «Planned».
+- **Оплата через Stripe:** модель данных готова, шаги — в `CLAUDE.md`, «Подключение Stripe».

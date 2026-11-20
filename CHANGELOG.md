@@ -3,6 +3,11 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## Planned (not started)
+
+- **Admin for many users** (`feature/admin-scale`): search by email; filters by status (pending / active / disabled) and plan; sorting by registration, last sign-in, items, AI requests; pages of 50 selected in the database; compact rows on phones (tap to open the full card with actions), a table on wide screens. Needs one safe migration: a new function `admin_list_users_v3(search, status, plan, sort, limit, offset)` returning the rows and the total count (checks `is_admin()` inside; existing functions unchanged).
+- **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
+
 ## v1.6.1 — 2026-11-20
 
 - **Faster Items list:** a loading skeleton appears at once on every screen; the list loads more items by itself while scrolling (instead of "Show more" re-sending the whole list: 102 KB instead of 400 KB for 186 items); thumbnails come from the phone's cache on the next visit (signed photo URLs are reused); off-screen cards are not drawn. "Back" from an item far down restores the whole list and the position.
