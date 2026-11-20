@@ -337,6 +337,17 @@ export type Database = {
     }
     Functions: {
       admin_check_delete: { Args: { p_user_id: string }; Returns: string }
+      admin_create_plan: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_name_en: string
+          p_name_ru: string
+        }
+        Returns: undefined
+      }
+      admin_delete_plan: { Args: { p_code: string }; Returns: undefined }
       admin_list_users_v2: {
         Args: never
         Returns: {
@@ -356,7 +367,51 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_users_v3: {
+        Args: {
+          p_limit: number
+          p_offset: number
+          p_plan: string
+          p_search: string
+          p_sort: string
+          p_status: string
+        }
+        Returns: {
+          ai_24h: number
+          ai_total: number
+          created_at: string
+          email: string
+          items_count: number
+          last_sign_in_at: string
+          manual_plan: string
+          manual_until: string
+          plan_code: string
+          plan_source: string
+          plan_until: string
+          role: string
+          status: string
+          total: number
+          user_id: string
+        }[]
+      }
+      admin_overview: {
+        Args: never
+        Returns: {
+          pending_count: number
+          plans_count: number
+          users_count: number
+        }[]
+      }
       admin_pending_count: { Args: never; Returns: number }
+      admin_plan_stats: {
+        Args: never
+        Returns: {
+          code: string
+          users_linked: number
+          users_now: number
+        }[]
+      }
+      admin_reorder_plans: { Args: { p_codes: string[] }; Returns: undefined }
       admin_set_plan: {
         Args: { p_plan: string; p_until: string; p_user_id: string }
         Returns: undefined

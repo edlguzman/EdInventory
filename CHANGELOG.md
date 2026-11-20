@@ -3,6 +3,18 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## Planned (not started)
+
+- **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
+
+## v1.7.0 — 2026-11-20
+
+- **Admin in sections:** /admin opens two cards — Users (count, red badge of accounts awaiting approval) and Plans (count). "Back" goes from a section to /admin, from /admin to Settings.
+- **Users** (/admin/users): search by email while typing, filters by status and plan, sorting (newest, oldest, email, most items, most AI in 24 h, recently signed in; pending always on top), pages of 50 picked in the database. Compact rows on phones open into the full card with the actions; wide screens show more columns.
+- **Plans** (/admin/plans): names, limits, order by arrows, how many users are on each plan; add a plan; delete a plan only when nobody is linked to it (never "free").
+- The admin email about a new registration links straight to the accounts awaiting approval.
+- Database: new admin functions only (admin_list_users_v3, admin_overview, admin_plan_stats, admin_create_plan, admin_delete_plan, admin_reorder_plans).
+
 ## v1.6.1 — 2026-11-20
 
 - **Faster Items list:** a loading skeleton appears at once on every screen; the list loads more items by itself while scrolling (instead of "Show more" re-sending the whole list: 102 KB instead of 400 KB for 186 items); thumbnails come from the phone's cache on the next visit (signed photo URLs are reused); off-screen cards are not drawn. "Back" from an item far down restores the whole list and the position.

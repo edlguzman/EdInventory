@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
-import { setUserPlan, updatePlan, type AdminActionError } from "@/app/(app)/admin/actions";
+import {
+  createPlan,
+  deletePlan,
+  reorderPlans,
+  setUserPlan,
+  updatePlan,
+  type AdminActionError,
+} from "@/app/(app)/admin/actions";
 import { Alert, Button } from "@/components/ui/buttons";
-import type { AdminUser, PlanRow } from "@/lib/admin/data";
+import type { AdminUser, PlanRow, PlanWithStats } from "@/lib/admin/data";
 
 const field =
   "min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-base outline-none focus:border-accent";
@@ -104,89 +112,257 @@ export function UserPlan({ user, plans, editable }: { user: AdminUser; plans: Pl
   );
 }
 
-/** "Plans": names, item limit, AI per day, order — edited here, effective at once. */
-export function AdminPlans({ plans }: { plans: PlanRow[] }) {
+/** "Plans": names, limits, order, users per plan; add and delete. Every change takes effect at once. */
+export function AdminPlans({ plans }: { plans: PlanWithStats[] }) {
   const t = useTranslations("admin");
+  const [error, setError] = useState<AdminActionError>();
+  const [pending, startTransition] = useTransition();
+
+  // Move one plan up or down: the whole new order in one call.
+  const move = (index: number, delta: -1 | 1) =>
+    startTransition(async () => {
+      const codes = plans.map((p) => p.code);
+      [codes[index], codes[index + delta]] = [codes[index + delta], codes[index]];
+      setError(undefined);
+      const r = await reorderPlans(codes);
+      if (!r.ok) setError(r.error);
+    });
+
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t("plans")}</h2>
       <p className="text-sm text-muted">{t("plansIntro")}</p>
+      {error && <Alert>{t(`errors.${error}`)}</Alert>}
       <ul className="flex flex-col gap-3">
-        {plans.map((p) => (
-          <PlanEditor key={p.code} plan={p} />
+        {plans.map((p, i) => (
+          <PlanEditor
+            key={p.code}
+            plan={p}
+            reordering={pending}
+            onUp={i > 0 ? () => move(i, -1) : undefined}
+            onDown={i < plans.length - 1 ? () => move(i, 1) : undefined}
+          />
         ))}
       </ul>
+      <NewPlan />
     </section>
   );
 }
 
-function PlanEditor({ plan }: { plan: PlanRow }) {
-  const t = useTranslations("admin");
-  const [v, setV] = useState({
-    name_ru: plan.name_ru,
-    name_en: plan.name_en,
-    item_limit: plan.item_limit === null ? "" : String(plan.item_limit),
-    ai_daily_limit: plan.ai_daily_limit === null ? "" : String(plan.ai_daily_limit),
-    sort_order: String(plan.sort_order),
-  });
-  const [error, setError] = useState<AdminActionError>();
-  const [saved, setSaved] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setV({ ...v, [k]: e.target.value });
-    setSaved(false);
-  };
-  const num = (s: string) => (s.trim() === "" ? null : Number(s));
+type PlanValues = { name_ru: string; name_en: string; item_limit: string; ai_daily_limit: string };
+const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-  const input = (k: keyof typeof v, label: string, numeric = false) => (
+/** Names and limits inputs, shared by an existing plan and a new one. */
+function PlanFields({ v, onChange }: { v: PlanValues; onChange: (v: PlanValues) => void }) {
+  const t = useTranslations("admin");
+  const input = (k: keyof PlanValues, label: string, numeric = false) => (
     <label className="flex min-w-0 flex-col gap-1 text-xs text-muted">
       {label}
       <input
         value={v[k]}
-        onChange={set(k)}
+        onChange={(e) => onChange({ ...v, [k]: e.target.value })}
         inputMode={numeric ? "numeric" : undefined}
-        placeholder={numeric && k !== "sort_order" ? "∞" : undefined}
+        placeholder={numeric ? "∞" : undefined}
+        maxLength={numeric ? 7 : 50}
         className={`${field} text-foreground`}
       />
     </label>
   );
-
   return (
-    <li className="flex flex-col gap-2 rounded-2xl border border-border p-3">
-      <p className="font-mono text-xs text-muted">{plan.code}</p>
+    <>
       <div className="grid grid-cols-2 gap-2">
         {input("name_ru", t("planNameRu"))}
         {input("name_en", t("planNameEn"))}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {input("item_limit", t("itemLimit"), true)}
         {input("ai_daily_limit", t("aiLimit"), true)}
-        {input("sort_order", t("order"), true)}
       </div>
+    </>
+  );
+}
+
+function PlanEditor({
+  plan,
+  reordering,
+  onUp,
+  onDown,
+}: {
+  plan: PlanWithStats;
+  reordering: boolean;
+  onUp?: () => void;
+  onDown?: () => void;
+}) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
+  const [v, setV] = useState<PlanValues>({
+    name_ru: plan.name_ru,
+    name_en: plan.name_en,
+    item_limit: plan.item_limit === null ? "" : String(plan.item_limit),
+    ai_daily_limit: plan.ai_daily_limit === null ? "" : String(plan.ai_daily_limit),
+  });
+  const [error, setError] = useState<AdminActionError>();
+  const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, startTransition] = useTransition();
+  // "free" is everyone's fallback; a plan anyone is linked to (manual or subscription) stays.
+  const deleteBlocked =
+    plan.code === "free"
+      ? t("deleteDefault")
+      : plan.users_linked > 0
+        ? t("deleteInUse", { count: plan.users_linked })
+        : null;
+  const arrow = "flex size-11 items-center justify-center rounded-xl border border-border disabled:opacity-30";
+
+  const run = (action: () => Promise<{ ok: true } | { ok: false; error: AdminActionError }>, onDone?: () => void) =>
+    startTransition(async () => {
+      setError(undefined);
+      const r = await action();
+      if (!r.ok) setError(r.error);
+      else onDone?.();
+    });
+
+  return (
+    <li className="flex flex-col gap-2 rounded-2xl border border-border p-3">
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="font-mono text-xs text-muted">{plan.code}</span>
+          <span className="text-sm">{t("planUsers", { count: plan.users_now })}</span>
+        </div>
+        <button type="button" onClick={onUp} disabled={!onUp || reordering} aria-label={t("moveUp")} className={arrow}>
+          <ArrowUp className="size-5" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={onDown}
+          disabled={!onDown || reordering}
+          aria-label={t("moveDown")}
+          className={arrow}
+        >
+          <ArrowDown className="size-5" aria-hidden />
+        </button>
+      </div>
+      <PlanFields v={v} onChange={(next) => (setV(next), setSaved(false))} />
       {error && <Alert>{t(`errors.${error}`)}</Alert>}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
-          pending={pending}
+          pending={pending && !confirmDelete}
+          disabled={pending}
           onClick={() =>
-            startTransition(async () => {
-              setError(undefined);
-              const r = await updatePlan({
-                code: plan.code,
-                name_ru: v.name_ru,
-                name_en: v.name_en,
-                item_limit: num(v.item_limit),
-                ai_daily_limit: num(v.ai_daily_limit),
-                sort_order: Number(v.sort_order) || 0,
-              });
-              if (!r.ok) setError(r.error);
-              else setSaved(true);
-            })
+            run(
+              () =>
+                updatePlan({
+                  code: plan.code,
+                  name_ru: v.name_ru,
+                  name_en: v.name_en,
+                  item_limit: num(v.item_limit),
+                  ai_daily_limit: num(v.ai_daily_limit),
+                  sort_order: plan.sort_order,
+                }),
+              () => setSaved(true),
+            )
           }
         >
           {t("save")}
         </Button>
         {saved && <span className="text-sm text-muted">{t("saved")}</span>}
+        <span className="flex-1" />
+        {confirmDelete ? (
+          <>
+            <Button onClick={() => setConfirmDelete(false)} disabled={pending}>
+              {tCommon("cancel")}
+            </Button>
+            <Button variant="danger" pending={pending} onClick={() => run(() => deletePlan(plan.code))}>
+              {t("deletePlanConfirm")}
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={() => setConfirmDelete(true)}
+            disabled={!!deleteBlocked || pending}
+            className="text-red-600 dark:text-red-400"
+            aria-label={`${t("delete")}: ${plan.code}`}
+          >
+            <Trash2 className="size-5" aria-hidden />
+            {t("delete")}
+          </Button>
+        )}
       </div>
+      {deleteBlocked && <p className="text-xs text-muted">{deleteBlocked}</p>}
     </li>
+  );
+}
+
+const EMPTY: PlanValues = { name_ru: "", name_en: "", item_limit: "", ai_daily_limit: "" };
+
+/** "Add a plan": a code (permanent) plus names and limits; it goes last. */
+function NewPlan() {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [v, setV] = useState<PlanValues>(EMPTY);
+  const [error, setError] = useState<AdminActionError>();
+  const [pending, startTransition] = useTransition();
+  const close = () => {
+    setOpen(false);
+    setCode("");
+    setV(EMPTY);
+    setError(undefined);
+  };
+
+  if (!open)
+    return (
+      <Button onClick={() => setOpen(true)}>
+        <Plus className="size-5" aria-hidden />
+        {t("addPlan")}
+      </Button>
+    );
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-accent p-3">
+      <h2 className="font-semibold">{t("newPlan")}</h2>
+      <label className="flex min-w-0 flex-col gap-1 text-xs text-muted">
+        {t("planCode")}
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+          maxLength={32}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          className={`${field} font-mono text-foreground`}
+        />
+        <span>{t("planCodeHint")}</span>
+      </label>
+      <PlanFields v={v} onChange={setV} />
+      {error && <Alert>{t(`errors.${error}`)}</Alert>}
+      <div className="flex gap-2">
+        <Button onClick={close} disabled={pending} className="flex-1">
+          {tCommon("cancel")}
+        </Button>
+        <Button
+          variant="primary"
+          pending={pending}
+          disabled={!code || !v.name_ru.trim() || !v.name_en.trim()}
+          className="flex-1"
+          onClick={() =>
+            startTransition(async () => {
+              setError(undefined);
+              const r = await createPlan({
+                code,
+                name_ru: v.name_ru,
+                name_en: v.name_en,
+                item_limit: num(v.item_limit),
+                ai_daily_limit: num(v.ai_daily_limit),
+              });
+              if (!r.ok) setError(r.error);
+              else close();
+            })
+          }
+        >
+          {t("addPlan")}
+        </Button>
+      </div>
+    </div>
   );
 }

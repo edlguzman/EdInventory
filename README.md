@@ -29,3 +29,7 @@ npm run db:types               # обновить типы TypeScript из сх�
     - **Confirm signup:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
     - **Reset password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
   - `/auth/confirm` уже поддерживает оба формата: `token_hash` и стандартный `code`.
+
+## Запланировано
+
+- **Оплата через Stripe:** модель данных готова, шаги — в `CLAUDE.md`, «Подключение Stripe».
