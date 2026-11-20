@@ -3,6 +3,11 @@
 Versions follow [semver](https://semver.org/): fixes → patch, new features → minor,
 changes that break things for users → major. Each release is a git tag `vX.Y.Z` on `main`.
 
+## v1.6.1 — 2026-11-20
+
+- **Faster Items list:** a loading skeleton appears at once on every screen; the list loads more items by itself while scrolling (instead of "Show more" re-sending the whole list: 102 KB instead of 400 KB for 186 items); thumbnails come from the phone's cache on the next visit (signed photo URLs are reused); off-screen cards are not drawn. "Back" from an item far down restores the whole list and the position.
+- Vercel functions pinned to the same region as the database (iad1 / us-east-1).
+
 ## v1.6.0 — 2026-11-20
 
 - **Plans:** free (200 items, 20 AI requests a day), plus (500/100), pro (1000/300), unlimited (no item limit, 1000 AI). Names and limits are edited in /admin → Plans and apply at once.

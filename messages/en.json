@@ -80,7 +80,8 @@
     "recognized": "Filled in by AI — please check.",
     "placeVoiceHint": "Or say where you put it, details about the item welcome:",
     "placeIsHere": "This is your \"I'm here\" place: it stays for the next items too.",
-    "isHere": "I'm here"
+    "isHere": "I'm here",
+    "loadingMore": "Loading more…"
   },
   "search": {
     "title": "Search",

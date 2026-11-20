@@ -2,8 +2,9 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { ItemsBrowser } from "@/components/items/items-browser";
 import { getCategories, listItems } from "@/lib/items/data";
+import { ITEMS_PAGE_SIZE } from "@/lib/items/types";
 
-const PAGE_SIZE = 48;
+const PAGE_SIZE = ITEMS_PAGE_SIZE;
 const MAX_LIMIT = 480;
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -29,6 +30,8 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
 
   return (
     <ItemsBrowser
+      // New filters or changed data: a fresh list (pages loaded by scrolling start over).
+      key={`${category}|${location}|${items.length}|${items[0]?.id ?? ""}|${items.at(-1)?.id ?? ""}`}
       title={t("title")}
       items={items}
       hasMore={hasMore}

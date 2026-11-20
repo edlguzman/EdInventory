@@ -2,7 +2,6 @@
 
 import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -11,6 +10,7 @@ import { useCurrentLocation, useLocations, useSetCurrentLocation } from "@/compo
 import type { CategoryOption } from "@/lib/items/data";
 import { pickText, type ItemSummary } from "@/lib/items/types";
 import { ItemGallery, ItemTable, viewStore } from "./item-list";
+import { useMoreItems } from "./use-more-items";
 
 export type BrowserFilters = { category: string | null; location: string | null; limit: number };
 
@@ -80,6 +80,21 @@ export function ItemsBrowser({
 
   // Until the list matches "I'm here", it is not shown (no flash of another place).
   const openingHere = !hydrated ? !locationInUrl : filters.location !== hereId;
+
+  // Next pages while scrolling (appended; remembered for "back").
+  const {
+    items: listed,
+    hasMore: moreToLoad,
+    loading: loadingMore,
+    loadMore,
+    setSentinel,
+  } = useMoreItems({
+    filterKey: `${filters.category}|${filters.location}`,
+    category: filters.category,
+    location: filters.location,
+    initial: items,
+    initialHasMore: hasMore,
+  });
 
   const place = filters.location ? byId.get(filters.location) : undefined;
   const hasFilters = Boolean(filters.category || filters.location);
@@ -162,19 +177,26 @@ export function ItemsBrowser({
           {hasFilters ? t("emptyFiltered") : t("empty")}
         </p>
       ) : view === "table" ? (
-        <ItemTable items={items} categories={categories} />
+        <ItemTable items={listed} categories={categories} />
       ) : (
-        <ItemGallery items={items} categories={categories} />
+        <ItemGallery items={listed} categories={categories} />
       )}
 
-      {hasMore && !openingHere && (
-        <Link
-          href={href({ limit: filters.limit + pageSize })}
-          scroll={false}
-          className="flex min-h-11 items-center justify-center rounded-xl border border-border font-medium"
-        >
-          {t("showMore")}
-        </Link>
+      {moreToLoad && !openingHere && (
+        <div ref={setSentinel} className="flex min-h-11 items-center justify-center">
+          {loadingMore ? (
+            <LoaderCircle className="size-6 animate-spin text-muted" aria-label={t("loadingMore")} />
+          ) : (
+            // Fallback when the automatic load did not run (or failed): load by tap.
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              className="flex min-h-11 w-full items-center justify-center rounded-xl border border-border font-medium"
+            >
+              {t("showMore")}
+            </button>
+          )}
+        </div>
       )}
 
       <LocationPicker

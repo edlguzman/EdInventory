@@ -7,13 +7,42 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
 
-/** Signed URLs for many storage paths in one request (private bucket). */
+/** A signed URL is reused while it still has this long to live, so photos come from the browser cache. */
+const REUSE_MIN_LEFT_MS = 10 * 60 * 1000;
+const MAX_CACHED_URLS = 5000;
+
+/**
+ * Signed URLs already made by this server instance, by storage path. Every new signature is a new
+ * URL, so without this every visit to a list downloaded all thumbnails again. Only paths that a
+ * user's own (RLS-filtered) query returned are ever signed or looked up here, and a path contains
+ * its owner's id, so a URL is never handed to anyone who could not get it signed anyway.
+ */
+const urlCache = new Map<string, { url: string; expires: number }>();
+
+/** Signed URLs for many storage paths: cached ones reused, the rest in one request (private bucket). */
 async function signUrls(supabase: Supabase, paths: string[]): Promise<Map<string, string>> {
   const result = new Map<string, string>();
   if (paths.length === 0) return result;
-  const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL);
+  const now = Date.now();
+  const missing: string[] = [];
+  for (const p of paths) {
+    const cached = urlCache.get(p);
+    if (cached && cached.expires - now > REUSE_MIN_LEFT_MS) result.set(p, cached.url);
+    else missing.push(p);
+  }
+  if (missing.length === 0) return result;
+
+  const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(missing, SIGNED_URL_TTL);
+  const expires = now + SIGNED_URL_TTL * 1000;
   for (const entry of data ?? []) {
-    if (entry.path && entry.signedUrl) result.set(entry.path, entry.signedUrl);
+    if (entry.path && entry.signedUrl) {
+      result.set(entry.path, entry.signedUrl);
+      urlCache.set(entry.path, { url: entry.signedUrl, expires });
+    }
+  }
+  if (urlCache.size > MAX_CACHED_URLS) {
+    for (const [k, v] of urlCache) if (v.expires - now <= REUSE_MIN_LEFT_MS) urlCache.delete(k);
+    if (urlCache.size > MAX_CACHED_URLS) urlCache.clear();
   }
   return result;
 }
@@ -60,6 +89,8 @@ export type ItemFilters = {
   /** Only items directly in this place (place page). */
   directLocation?: string;
   limit: number;
+  /** Skip this many (the next pages of infinite scroll). */
+  offset?: number;
 };
 
 /** Latest items first. Fetches limit + 1 rows to know whether there are more. */
@@ -70,7 +101,7 @@ export async function listItems(filters: ItemFilters): Promise<{ items: ItemSumm
     .select(SUMMARY_COLUMNS)
     .order("created_at", { ascending: false })
     .order("id")
-    .limit(filters.limit + 1);
+    .range(filters.offset ?? 0, (filters.offset ?? 0) + filters.limit);
 
   if (filters.category === "none") query = query.is("category_id", null);
   else if (filters.category) query = query.eq("category_id", filters.category);

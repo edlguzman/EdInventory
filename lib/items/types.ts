@@ -1,3 +1,6 @@
+/** Items per page of the Items list (first page on the server, next pages while scrolling). */
+export const ITEMS_PAGE_SIZE = 48;
+
 export type ItemSummary = {
   id: string;
   nameRu: string | null;
