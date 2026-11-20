@@ -221,7 +221,8 @@
     "nameEn": "Name (EN)",
     "nameHint": "You can fill in one field. An empty English name gets the Russian text; the Translate button fills the other field with a translation.",
     "moreActions": "More actions",
-    "search": "Search"
+    "search": "Search",
+    "back": "Back"
   },
   "errors": {
     "nameRequired": "Enter a name in at least one language",
@@ -445,6 +446,7 @@
       "tips": {
         "title": "Tips",
         "points": [
+          "The \"←\" arrow at the top returns to the previous screen with the same filters, view and scroll position. If you opened a screen by a link, it goes to its parent: item → Items, place → the place above. Swipe back on iPhone works too.",
           "Photograph items close up on a light background — AI recognizes them better.",
           "Say the full place path: “at the country house, in the garage, on the rack”.",
           "Allow the microphone and camera when the browser asks.",

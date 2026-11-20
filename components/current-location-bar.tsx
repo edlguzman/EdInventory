@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MapPin, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { HeaderBack } from "@/components/back-button";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { useCurrentLocation, useLocations, useSetCurrentLocation } from "@/components/locations/locations-context";
 
@@ -23,6 +24,7 @@ export function CurrentLocationBar() {
   return (
     <div className="sticky top-0 z-30 border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex max-w-2xl items-center gap-1 px-2">
+        <HeaderBack />
         <button
           type="button"
           onClick={() => setPicking(true)}
