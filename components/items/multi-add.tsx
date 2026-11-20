@@ -23,6 +23,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useErrorText } from "@/lib/use-error-text";
 import { ITEM_NAME_MAX } from "@/lib/validation/items";
 import { findPhotoUses, findSimilarItems, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
+import { setBackOverride } from "@/lib/nav-history";
 import { fileHash } from "@/lib/photos/hash";
 import { PhotoUsedNotice, SimilarNote } from "./duplicate-notice";
 import type { ItemSeed } from "./item-form";
@@ -201,6 +202,16 @@ export function MultiAdd({
   // Cancel goes back to the "Add" screen; found items are not thrown away without asking.
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancel = () => (found.length > 0 ? setConfirmCancel(true) : onCancel());
+
+  // The header's back arrow works as Cancel here (same question when items were found).
+  const cancelRef = useRef(cancel);
+  useEffect(() => {
+    cancelRef.current = saving ? () => {} : cancel;
+  });
+  useEffect(() => {
+    setBackOverride(() => cancelRef.current());
+    return () => setBackOverride(null);
+  }, []);
 
   const update = (key: string, patch: Partial<Found>) => {
     setFound((list) => list.map((f) => (f.key === key ? { ...f, ...patch } : f)));

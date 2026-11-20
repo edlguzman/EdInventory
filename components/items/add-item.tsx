@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, LoaderCircle, Package, ScanSearch, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useOffline } from "@/components/offline-banner";
 import { Alert } from "@/components/ui/buttons";
 import type { CategoryOption } from "@/lib/items/data";
 import { MAX_PHOTOS } from "@/lib/photos/paths";
+import { setBackOverride } from "@/lib/nav-history";
 import { fileHash } from "@/lib/photos/hash";
 import { processPhoto, UnsupportedImageError } from "@/lib/photos/process";
 import { useErrorText } from "@/lib/use-error-text";
@@ -30,6 +31,14 @@ export function AddItem({ userId, categories }: { userId: string; categories: Ca
   const [error, setError] = useState<string>();
   const errorText = useErrorText();
   const back = () => setView({ kind: "choose" });
+
+  // The header's back arrow: from the one-item form back to the two cards. In "several items"
+  // the multi screen takes the arrow itself (it may ask before throwing found items away).
+  useEffect(() => {
+    if (view.kind !== "single") return;
+    setBackOverride(() => setView({ kind: "choose" }));
+    return () => setBackOverride(null);
+  }, [view.kind]);
 
   /** One item: process the picked photos as the form would, then open the form with them. */
   async function pickSingle(files: File[]) {

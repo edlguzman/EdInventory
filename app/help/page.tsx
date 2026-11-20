@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Camera,
   FolderTree,
   Languages,
@@ -20,6 +19,7 @@ import {
 import { getTranslations } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { getUser } from "@/lib/auth";
+import { BackLink } from "@/components/back-button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("help");
@@ -47,15 +47,13 @@ const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" 
  */
 export default async function HelpPage() {
   const [t, tApp, user] = await Promise.all([getTranslations("help"), getTranslations("app"), getUser()]);
-  const back = user ? { href: "/", label: t("toApp") } : { href: "/login", label: t("toLogin") };
+  // Signed in: a real step back when possible, else Settings (where Help is linked from).
+  const back = user ? { href: "/settings", label: t("toApp") } : { href: "/login", label: t("toLogin") };
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-background/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <Link href={back.href} className="flex min-h-12 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-accent">
-          <ArrowLeft className="size-5" aria-hidden />
-          {back.label}
-        </Link>
+        <BackLink fallback={back.href} label={back.label} />
         <div className="ml-auto py-1">
           <LocaleSwitcher compact />
         </div>
