@@ -1,5 +1,6 @@
 import type { TranslateRequest } from "./translate-schema";
 import type {
+  CategorizeResult,
   ItemContext,
   PlaceMode,
   PlaceResult,
@@ -45,6 +46,15 @@ export function translateName(input: TranslateRequest) {
     "/api/ai/translate",
     { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) },
     (d): d is { text: string } => isObject(d) && typeof d.text === "string",
+  );
+}
+
+/** Categories for up to 50 items (ids only: the server reads their texts). 1 AI request. */
+export function categorizeItems(ids: string[]) {
+  return call<CategorizeResult>(
+    "/api/ai/categorize",
+    { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) },
+    (d): d is CategorizeResult => isObject(d) && Array.isArray(d.items),
   );
 }
 

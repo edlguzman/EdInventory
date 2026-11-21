@@ -260,7 +260,8 @@
     "authorTooLong": "Author: at most 300 characters.",
     "yearInvalid": "Year: four digits, from 1400 to 2100.",
     "isbnInvalid": "This ISBN is not valid: 10 or 13 digits with a correct check digit.",
-    "badRequest": "Invalid request."
+    "badRequest": "Invalid request.",
+    "invalid": "Invalid data. Reload the page."
   },
   "here": {
     "label": "I'm here",
@@ -451,6 +452,16 @@
         "points": [
           "In “Items”, switch between a photo gallery and a compact table.",
           "Filter by category and by place — including all nested places."
+        ]
+      },
+      "bulk": {
+        "title": "Many items at once",
+        "points": [
+          "In Items or in Search results tap \"Select\" or press and hold an item. Tick the ones you need.",
+          "\"Select all found\" takes every item of the current filters or search, not only those on screen (up to 500 at a time).",
+          "At the bottom: \"Category\", \"Move\" (from the list, by voice or straight to \"I'm here\"), \"Delete\" and \"Categorize\".",
+          "\"Categorize\": the AI reads only the items' texts (no photos) and suggests categories, sometimes new ones. You see \"was → will be\" first: untick what you don't want and tap \"Apply\". 50 items = one AI request.",
+          "After a change an \"Undo\" button stays at the bottom for 10 seconds: every item gets its previous value back. Deleting cannot be undone."
         ]
       },
       "categories": {
@@ -734,5 +745,45 @@
     "categoryRu": "Книги",
     "categoryEn": "Books",
     "createCategoryQuestionMany": "There seem to be books here, and you have no \"Books\" category. Create it?"
+  },
+  "bulk": {
+    "select": "Select",
+    "selected": "Selected: {count}",
+    "selectAllFound": "Select all found",
+    "cancelSelection": "Cancel selection",
+    "cappedNote": "The first {shown} of {total} are selected — after the change, select the rest.",
+    "category": "Category",
+    "move": "Move",
+    "categorize": "Categorize",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "close": "Close",
+    "create": "Create",
+    "categoryTitle": "Category for {count, plural, one {# item} other {# items}}",
+    "noCategory": "No category",
+    "newCategory": "New category",
+    "moveTitle": "Move {count, plural, one {# item} other {# items}}",
+    "noPlace": "No place",
+    "moveHere": "Here, \"I'm here\": {place}",
+    "deleteTitle": "Delete {count, plural, one {# item} other {# items}}?",
+    "deleteText": "{count, plural, one {# item} other {# items}} and all their photos will be deleted. This cannot be undone.",
+    "deleteConfirm": "Delete {count, plural, one {# item} other {# items}}",
+    "changed": "Changed: {count, plural, one {# item} other {# items}}",
+    "undone": "Undone: {count, plural, one {# item} other {# items}}",
+    "undo": "Undo",
+    "categorizeTitle": "Sort into categories: {count, plural, one {# item} other {# items}}",
+    "categorizeIntro": "The AI reads the names, descriptions and tags of the selected items ({count}) and suggests a category for each. You see the list of changes first and decide what to apply.",
+    "categorizeCost": "{requests, plural, one {This takes # AI request.} other {This takes # AI requests.}}",
+    "requestsLeft": "Left today: {left}.",
+    "notEnoughRequests": "Not enough requests for all items: the AI sorts as many as it can, the rest can wait until tomorrow.",
+    "categorizePrivacy": "Only the items' texts and your category list go to the AI, no photos.",
+    "categorizeStart": "Start",
+    "categorizeRunning": "The AI is sorting: request {done} of {total}…",
+    "categorizeNothing": "The AI suggests no changes: the selected items already have fitting categories.",
+    "sortedOf": "Sorted {done} of {total}.",
+    "createNew": "Create new categories?",
+    "newMark": "new",
+    "unsure": "AI not sure",
+    "apply": "Apply ({count})"
   }
 }

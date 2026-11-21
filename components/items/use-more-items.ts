@@ -13,6 +13,11 @@ type Loaded = { items: ItemSummary[]; hasMore: boolean };
  */
 const loadedCache = new Map<string, Loaded & { sig: string }>();
 
+/** After a bulk change (or its undo) the loaded pages are stale: the next render starts over. */
+export function forgetLoadedItems() {
+  loadedCache.clear();
+}
+
 /**
  * Infinite scroll for the Items list: the server renders the first page; the next pages are
  * fetched with a server action when the sentinel comes near the screen, and appended

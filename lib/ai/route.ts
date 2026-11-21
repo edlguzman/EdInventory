@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe";
+export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe" | "categorize";
 
 /** Error codes returned by /api/ai/* as { error }. The client maps them to dictionary keys. */
 export type AiErrorCode =
@@ -21,7 +21,7 @@ export function aiError(code: AiErrorCode, status: number) {
 }
 
 /** Fallback daily AI limit when a plan has none set (plans.ai_daily_limit is null). */
-function dailyLimit() {
+export function dailyLimit() {
   const n = Number.parseInt(process.env.AI_DAILY_LIMIT_PER_USER ?? "", 10);
   return Number.isFinite(n) && n > 0 ? n : 100;
 }

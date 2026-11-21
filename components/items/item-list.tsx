@@ -1,7 +1,6 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import Link from "next/link";
 import { ImageOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useLocations } from "@/components/locations/locations-context";
@@ -9,6 +8,7 @@ import { Photo } from "@/components/ui/photo";
 import type { CategoryOption } from "@/lib/items/data";
 import { pickText, type ItemSummary } from "@/lib/items/types";
 import { createLocalStore } from "@/lib/local-store";
+import { SelectableLink, SelectMark, type ItemSelection } from "./selection";
 
 export type ItemsView = "gallery" | "table";
 
@@ -53,7 +53,16 @@ function Thumb({ item, alt, className }: { item: ItemSummary; alt: string; class
   );
 }
 
-export function ItemGallery({ items, categories }: { items: ItemSummary[]; categories: CategoryOption[] }) {
+export function ItemGallery({
+  items,
+  categories,
+  selection,
+}: {
+  items: ItemSummary[];
+  categories: CategoryOption[];
+  /** Bulk edit: long press / tap to select (Items list). */
+  selection?: ItemSelection;
+}) {
   const labels = useItemLabels(categories);
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -63,12 +72,24 @@ export function ItemGallery({ items, categories }: { items: ItemSummary[]; categ
         return (
           // Off-screen cards are not laid out or painted (long lists stay smooth on phones).
           <li key={item.id} className="[contain-intrinsic-size:auto_220px] [content-visibility:auto]">
-            <Link href={`/items/${item.id}`} className="flex flex-col gap-1.5 rounded-xl active:opacity-80">
-              <Thumb item={item} alt={name} className="aspect-square w-full rounded-xl" />
+            <SelectableLink
+              id={item.id}
+              href={`/items/${item.id}`}
+              selection={selection}
+              className="flex flex-col gap-1.5 rounded-xl active:opacity-80"
+            >
+              <span className="relative block">
+                <Thumb
+                  item={item}
+                  alt={name}
+                  className={`aspect-square w-full rounded-xl ${selection?.active && selection.selected.has(item.id) ? "ring-3 ring-accent" : ""}`}
+                />
+                {selection?.active && <SelectMark selected={selection.selected.has(item.id)} className="absolute top-2 right-2" />}
+              </span>
               <span className="line-clamp-2 text-sm font-medium leading-snug">{name}</span>
               {labels.book(item) && <span className="-mt-1 truncate text-xs">{labels.book(item)}</span>}
               {place && <span className="-mt-1 truncate text-xs text-muted">{place}</span>}
-            </Link>
+            </SelectableLink>
           </li>
         );
       })}
@@ -80,11 +101,14 @@ export function ItemTable({
   items,
   categories,
   fullPath = false,
+  selection,
 }: {
   items: ItemSummary[];
   categories: CategoryOption[];
   /** Show the whole place path (search results), not only its end. */
   fullPath?: boolean;
+  /** Bulk edit: long press / tap to select. */
+  selection?: ItemSelection;
 }) {
   const t = useTranslations("items");
   const labels = useItemLabels(categories, fullPath);
@@ -107,14 +131,22 @@ export function ItemTable({
           const category = labels.category(item);
           return (
             <tr key={item.id} className="relative">
-              <td className="w-14 min-w-14 py-2 pr-2 align-middle">
+              <td className="relative w-14 min-w-14 py-2 pr-2 align-middle">
                 <Thumb item={item} alt="" className="size-12 rounded-lg" />
+                {selection?.active && (
+                  <SelectMark selected={selection.selected.has(item.id)} className="absolute top-1/2 left-2.5 -translate-y-1/2" />
+                )}
               </td>
               <td className="w-full max-w-0 py-2 align-middle">
                 {/* The whole row is a link target via the stretched ::after. */}
-                <Link href={`/items/${item.id}`} className="block truncate font-medium after:absolute after:inset-0">
+                <SelectableLink
+                  id={item.id}
+                  href={`/items/${item.id}`}
+                  selection={selection}
+                  className="block truncate font-medium after:absolute after:inset-0"
+                >
                   {name}
-                </Link>
+                </SelectableLink>
                 {labels.book(item) && <span className="block truncate text-xs">{labels.book(item)}</span>}
                 <span className={`block text-xs text-muted sm:hidden ${fullPath ? "" : "truncate"}`}>
                   {[place, category].filter(Boolean).join(" · ")}
