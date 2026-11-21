@@ -5,8 +5,13 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 ## Planned (not started)
 
-
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
+
+## v1.10.0 — 2026-11-21
+
+- **Book covers:** when a book is found by its ISBN, the biggest cover from Google Books or Open Library is offered — "Make it the main photo" (preselected after a barcode or when the item has no photos), "Add as the second photo" or "Not needed" (preselected when you photographed the cover yourself). "Find cover" for saved books. No AI request; the cover is saved only with the item, like any photo.
+- **Scan ISBN** in the Book block: photograph the back cover or the copyright page — the barcode is read on the phone, without one the AI reads the printed number (one request); several numbers — you choose. The photo is not saved.
+- A typed ISBN is checked as soon as you leave the field.
 
 ## v1.9.0 — 2026-11-21
 

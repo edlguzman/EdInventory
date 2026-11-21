@@ -425,6 +425,8 @@
         "points": [
           "Take a photo of the cover: the AI fills in the title (as printed, not translated), the author, and the year and ISBN if they are visible.",
           "Take a photo of the back cover with the barcode: the app reads the ISBN itself and finds the book in open catalogues. No AI is used. Need more — \"Recognize from photo\".",
+          "The ISBN is often only on the back or inside: in the Book block tap \"Scan ISBN\" and photograph the back cover or the copyright page. A barcode is looked for first (no AI); without one the AI reads the printed number (one request). This photo is not saved.",
+          "Once the ISBN is known, the app looks for a cover in the catalogues and offers \"Make it the main photo\", \"Add as the second photo\" or \"Not needed\". If you photographed the cover yourself, \"Not needed\" is preselected. For a saved book — \"Find cover\".",
           "A shelf of books: \"Several items in one photo\" — every book becomes its own card, titles and authors are read from the spines.",
           "Books go to the \"Books\" category. If you have none, the app offers to create it.",
           "Search by author or ISBN: \"Tolkien\" or the number with or without hyphens."
@@ -744,7 +746,24 @@
     "notNow": "Not now",
     "categoryRu": "Книги",
     "categoryEn": "Books",
-    "createCategoryQuestionMany": "There seem to be books here, and you have no \"Books\" category. Create it?"
+    "createCategoryQuestionMany": "There seem to be books here, and you have no \"Books\" category. Create it?",
+    "notFoundIsbnKept": "The catalogues don't know this book. The ISBN is kept; fill in the rest yourself.",
+    "scanIsbn": "Scan ISBN",
+    "scanLooking": "Looking for a barcode…",
+    "scanReading": "The AI is reading the ISBN…",
+    "scanHint": "Photograph the back cover or a page with the ISBN (copyright page, imprint). This photo is not saved.",
+    "scanNothing": "No ISBN found on the photo. Take a sharper one or type the number.",
+    "scanNoBarcodeAiOff": "No barcode on the photo, and the AI is not available now. Type the ISBN.",
+    "whichIsbn": "Which ISBN is this book's?",
+    "findCover": "Find cover",
+    "coverSearching": "Looking for a cover in the catalogues…",
+    "coverNotFound": "No cover found in the catalogues.",
+    "coverFound": "Cover from {source}",
+    "coverAlt": "Catalogue cover",
+    "coverMain": "Make it the main photo",
+    "coverSecond": "Add as the second photo",
+    "coverNone": "Not needed",
+    "coverNoRoom": "The item already has 10 photos: delete one to add the cover."
   },
   "bulk": {
     "select": "Select",

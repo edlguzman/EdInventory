@@ -77,3 +77,6 @@ export type CategorizedItem = {
 };
 
 export type CategorizeResult = { items: CategorizedItem[] };
+
+/** ISBNs read from a photo of a back cover / copyright page (valid checksums only, ISBN-13 first). */
+export type IsbnReadResult = { isbns: string[] };
