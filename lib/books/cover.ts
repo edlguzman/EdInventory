@@ -117,6 +117,8 @@ export async function fetchCover(url: string, source: CoverImage["source"]): Pro
         offset += p.byteLength;
       }
       const type = sniffImage(bytes);
+      // Google serves covers as JPEG; its "image not available" placeholder is a PNG (575x750).
+      if (source === "google" && type !== "image/jpeg") return null;
       const size = type && imageSize(bytes, type);
       if (!type || !size || Math.min(size.width, size.height) < MIN_SIDE) return null;
       return { bytes, type, ...size, source };
@@ -131,8 +133,11 @@ export async function fetchCover(url: string, source: CoverImage["source"]): Pro
 export async function findCover(isbn: string): Promise<CoverImage | null> {
   const isbn13 = toIsbn13(isbn);
   const google = await googleCoverUrls(isbn13).catch(() => []);
+  // Google's cover by ISBN works without the API (no key, no quota) and often finds a bigger
+  // picture than the imageLinks of the search answer.
+  const byIsbn = `https://books.google.com/books/content?vid=ISBN${isbn13}&printsec=frontcover&img=1&zoom=0`;
   const candidates: [string, CoverImage["source"]][] = [
-    ...google.map((u): [string, CoverImage["source"]] => [u, "google"]),
+    ...[byIsbn, ...google.filter((u) => u !== byIsbn)].map((u): [string, CoverImage["source"]] => [u, "google"]),
     // default=false: 404 instead of a "no cover" placeholder.
     [`https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`, "openlibrary"],
   ];
