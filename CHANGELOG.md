@@ -7,6 +7,13 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v1.11.0 — 2026-11-21
+
+- **"?" on every screen:** a small help icon in the header (and on the sign-in and "awaiting approval" screens) opens the help over the current screen, right on the matching section: Add → "Add an item", Items and Search → "Items and search", selection mode → "Many items at once", "Several items", a book → "Books", Places → "Places and I'm here", Settings → "Account", with their own "?" for data languages and plan.
+- Nothing on the screen is lost: a half-filled item, a selection, filters and scroll stay. Close with the arrow, Android Back, the back gesture or Escape.
+- Header: a long "I'm here" name is cut with "…" so the icons always fit.
+- Help updated: "Getting started" says the help opens with "?" on any screen.
+
 ## v1.10.2 — 2026-11-21
 
 - **Help updated:** /help rewritten for the current version, by what you want to do — getting started, adding items, several items, voice, places and "I'm here", items and search, books, many items at once, data languages, plan and AI requests, account. Added what was missing (main photo and "Recognize again", photo privacy, creating places by voice, item actions, offline, what uses AI requests, data language modes, sign out, deleting the account). Sections open and close; "Expand all".
