@@ -5,6 +5,8 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 ## Planned (not started)
 
+- **Bulk edit** (`feature/bulk-edit`, v1.9.0, done on the branch, not released): select items in Items or Search results ("Select" or a long press; "Select all found" takes every item of the filters, up to 500), then Category, Move (list, voice, "I'm here" first), Delete (with photos) or "Categorize" (AI reads only the items' texts, 50 items per request, review "was → will be" before applying). 10-second Undo after changes. Migration: AI usage kind `categorize` (safe, applied).
+
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
 ## v1.8.1 — 2026-11-21

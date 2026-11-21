@@ -59,3 +59,21 @@ export type RecognizeMultiResult = { items: DetectedItem[]; booksCategoryMissing
 
 /** Dictation into a text field: the text in the field's language ("" = nothing intelligible). */
 export type TranscribeResult = { text: string };
+
+/** "Sort into categories": an existing category of the user, or a new one to create. */
+export type CategorySuggestion =
+  | { categoryId: string; newCategory: null }
+  | { categoryId: null; newCategory: { name_ru: string; name_en: string } };
+
+export type CategorizedItem = {
+  id: string;
+  nameRu: string | null;
+  nameEn: string | null;
+  currentCategoryId: string | null;
+  /** null: the model gave no usable answer for this item (left as it is). */
+  suggestion: CategorySuggestion | null;
+  /** 0–1. */
+  confidence: number;
+};
+
+export type CategorizeResult = { items: CategorizedItem[] };

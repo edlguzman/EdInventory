@@ -4,9 +4,11 @@ import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LoaderCircle, MapPin, Search, Sparkles, Tag, X } from "lucide-react";
+import { CheckSquare, LoaderCircle, MapPin, Search, Sparkles, Tag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { BulkBar, UndoToast } from "@/components/items/bulk-bar";
 import { ItemTable } from "@/components/items/item-list";
+import { SelectionHeader, useItemSelection } from "@/components/items/selection";
 import { useLocations } from "@/components/locations/locations-context";
 import { Alert, Button } from "@/components/ui/buttons";
 import { useAiOff, usePlanLimitText } from "@/components/plan-context";
@@ -46,6 +48,9 @@ export function SearchView({
   const pathname = usePathname();
   const { byId, path } = useLocations();
   const [text, setText] = useState(q);
+  const tBulk = useTranslations("bulk");
+  // Bulk edit of the results: "Select all found" = all results of this search.
+  const selection = useItemSelection();
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string>();
   const [navigating, startNavigation] = useTransition();
@@ -169,11 +174,32 @@ export function SearchView({
             {ai ? t("nothingAi") : t("nothing")}
           </p>
         ) : (
-          <div className={navigating ? "opacity-60 transition-opacity" : ""}>
-            <p className="mb-2 text-sm text-muted">{t("found", { count: results.length })}</p>
-            <ItemTable items={results} categories={categories} fullPath />
+          <div className={`flex flex-col gap-2 ${navigating ? "opacity-60 transition-opacity" : ""}`}>
+            {selection.active && (
+              <SelectionHeader
+                selection={selection}
+                selectingAll={false}
+                onSelectAll={() => selection.selectAll(results.map((r) => r.id), results.length)}
+              />
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-muted">{t("found", { count: results.length })}</p>
+              {!selection.active && (
+                <button
+                  type="button"
+                  onClick={() => selection.start()}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-accent"
+                >
+                  <CheckSquare className="size-4" aria-hidden />
+                  {tBulk("select")}
+                </button>
+              )}
+            </div>
+            <ItemTable items={results} categories={categories} fullPath selection={selection} />
+            {selection.active && <BulkBar ids={[...selection.selected]} categories={categories} onDone={selection.exit} />}
           </div>
         ))}
+      <UndoToast />
     </div>
   );
 }

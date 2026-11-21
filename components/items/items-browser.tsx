@@ -3,7 +3,11 @@
 import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
+import { CheckSquare, ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
+import { selectAllItemIds } from "@/app/(app)/items/bulk-actions";
+import { useErrorText } from "@/lib/use-error-text";
+import { BulkBar, UndoToast, useBulkVersion } from "./bulk-bar";
+import { SelectionHeader, useItemSelection } from "./selection";
 import { useTranslations } from "next-intl";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { useCurrentLocation, useLocations, useSetCurrentLocation } from "@/components/locations/locations-context";
@@ -19,22 +23,41 @@ const chip =
 
 const subscribeNever = () => () => {};
 
-export function ItemsBrowser({
-  items,
-  hasMore,
-  categories,
-  filters,
-  pageSize,
-  title,
-}: {
+type BrowserProps = {
   title: string;
   items: ItemSummary[];
   hasMore: boolean;
   categories: CategoryOption[];
   filters: BrowserFilters;
   pageSize: number;
-}) {
+};
+
+/** The Items list; after a bulk change (or its undo) it starts over with fresh pages. */
+export function ItemsBrowser(props: BrowserProps) {
+  const version = useBulkVersion();
+  return (
+    <>
+      <ItemsBrowserList key={version} {...props} />
+      <UndoToast />
+    </>
+  );
+}
+
+function ItemsBrowserList({
+  items,
+  hasMore,
+  categories,
+  filters,
+  pageSize,
+  title,
+}: BrowserProps) {
   const t = useTranslations("items");
+  const tBulk = useTranslations("bulk");
+  const errorText = useErrorText();
+  // Bulk edit: "Select" or a long press on a card.
+  const selection = useItemSelection();
+  const [selectingAll, setSelectingAll] = useState(false);
+  const [selectError, setSelectError] = useState<string>();
   const { display: locale } = useDataLang();
   const router = useRouter();
   const pathname = usePathname();
@@ -99,10 +122,34 @@ export function ItemsBrowser({
   const place = filters.location ? byId.get(filters.location) : undefined;
   const hasFilters = Boolean(filters.category || filters.location);
 
+  /** Every item of these filters, not only the loaded pages (the first 500). */
+  async function selectAllFound() {
+    setSelectingAll(true);
+    setSelectError(undefined);
+    const r = await selectAllItemIds({ category: filters.category, location: filters.location }).catch(() => null);
+    setSelectingAll(false);
+    if (!r?.ok) return setSelectError(errorText(r?.error ?? "network"));
+    selection.selectAll(r.data.ids, r.data.total);
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      {selection.active && (
+        <SelectionHeader selection={selection} onSelectAll={() => void selectAllFound()} selectingAll={selectingAll} />
+      )}
+      {selectError && <p className="text-sm text-red-600 dark:text-red-400">{selectError}</p>}
       <div className="-mb-1 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{title}</h1>
+        {!selection.active && items.length > 0 && !openingHere && (
+          <button
+            type="button"
+            onClick={() => selection.start()}
+            className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-accent"
+          >
+            <CheckSquare className="size-4" aria-hidden />
+            {tBulk("select")}
+          </button>
+        )}
         <div role="group" aria-label={`${t("viewGallery")} / ${t("viewTable")}`} className="flex shrink-0 rounded-xl border border-border p-0.5">
           {(
             [
@@ -177,9 +224,9 @@ export function ItemsBrowser({
           {hasFilters ? t("emptyFiltered") : t("empty")}
         </p>
       ) : view === "table" ? (
-        <ItemTable items={listed} categories={categories} />
+        <ItemTable items={listed} categories={categories} selection={selection} />
       ) : (
-        <ItemGallery items={listed} categories={categories} />
+        <ItemGallery items={listed} categories={categories} selection={selection} />
       )}
 
       {moreToLoad && !openingHere && (
@@ -198,6 +245,8 @@ export function ItemsBrowser({
           )}
         </div>
       )}
+
+      {selection.active && <BulkBar ids={[...selection.selected]} categories={categories} onDone={selection.exit} />}
 
       <LocationPicker
         open={picking}
