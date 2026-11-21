@@ -356,143 +356,103 @@
     "toLogin": "Sign in",
     "contents": "Contents",
     "sections": {
-      "approval": {
-        "title": "Account approval",
+      "start": {
+        "title": "Getting started",
         "points": [
-          "After sign-up, the administrator must approve your account.",
-          "Until then, after signing in you only see “Your account is awaiting approval” and a Sign out button.",
-          "Once approved, refresh the page or sign in again."
-        ]
-      },
-      "install": {
-        "title": "Install on your phone",
-        "points": [
-          "iPhone: open the site in Safari → Share → “Add to Home Screen”.",
-          "Android: open the site in Chrome → ⋮ → “Install app”.",
-          "The app then opens from its icon like any other."
-        ]
-      },
-      "places": {
-        "title": "Places",
-        "points": [
-          "Places nest inside each other: house → room → closet → shelf, as deep as you need.",
-          "Add places in “Places” or by voice while adding an item.",
-          "Moved a closet? Move it in the app — the items inside move with it."
-        ]
-      },
-      "here": {
-        "title": "“I'm here” mode",
-        "points": [
-          "Pick a place once, e.g. “Country house → Garage → Rack”.",
-          "Every new item goes there: photograph things in a row without choosing a place each time.",
-          "The current place is shown in the header, where you can change or clear it.",
-          "The place you choose while adding an item (from the list or by voice) is your \"I'm here\": it stays on every screen. Reset it with the × in the header.",
-          "The Items tab opens on your \"I'm here\" place (with everything nested). Pick another place or \"All places\" in the filter.",
-          "\"I'm here\" is one place for the whole app: choosing it in the header, while adding an item or in the Items filter (and \"All places\" / \"Reset\", which clear it) changes it everywhere at once. Only \"Move\" of an item or moving a place changes that thing's place, not yours."
-        ]
-      },
-      "languages": {
-        "title": "Data languages",
-        "points": [
-          "Settings → “Data languages”: English only, Russian only, or both. The interface language is chosen separately.",
-          "Russian only: you write in Russian, the English translation appears by itself in the background.",
-          "When you turn on Russian after English, the app offers to translate your records in packs. You can do it later: a record without a translation has a Translate button.",
-          "Changing the mode deletes nothing: the other language is just hidden and comes back when you switch again."
+          "After you sign up, an administrator approves your account. Until then you only see \"Your account is awaiting approval\" after signing in; once approved, reload the page.",
+          "Install on iPhone: open the site in Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ → \"Install app\".",
+          "The interface language (English or Russian) is changed in Settings or with the switch on the sign-in screen.",
+          "The browser asks for camera and microphone access the first time. Without a connection the app does not work: \"Offline\" shows at the top, saving and AI wait for it."
         ]
       },
       "add": {
         "title": "Add an item",
         "points": [
-          "Tap the camera at the bottom → \"One item\" and take a photo of the item.",
-          "AI fills in the name, description and category.",
-          "Say where you put it and what it is: “it's dad's old drill, put it in the garage on the rack”.",
-          "Check the suggestions and tap “Save”.",
-          "If this photo was added before, the app shows those items before recognizing — no AI limit is used."
+          "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\".",
+          "An item can have up to 10 photos; the main one has a star, and you can change it. \"Recognize again\" asks the AI again about the main photo.",
+          "If the same photo was added before, the app shows those items before any AI request — you decide whether to add it again.",
+          "Photos are compressed on the phone; the location (GPS) and other data stored in the photo are removed. Take the item close up on a light background."
         ]
       },
       "multi": {
-        "title": "A whole shelf or tool board",
+        "title": "Several items in one photo",
         "points": [
-          "Add screen → \"Several items in one photo\". Handy for a shelf, a tool board, a drawer.",
-          "The AI finds up to 30 items and cuts each one out of the photo. It is one AI request.",
-          "Check the list: untick what you do not need, fix names and categories. One place for all — \"I'm here\" by default.",
-          "Each item gets its cut-out as the main photo and the whole photo as the second. Shoot straight on, in good light, items not covering each other.",
-          "Repeats: if the same photo was added before, the app says so before asking the AI. Found items similar to ones you already have come unticked — you decide."
+          "On the Add screen choose \"Several items in one photo\" and photograph a shelf, a tool board or a drawer. The AI finds up to 30 items and cuts each out — one request.",
+          "In the list, untick what you don't need and fix names and categories. One place for all: \"I'm here\" by default.",
+          "Each item's main photo is its cut-out, the second is the whole picture. Items similar to ones you already have come unticked: you decide."
+        ]
+      },
+      "voice": {
+        "title": "Voice",
+        "points": [
+          "In the item form, say where you put it: \"in the garage on the rack at the cottage\". If the place doesn't exist, the app asks \"Create … inside …?\"; if several fit, it asks you to choose.",
+          "In the same phrase you can say something about the item (\"it's dad's old drill, broken\"): changes to the name and description come as an \"Accept / Decline\" card.",
+          "Names and descriptions have a mic: speak, and the text appears under the field — \"Replace\", \"Append to the end\" or \"Cancel\". The text is always in the field's language.",
+          "Every voice recording is one AI request. Everything can be typed instead."
+        ]
+      },
+      "places": {
+        "title": "Places and \"I'm here\"",
+        "points": [
+          "Places go inside each other: house → room → closet → shelf. Moved a closet to another room — move the place, and its items move with it. Only an empty place can be deleted.",
+          "\"I'm here\" is where new items go right away: choose it once and keep taking photos. It shows in the header, where you can change it or clear it with the cross.",
+          "There is one \"I'm here\" in the whole app: choosing a place while adding an item or in the Items filter changes it everywhere. \"Move\" on an item changes only that item's place."
+        ]
+      },
+      "items": {
+        "title": "Items and search",
+        "points": [
+          "The Items tab opens on \"I'm here\" (with the places inside it). Filter by place and category; view as a photo gallery or a table.",
+          "On an item: \"Edit\", \"Move\" (from the list or by voice) and \"Delete\". The \"←\" arrow at the top goes back to the previous screen with the same filters.",
+          "Search: type a word — \"drill\". Smart search: tap the mic or \"Ask AI\" and ask \"where is my drill?\" — the AI finds similar words (one request).",
+          "Categories are there from the start: tools, kitchen, clothes and more. In Settings you can rename and delete them and add your own."
         ]
       },
       "books": {
         "title": "Books",
         "points": [
-          "Take a photo of the cover: the AI fills in the title (as printed, not translated), the author, and the year and ISBN if they are visible.",
-          "Take a photo of the back cover with the barcode: the app reads the ISBN itself and finds the book in open catalogues. No AI is used. Need more — \"Recognize from photo\".",
-          "The ISBN is often only on the back or inside: in the Book block tap \"Scan ISBN\" and photograph the back cover or the copyright page. A barcode is looked for first (no AI); without one the AI reads the printed number (one request). This photo is not saved.",
-          "Once the ISBN is known, the app looks for a cover in the catalogues and offers \"Make it the main photo\", \"Add as the second photo\" or \"Not needed\". If you photographed the cover yourself, \"Not needed\" is preselected. For a saved book — \"Find cover\".",
-          "A shelf of books: \"Several items in one photo\" — every book becomes its own card, titles and authors are read from the spines.",
-          "Books go to the \"Books\" category. If you have none, the app offers to create it.",
-          "Search by author or ISBN: \"Tolkien\" or the number with or without hyphens."
-        ]
-      },
-      "dictation": {
-        "title": "Voice in text fields",
-        "points": [
-          "Next to an item's name and description, a place name and a category name there is a mic: tap, speak, tap again.",
-          "The AI writes down what you said in the field's language: fixes obvious mistakes and adds punctuation, but never retells. The EN field always gets English.",
-          "The text appears under the field: \"Replace\", \"Append to the end\" or \"Cancel\". Nothing changes without a tap.",
-          "One recording is one AI request. With both languages, after a change you can \"Update translation\" of the other one."
-        ]
-      },
-      "find": {
-        "title": "Find an item",
-        "points": [
-          "Plain search: type a word — “drill”.",
-          "Smart search: tap the mic and ask “where is my drill?” — AI adds similar words and understands places.",
-          "Results show photos and the full place path."
-        ]
-      },
-      "views": {
-        "title": "Gallery and table",
-        "points": [
-          "In “Items”, switch between a photo gallery and a compact table.",
-          "Filter by category and by place — including all nested places."
+          "Photograph the cover — the AI fills in the title (as printed), the author, and the year and ISBN if visible. Photograph the back cover with the barcode — the book is found in open catalogues without AI.",
+          "The ISBN is often inside the book: in the Book block tap \"Scan ISBN\" and photograph the copyright page. A barcode is looked for first; without one the AI reads the number (one request). This photo is not saved. You can also type the ISBN.",
+          "Once the ISBN is known, the app offers a catalogue cover: \"Make it the main photo\", \"Add as the second photo\" or \"Not needed\". For a saved book — \"Find cover\".",
+          "Photograph a shelf of books as \"Several items\": every book becomes a card. Books go to a \"Books\" category (if you have none, the app offers to create it); search finds authors and ISBNs."
         ]
       },
       "bulk": {
         "title": "Many items at once",
         "points": [
-          "In Items or in Search results tap \"Select\" or press and hold an item. Tick the ones you need.",
-          "\"Select all found\" takes every item of the current filters or search, not only those on screen (up to 500 at a time).",
-          "At the bottom: \"Category\", \"Move\" (from the list, by voice or straight to \"I'm here\"), \"Delete\" and \"Categorize\".",
-          "\"Categorize\": the AI reads only the items' texts (no photos) and suggests categories, sometimes new ones. You see \"was → will be\" first: untick what you don't want and tap \"Apply\". 50 items = one AI request.",
-          "After a change an \"Undo\" button stays at the bottom for 10 seconds: every item gets its previous value back. Deleting cannot be undone."
+          "In Items or in search results tap \"Select\" or press and hold an item. \"Select all found\" takes every item of the filters or the search, up to 500.",
+          "At the bottom: \"Category\", \"Move\" (\"I'm here\" first), \"Delete\" (with photos) and \"Categorize\".",
+          "\"Categorize\": the AI reads only the items' texts, no photos, and suggests categories. You see \"was → will be\" first — untick what you don't want and tap \"Apply\". 50 items — one request.",
+          "For 10 seconds after a change there is \"Undo\" at the bottom: every item goes back as it was. Deleting cannot be undone."
         ]
       },
-      "categories": {
-        "title": "Categories",
+      "languages": {
+        "title": "Data languages",
         "points": [
-          "A standard set is ready: tools, kitchen, clothing and more.",
-          "In “Settings” you can rename and delete categories or add your own."
+          "Settings → \"Data languages\": the language your names and descriptions are kept in (the interface language is chosen separately).",
+          "\"English only\": one English field in the forms. \"Russian only\": one Russian field, the English translation appears by itself in the background.",
+          "\"Russian and English\": RU and EN fields in the forms, \"Translate\" fills the other one. On screen, records show in the interface language.",
+          "Switching deletes nothing. If records lack a translation, Settings offer to translate them in batches; a single record has a \"Translate\" button."
         ]
       },
       "plan": {
-        "title": "Plan",
+        "title": "Plan and AI requests",
         "points": [
-          "Settings show your plan: items out of the limit and AI requests in 24 hours.",
-          "When you reach the plan's item limit, new items and every AI feature are turned off. Browsing, editing, plain search and deleting keep working.",
-          "A lower plan deletes nothing. Delete what you do not need and everything works again.",
-          "The administrator sets your plan, sometimes until a date; after it the plan goes back to Free by itself."
+          "Settings show your plan: how many items of the limit and how many AI requests in the last 24 hours. The administrator assigns the plan, sometimes until a date — after that it returns to Free by itself.",
+          "AI requests are used by: photo recognition, \"Several items\", voice, smart search, translation, \"Categorize\", reading an ISBN from a photo. Not used by: barcodes, book catalogues and covers, plain search, the repeat check.",
+          "When you have as many items as the plan allows, new items and every AI feature are off. Viewing, editing, searching and deleting still work; a lower plan deletes nothing."
         ]
       },
-      "tips": {
-        "title": "Tips",
+      "account": {
+        "title": "Account",
         "points": [
-          "The \"←\" arrow at the top returns to the previous screen with the same filters, view and scroll position. If you opened a screen by a link, it goes to its parent: item → Items, place → the place above. Swipe back on iPhone works too.",
-          "Photograph items close up on a light background — AI recognizes them better.",
-          "Say the full place path: “at the country house, in the garage, on the rack”.",
-          "Allow the microphone and camera when the browser asks.",
-          "No mic at hand? Everything works with typed text too."
+          "\"Sign out\" in Settings signs out of this device only; you stay signed in on others.",
+          "Delete the account: Settings → \"Delete account\", enter your password and the word DELETE. All places, items, categories and photos are deleted forever and cannot be restored."
         ]
       }
-    }
+    },
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
   },
   "blocked": {
     "pendingTitle": "Your account is awaiting approval",

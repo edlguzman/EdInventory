@@ -2,50 +2,45 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   BookOpen,
-  CheckSquare,
   Camera,
-  FolderTree,
+  CheckSquare,
+  ChevronDown,
   Gauge,
   Languages,
   LayoutGrid,
-  Lightbulb,
   MapPin,
-  Package,
-  Search,
-  Smartphone,
-  Tags,
-  UserCheck,
   Mic,
+  Package,
   ScanSearch,
+  Smartphone,
+  UserCog,
   type LucideIcon,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { getUser } from "@/lib/auth";
 import { BackLink } from "@/components/back-button";
+import { HelpExpandAll, HelpOpenFromHash } from "@/components/help-sections";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("help");
   return { title: t("title") };
 }
 
-const SECTIONS: { key: "approval" | "install" | "places" | "here" | "languages" | "add" | "multi" | "books" | "dictation" | "find" | "views" | "bulk" | "categories" | "plan" | "tips"; icon: LucideIcon }[] = [
-  { key: "approval", icon: UserCheck },
-  { key: "install", icon: Smartphone },
-  { key: "places", icon: FolderTree },
-  { key: "here", icon: MapPin },
-  { key: "languages", icon: Languages },
+/** Sections by what the user wants to do (texts in the "help" dictionaries). Admin is not described here. */
+const SECTIONS = [
+  { key: "start", icon: Smartphone },
   { key: "add", icon: Camera },
   { key: "multi", icon: ScanSearch },
+  { key: "voice", icon: Mic },
+  { key: "places", icon: MapPin },
+  { key: "items", icon: LayoutGrid },
   { key: "books", icon: BookOpen },
-  { key: "dictation", icon: Mic },
-  { key: "find", icon: Search },
-  { key: "views", icon: LayoutGrid },
   { key: "bulk", icon: CheckSquare },
-  { key: "categories", icon: Tags },
+  { key: "languages", icon: Languages },
   { key: "plan", icon: Gauge },
-  { key: "tips", icon: Lightbulb },
-];
+  { key: "account", icon: UserCog },
+] as const satisfies readonly { key: string; icon: LucideIcon }[];
 
 /**
  * Short how-to, readable without an account (public in proxy.ts), on a phone screen:
@@ -92,32 +87,34 @@ export default async function HelpPage() {
           </ul>
         </nav>
 
-        {SECTIONS.map(({ key, icon: Icon }, i) => (
-          <section
-            key={key}
-            id={key}
-            aria-labelledby={`${key}-title`}
-            className="scroll-mt-16 rounded-2xl border border-border p-4"
-          >
-            <h2 id={`${key}-title`} className="mb-3 flex items-center gap-3 text-lg font-semibold">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent">
-                <Icon className="size-5" aria-hidden />
-              </span>
-              <span>
-                <span className="sr-only">{i + 1}. </span>
-                {t(`sections.${key}.title`)}
-              </span>
-            </h2>
-            <ul className="flex flex-col gap-2 pl-1">
-              {(t.raw(`sections.${key}.points`) as string[]).map((point) => (
-                <li key={point} className="flex gap-2.5 leading-snug">
-                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        <HelpExpandAll expandLabel={t("expandAll")} collapseLabel={t("collapseAll")} />
+        <HelpOpenFromHash />
+
+        <div className="flex flex-col gap-3">
+          {SECTIONS.map(({ key, icon: Icon }, i) => (
+            // Closed by default; a link from the contents opens its section (HelpOpenFromHash).
+            <details key={key} id={key} className="group scroll-mt-16 rounded-2xl border border-border" data-help-section>
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 p-3 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent">
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="sr-only">{i + 1}. </span>
+                  {t(`sections.${key}.title`)}
+                </span>
+                <ChevronDown className="size-5 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+              </summary>
+              <ul className="flex flex-col gap-2.5 px-4 pb-4 pl-5">
+                {(t.raw(`sections.${key}.points`) as string[]).map((point) => (
+                  <li key={point} className="flex gap-2.5 leading-snug">
+                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
 
         <Link
           href={back.href}
