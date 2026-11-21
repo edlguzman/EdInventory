@@ -8,6 +8,7 @@ import { selectAllItemIds } from "@/app/(app)/items/bulk-actions";
 import { useErrorText } from "@/lib/use-error-text";
 import { BulkBar, UndoToast, useBulkVersion } from "./bulk-bar";
 import { SelectionHeader, useItemSelection } from "./selection";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { useTranslations } from "next-intl";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { useCurrentLocation, useLocations, useSetCurrentLocation } from "@/components/locations/locations-context";
@@ -56,6 +57,8 @@ function ItemsBrowserList({
   const errorText = useErrorText();
   // Bulk edit: "Select" or a long press on a card.
   const selection = useItemSelection();
+  // "?" in selection mode: "Many items at once".
+  useHelpTopic("bulk", selection.active);
   const [selectingAll, setSelectingAll] = useState(false);
   const [selectError, setSelectError] = useState<string>();
   const { display: locale } = useDataLang();

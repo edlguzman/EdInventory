@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRightLeft, BookOpen, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { deleteItem, moveItem } from "@/app/(app)/items/actions";
 import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
@@ -97,6 +98,8 @@ function Carousel({ photos, alt }: { photos: ItemPhoto[]; alt: string }) {
 
 export function ItemView({ item, categories }: { item: ItemDetail; categories: CategoryOption[] }) {
   const t = useTranslations("items");
+  // A book's card: "?" opens the Books section.
+  useHelpTopic("books", !!(item.bookAuthor || item.bookYear || item.bookIsbn));
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const tBooks = useTranslations("books");

@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Camera, Check, ChevronRight, ImagePlus, LoaderCircle, ScanSearch, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { createItemsBatch } from "@/app/(app)/items/actions";
 import { useDataLang } from "@/components/data-lang/context";
 import { LocationPicker } from "@/components/locations/location-picker";
@@ -86,6 +87,7 @@ export function MultiAdd({
 }) {
   const t = useTranslations("multi");
   const tBooks = useTranslations("books");
+  useHelpTopic("multi");
   // Categories plus a "Books" category created here; books found without one -> offer it.
   const books = useBooksCategory(initialCategories);
   const categories = books.categories;

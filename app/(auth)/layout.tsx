@@ -1,5 +1,6 @@
 import { Package } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { HelpButton } from "@/components/help/help-sheet";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </span>
           {t("name")}
         </div>
-        <LocaleSwitcher compact />
+        <div className="flex items-center gap-1">
+          <LocaleSwitcher compact />
+          <HelpButton topic="start" />
+        </div>
       </div>
       <div className="flex flex-1 flex-col justify-center py-8">{children}</div>
     </main>
