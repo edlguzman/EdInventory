@@ -17,12 +17,13 @@ import { NameFields } from "@/components/name-fields";
 import { Alert, Button } from "@/components/ui/buttons";
 import { recognizeItem } from "@/lib/ai/client";
 import { findIsbnBarcode } from "@/lib/books/barcode";
-import { lookupBook } from "@/lib/books/client";
-import { formatIsbn, isBooksCategoryName, type BookInfo, type BookLookup } from "@/lib/books/isbn";
+import { fetchCoverImage, lookupBook } from "@/lib/books/client";
+import { formatIsbn, isBooksCategoryName, normalizeIsbn, type BookInfo, type BookLookup } from "@/lib/books/isbn";
 import type { ItemSuggestion, RecognizeResult } from "@/lib/ai/types";
 import type { CategoryOption } from "@/lib/items/data";
 import type { ItemDetail } from "@/lib/items/types";
-import { PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
+import { MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
+import { processPhoto } from "@/lib/photos/process";
 import { createClient } from "@/lib/supabase/client";
 import { isVisibleTag } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
@@ -31,7 +32,7 @@ import type { NamePairInput } from "@/lib/validation/names";
 import { PhotoPicker, type PhotoDraft } from "./photo-picker";
 import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
-import { BookFields, BooksCategoryCard, useBooksCategory } from "./books";
+import { BookFields, BooksCategoryCard, CoverOffer, useBooksCategory, type CoverChoice, type IsbnOutcome } from "./books";
 import { PhotoUsedNotice } from "./duplicate-notice";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
@@ -46,6 +47,9 @@ type Props = { userId: string; categories: CategoryOption[] } & (
   | { mode: "create"; item?: undefined; seed?: ItemSeed; onCancel?: () => void }
   | { mode: "edit"; item: ItemDetail; seed?: undefined; onCancel?: undefined }
 );
+
+/** Key of the catalogue cover among the form's photos. */
+const COVER_KEY = "catalog-cover";
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base outline-none focus:border-accent aria-invalid:border-red-500";
@@ -105,6 +109,21 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   const [askBooksCategory, setAskBooksCategory] = useState(!!seeded?.book && !books.booksId);
   const [scanning, setScanning] = useState(false);
   const [foundIsbn, setFoundIsbn] = useState<string | null>(null);
+  // A catalogue cover: its photo draft (key COVER_KEY), where it goes, and its own card preview.
+  const [cover, setCover] = useState<{
+    isbn: string;
+    draft: Extract<PhotoDraft, { kind: "new" }>;
+    card: string;
+    source: "google" | "openlibrary";
+    choice: CoverChoice;
+  } | null>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverNote, setCoverNote] = useState<string>();
+  // The latest photos for async cover placement (state in an awaited callback would be stale).
+  const latest = useRef({ photos, primaryKey });
+  useEffect(() => {
+    latest.current = { photos, primaryKey };
+  });
 
   const form = useForm<ItemFieldsInput>({
     resolver: zodResolver(itemFieldsSchema(dataMode)),
@@ -144,6 +163,8 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     if (r.tags.length && v.tags.length === 0) setValue("tags", r.tags, { shouldDirty: true });
     if (r.category_id) setCategoryId((current) => current ?? r.category_id);
     if (r.book) applyBook(r.book);
+    // ISBN read from the user's own cover photo: the catalogue cover is offered, "not needed" by default.
+    if (r.book?.isbn) void searchCover(r.book.isbn, "none");
   }
 
   /** Book fields: only empty ones are filled; the block opens; the Books category is chosen or offered. */
@@ -179,6 +200,70 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     applyBook({ author: b.author, year: b.year, isbn: b.isbn });
   }
 
+  /** The cover's place among the photos: first (main), second, or not among them. */
+  function placeCover(list: PhotoDraft[], primary: string | null, draft: PhotoDraft, choice: CoverChoice) {
+    const others = list.filter((p) => p.key !== COVER_KEY);
+    const fallback = primary && primary !== COVER_KEY ? primary : (others[0]?.key ?? null);
+    if (choice === "none" || others.length >= MAX_PHOTOS) return { photos: others, primary: fallback };
+    if (choice === "main") return { photos: [draft, ...others], primary: COVER_KEY };
+    const next = [...others];
+    next.splice(Math.min(1, next.length), 0, draft);
+    return { photos: next, primary: fallback ?? COVER_KEY };
+  }
+
+  function chooseCover(choice: CoverChoice) {
+    if (!cover) return;
+    const r = placeCover(photos, primaryKey, cover.draft, choice);
+    setCover({ ...cover, choice });
+    setPhotos(r.photos);
+    setPrimaryKey(r.primary);
+  }
+
+  /**
+   * The default for a found cover: the main photo when there is no own photo yet (or only the
+   * barcode shot); otherwise "not needed" — the user's own photo of the cover stays the main one.
+   */
+  function defaultCoverChoice(): CoverChoice {
+    return latest.current.photos.filter((p) => p.key !== COVER_KEY).length === 0 ? "main" : "none";
+  }
+
+  /** Looks a cover up for this ISBN (catalogues, no AI) and offers it with `choice` preselected. */
+  async function searchCover(isbn: string, choice: CoverChoice) {
+    if (cover?.isbn === isbn) return; // already offered
+    setCoverBusy(true);
+    setCoverNote(undefined);
+    try {
+      const r = await fetchCoverImage(isbn);
+      if ("notFound" in r) return setCoverNote(tBooks("coverNotFound"));
+      if ("error" in r) return setCoverNote(r.error === "rateLimited" ? tBooks("lookupRateLimited") : errorText(r.error));
+      // Compressed on the phone exactly like a photo (1600px JPEG, 480px thumbnail, no metadata).
+      const { main, thumb } = await processPhoto(new File([r.blob], "cover", { type: r.blob.type }));
+      const draft = { key: COVER_KEY, kind: "new" as const, main, thumb, preview: URL.createObjectURL(thumb), hash: null };
+      setCover((old) => {
+        if (old) URL.revokeObjectURL(old.card);
+        return { isbn, draft, card: URL.createObjectURL(thumb), source: r.source, choice };
+      });
+      const placed = placeCover(latest.current.photos, latest.current.primaryKey, draft, choice);
+      setPhotos(placed.photos);
+      setPrimaryKey(placed.primary);
+    } catch {
+      setCoverNote(errorText("unknown"));
+    } finally {
+      setCoverBusy(false);
+    }
+  }
+
+  /** An ISBN typed, scanned or read: catalogues fill the empty fields, then a cover is offered. */
+  async function takeIsbn(isbn: string): Promise<IsbnOutcome> {
+    setValue("book_isbn", isbn, { shouldDirty: true, shouldValidate: true });
+    const r = await lookupBook(isbn);
+    if ("error" in r) return r.error;
+    if (r.book) applyLookup(r.book);
+    else applyBook({ author: null, year: null, isbn });
+    void searchCover(isbn, defaultCoverChoice());
+    return r.book ? "found" : "notFound";
+  }
+
   /**
    * An ISBN barcode on the photo (read on the phone, no AI): look the book up in the catalogues.
    * Found -> the form is filled and true is returned (no AI request). Not found -> only the
@@ -191,6 +276,8 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
       const isbn = await findIsbnBarcode(photo.main);
       if (!isbn) return false;
       const r = await lookupBook(isbn);
+      // The photo was a barcode shot: a catalogue cover is offered as the main photo.
+      void searchCover(isbn, "main");
       if ("error" in r || !r.book) {
         applyBook({ author: null, year: null, isbn });
         return false;
@@ -348,6 +435,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           }
           setPhotos(next);
           setPrimaryKey(primary);
+          if (cover && cover.choice !== "none" && !next.some((p) => p.key === COVER_KEY)) setCover({ ...cover, choice: "none" });
         }}
       />
 
@@ -382,6 +470,23 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           {aiError && <Alert>{errorText(aiError)}</Alert>}
         </div>
       )}
+
+      {cover && (
+        <CoverOffer
+          preview={cover.card}
+          source={cover.source}
+          choice={cover.choice}
+          noRoom={photos.filter((p) => p.key !== COVER_KEY).length >= MAX_PHOTOS}
+          onChoose={chooseCover}
+        />
+      )}
+      {coverBusy && !cover && (
+        <p role="status" className="-mt-3 flex items-center gap-2 text-sm text-muted">
+          <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          {tBooks("coverSearching")}
+        </p>
+      )}
+      {coverNote && !cover && <p className="-mt-3 text-sm text-muted">{coverNote}</p>}
 
       {photoUses && photoUses.length > 0 && (
         <PhotoUsedNotice
@@ -480,7 +585,17 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
       )}
 
       {showBook ? (
-        <BookFields form={form} onFound={applyLookup} disabled={offline} />
+        <BookFields
+          form={form}
+          onIsbn={takeIsbn}
+          onFindCover={() => {
+            const isbn = normalizeIsbn(form.getValues("book_isbn") ?? "");
+            if (isbn) void searchCover(isbn, defaultCoverChoice());
+          }}
+          coverBusy={coverBusy}
+          disabled={offline}
+          aiOff={aiOff}
+        />
       ) : (
         <Button variant="ghost" className="-mt-3 -ml-4 self-start text-sm" onClick={() => setShowBook(true)}>
           <BookOpen className="size-4" aria-hidden />

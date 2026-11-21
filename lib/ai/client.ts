@@ -1,6 +1,7 @@
 import type { TranslateRequest } from "./translate-schema";
 import type {
   CategorizeResult,
+  IsbnReadResult,
   ItemContext,
   PlaceMode,
   PlaceResult,
@@ -56,6 +57,11 @@ export function categorizeItems(ids: string[]) {
     { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) },
     (d): d is CategorizeResult => isObject(d) && Array.isArray(d.items),
   );
+}
+
+/** Printed ISBNs on a photo of a back cover / copyright page. 1 AI request; the photo is not stored. */
+export function readIsbn(image: Blob) {
+  return call<IsbnReadResult>("/api/ai/isbn", form({ image }), (d): d is IsbnReadResult => isObject(d) && Array.isArray(d.isbns));
 }
 
 function form(parts: { audio?: Blob | null; image?: Blob | null; text?: string; meta?: unknown }) {

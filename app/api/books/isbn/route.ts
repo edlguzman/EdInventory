@@ -2,21 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { normalizeIsbn } from "@/lib/books/isbn";
 import { lookupIsbn } from "@/lib/books/lookup";
+import { catalogueRateLimited } from "@/lib/books/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-
-/** Lookups per user per minute (in memory of this server instance: a brake, not an exact limit). */
-const PER_MINUTE = 30;
-const recent = new Map<string, number[]>();
-
-function rateLimited(userId: string) {
-  const now = Date.now();
-  const list = (recent.get(userId) ?? []).filter((t) => now - t < 60_000);
-  if (list.length >= PER_MINUTE) return true;
-  list.push(now);
-  recent.set(userId, list);
-  if (recent.size > 5000) recent.clear();
-  return false;
-}
 
 const bodySchema = z.object({ isbn: z.string().min(10).max(20) });
 
@@ -37,7 +24,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: active } = await supabase.rpc("is_active");
   if (!active) return NextResponse.json({ error: "accountInactive" }, { status: 403 });
-  if (rateLimited(user.id)) return NextResponse.json({ error: "rateLimited" }, { status: 429 });
+  if (catalogueRateLimited(user.id)) return NextResponse.json({ error: "rateLimited" }, { status: 429 });
 
   const book = await lookupIsbn(isbn);
   return NextResponse.json({ book });

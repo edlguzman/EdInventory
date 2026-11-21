@@ -62,6 +62,19 @@ async function openLibrary(isbn: string): Promise<Partial | null> {
 }
 
 /** Google Books: title, authors, year, description, language. */
+/** Cover picture addresses Google Books gave for an ISBN-13 (biggest first), kept for a day. */
+const googleCovers = new Map<string, { urls: string[]; expires: number }>();
+
+/** imageLinks -> https addresses, biggest size first ("edge=curl" draws a page curl: dropped). */
+function coverLinks(links: Record<string, unknown> | undefined): string[] {
+  const order = ["extraLarge", "large", "medium", "small", "thumbnail"];
+  const best = order.map((k) => links?.[k]).find((v): v is string => typeof v === "string");
+  if (!best) return [];
+  const url = best.replace(/^http:\/\//, "https://").replace(/&edge=curl/, "");
+  // zoom=0 often gives a bigger picture than the zoom=1 thumbnail; both are tried, the bigger wins.
+  return url.includes("zoom=1") ? [url.replace("zoom=1", "zoom=0"), url] : [url];
+}
+
 async function googleBooks(isbn: string): Promise<Partial | null> {
   // Without a key Google Books shares an anonymous quota that is often used up (429);
   // GOOGLE_BOOKS_API_KEY (server only, optional) gives this app its own quota.
@@ -69,10 +82,19 @@ async function googleBooks(isbn: string): Promise<Partial | null> {
   const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1${key ? `&key=${encodeURIComponent(key)}` : ""}`;
   const data = (await getJson(url)) as {
     items?: {
-      volumeInfo?: { title?: string; authors?: string[]; publishedDate?: string; description?: string; language?: string };
+      volumeInfo?: {
+        title?: string;
+        authors?: string[];
+        publishedDate?: string;
+        description?: string;
+        language?: string;
+        imageLinks?: Record<string, unknown>;
+      };
     }[];
   };
   const v = data.items?.[0]?.volumeInfo;
+  if (googleCovers.size >= CACHE_MAX) googleCovers.clear();
+  googleCovers.set(isbn, { urls: coverLinks(v?.imageLinks), expires: Date.now() + CACHE_TTL_MS });
   if (!v) return null;
   return {
     title: text(v.title, 200),
@@ -137,4 +159,16 @@ export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
     cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
   }
   return value;
+}
+
+/** Google Books cover addresses for an ISBN-13 (from the lookup's answer, or one more request). */
+export async function googleCoverUrls(isbn13: string): Promise<string[]> {
+  const hit = googleCovers.get(isbn13);
+  if (hit && hit.expires > Date.now()) return hit.urls;
+  try {
+    await googleBooks(isbn13);
+  } catch (error) {
+    console.error("google books cover lookup failed", { ...failure(error), keyed: !!process.env.GOOGLE_BOOKS_API_KEY });
+  }
+  return googleCovers.get(isbn13)?.urls ?? [];
 }
