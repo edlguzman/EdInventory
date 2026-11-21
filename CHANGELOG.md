@@ -7,6 +7,11 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v1.10.2 — 2026-11-21
+
+- **Help updated:** /help rewritten for the current version, by what you want to do — getting started, adding items, several items, voice, places and "I'm here", items and search, books, many items at once, data languages, plan and AI requests, account. Added what was missing (main photo and "Recognize again", photo privacy, creating places by voice, item actions, offline, what uses AI requests, data language modes, sign out, deleting the account). Sections open and close; "Expand all".
+- Release rule: every change users can see updates /help in the same branch.
+
 ## v1.10.1 — 2026-11-21
 
 - **Fix:** when Google Books had no cover, its "image not available" placeholder was offered as the book cover (and preselected as the main photo after a barcode). Google covers are JPEG; the placeholder (a PNG) is now refused, and a real Open Library cover is used instead when there is one.
