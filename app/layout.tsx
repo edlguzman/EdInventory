@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PwaProvider } from "@/components/pwa-provider";
+import { HelpProvider } from "@/components/help/help-sheet";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +48,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
-          <PwaProvider>{children}</PwaProvider>
+          <PwaProvider>
+            <HelpProvider>{children}</HelpProvider>
+          </PwaProvider>
         </NextIntlClientProvider>
       </body>
     </html>

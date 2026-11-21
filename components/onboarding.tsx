@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { Building2, Camera, CircleHelp, Home, MapPin, Mic, Package, Search, Sparkles, Warehouse } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createLocation } from "@/app/(app)/locations/actions";
@@ -31,6 +32,8 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
   const router = useRouter();
   const { mode: dataMode } = useDataLang();
   const [open, setOpen] = useState(initialOpen);
+  // "?" while the first-run steps are shown: the beginning of the help.
+  useHelpTopic("start", open);
   const [step, setStep] = useState<Step>("place");
   const [placeId, setPlaceId] = useState<string | null>(null);
   const [custom, setCustom] = useState("");

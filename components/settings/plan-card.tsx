@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help/help-sheet";
 import { Gauge, Sparkles } from "lucide-react";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import type { MyPlan } from "@/lib/plans";
@@ -26,7 +27,10 @@ export async function PlanCard({ plan }: { plan: MyPlan }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium text-muted">{t("title")}</h2>
+      <h2 className="flex items-center gap-1 text-sm font-medium text-muted">
+        {t("title")}
+        <HelpButton topic="plan" small />
+      </h2>
       <div className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3">
         <div>
           <p className="flex items-center gap-2">

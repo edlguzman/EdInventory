@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HelpButton } from "@/components/help/help-sheet";
 import { MapPin, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { HeaderBack } from "@/components/back-button";
@@ -52,6 +53,7 @@ export function CurrentLocationBar() {
             <X className="size-5" aria-hidden />
           </button>
         )}
+        <HelpButton />
       </div>
       <LocationPicker
         open={picking}

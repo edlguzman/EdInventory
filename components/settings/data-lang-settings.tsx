@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check, Languages } from "lucide-react";
+import { HelpButton } from "@/components/help/help-sheet";
 import { useTranslations } from "next-intl";
 import { setDataLang } from "@/app/(app)/settings/data-lang-actions";
 import { useDataLang } from "@/components/data-lang/context";
@@ -42,7 +43,10 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
   return (
     <section className="flex flex-col gap-3">
       <div>
-        <h2 className="text-sm font-medium text-muted">{t("title")}</h2>
+        <h2 className="flex items-center gap-1 text-sm font-medium text-muted">
+          {t("title")}
+          <HelpButton topic="languages" small />
+        </h2>
         <p className="mt-1 text-sm text-muted">{t("intro")}</p>
       </div>
       {error && <Alert>{tErrors("unknown")}</Alert>}

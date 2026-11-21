@@ -360,6 +360,7 @@
         "title": "Getting started",
         "points": [
           "After you sign up, an administrator approves your account. Until then you only see \"Your account is awaiting approval\" after signing in; once approved, reload the page.",
+          "The help opens with the \"?\" at the top of any screen — right on the matching section. Close it with the arrow or the Back gesture: everything you typed stays in place.",
           "Install on iPhone: open the site in Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ → \"Install app\".",
           "The interface language (English or Russian) is changed in Settings or with the switch on the sign-in screen.",
           "The browser asks for camera and microphone access the first time. Without a connection the app does not work: \"Offline\" shows at the top, saving and AI wait for it."
@@ -452,7 +453,9 @@
       }
     },
     "expandAll": "Expand all",
-    "collapseAll": "Collapse all"
+    "collapseAll": "Collapse all",
+    "open": "Help",
+    "close": "Close the help"
   },
   "blocked": {
     "pendingTitle": "Your account is awaiting approval",

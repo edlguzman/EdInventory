@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { CheckSquare, LoaderCircle, MapPin, Search, Sparkles, Tag, X } from "lucide-react";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { useTranslations } from "next-intl";
 import { BulkBar, UndoToast } from "@/components/items/bulk-bar";
 import { ItemTable } from "@/components/items/item-list";
@@ -51,6 +52,8 @@ export function SearchView({
   const tBulk = useTranslations("bulk");
   // Bulk edit of the results: "Select all found" = all results of this search.
   const selection = useItemSelection();
+  // "?" in selection mode: "Many items at once".
+  useHelpTopic("bulk", selection.active);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string>();
   const [navigating, startNavigation] = useTransition();

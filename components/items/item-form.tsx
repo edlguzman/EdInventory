@@ -7,6 +7,7 @@ import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useHelpTopic } from "@/components/help/help-sheet";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
 import { findPhotoUses, type ExistingItem } from "@/app/(app)/items/duplicate-actions";
 import { LocationPicker } from "@/components/locations/location-picker";
@@ -106,6 +107,8 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   const checkedHashes = useRef(new Set<string>());
   // Books: the author/year/ISBN block, "create the Books category?", a book found by its barcode.
   const [showBook, setShowBook] = useState(!!(item?.bookAuthor || item?.bookYear || item?.bookIsbn || seeded?.book));
+  // "?" while the Book block is shown: the Books section.
+  useHelpTopic("books", showBook);
   const [askBooksCategory, setAskBooksCategory] = useState(!!seeded?.book && !books.booksId);
   const [scanning, setScanning] = useState(false);
   const [foundIsbn, setFoundIsbn] = useState<string | null>(null);

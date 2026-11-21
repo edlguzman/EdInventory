@@ -3,6 +3,7 @@ import { Ban, CircleHelp, Clock, LogOut, RotateCw } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { signOut } from "@/app/(auth)/actions";
 import type { AccountStatus } from "@/lib/auth";
+import { HelpButton } from "@/components/help/help-sheet";
 
 /**
  * The only screen a pending or disabled account sees after signing in. The real
@@ -14,7 +15,8 @@ export async function AccountBlocked({ status, email }: { status: Exclude<Accoun
   const Icon = status === "pending" ? Clock : Ban;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-5 px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-5 px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <HelpButton topic="start" className="absolute top-[max(0.5rem,env(safe-area-inset-top))] right-2" />
       <span
         className={`flex size-14 items-center justify-center rounded-2xl ${
           status === "pending"
