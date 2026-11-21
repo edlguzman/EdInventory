@@ -7,6 +7,11 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v1.10.1 — 2026-11-21
+
+- **Fix:** when Google Books had no cover, its "image not available" placeholder was offered as the book cover (and preselected as the main photo after a barcode). Google covers are JPEG; the placeholder (a PNG) is now refused, and a real Open Library cover is used instead when there is one.
+- Covers: Google's cover is also looked up directly by ISBN, which often gives a much bigger picture.
+
 ## v1.10.0 — 2026-11-21
 
 - **Book covers:** when a book is found by its ISBN, the biggest cover from Google Books or Open Library is offered — "Make it the main photo" (preselected after a barcode or when the item has no photos), "Add as the second photo" or "Not needed" (preselected when you photographed the cover yourself). "Find cover" for saved books. No AI request; the cover is saved only with the item, like any photo.
