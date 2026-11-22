@@ -43,3 +43,6 @@ next-env.d.ts
 
 # barcode reader wasm, copied from node_modules before dev/build
 /public/zxing/
+
+# local backups (personal data, never in git)
+/backups/
