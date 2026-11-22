@@ -1,7 +1,7 @@
 "use client";
 
 import { TranslateRecordButton } from "@/components/data-lang/translate-record-button";
-import { isVisibleTag } from "@/lib/data-lang";
+import { visibleTags } from "@/lib/data-lang";
 import { useDataLang } from "@/components/data-lang/context";
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -111,9 +111,9 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
-  const name = pickText(item.nameRu, item.nameEn, locale);
-  const description = pickText(item.descriptionRu, item.descriptionEn, locale);
-  const tags = item.tags.filter((tag) => isVisibleTag(tag, mode));
+  const name = pickText(item.nameLocal, item.nameEn, locale);
+  const description = pickText(item.descriptionLocal, item.descriptionEn, locale);
+  const tags = visibleTags(mode, item.tagsLocal, item.tagsEn);
   const place = item.locationId ? byId.get(item.locationId) : undefined;
   const category = categories.find((c) => c.id === item.categoryId);
   const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: "medium" });
@@ -146,16 +146,16 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
             <span className="min-w-0 break-words">{[item.bookAuthor, item.bookYear].filter(Boolean).join(" · ")}</span>
           </p>
         )}
-        {category && <p className="mt-1 text-muted">{pickText(category.name_ru, category.name_en, locale)}</p>}
+        {category && <p className="mt-1 text-muted">{pickText(category.name_local, category.name_en, locale)}</p>}
       </div>
 
       <TranslateRecordButton
         type="item"
         id={item.id}
         texts={{
-          name_ru: item.nameRu,
+          name_local: item.nameLocal,
           name_en: item.nameEn,
-          description_ru: item.descriptionRu,
+          description_local: item.descriptionLocal,
           description_en: item.descriptionEn,
         }}
       />

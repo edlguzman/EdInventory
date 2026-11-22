@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { LANGUAGES } from "@/lib/languages";
+import { planName, toPlanNames, type PlanNames } from "@/lib/plan-names";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import {
@@ -33,7 +35,7 @@ export function usePlanName(plans: PlanRow[]) {
   const locale = useLocale();
   return (code: string | null) => {
     const p = plans.find((x) => x.code === code);
-    return p ? (locale === "ru" ? p.name_ru : p.name_en) : (code ?? "");
+    return p ? planName(p.names, locale, p.code) : (code ?? "");
   };
 }
 
@@ -148,13 +150,13 @@ export function AdminPlans({ plans }: { plans: PlanWithStats[] }) {
   );
 }
 
-type PlanValues = { name_ru: string; name_en: string; item_limit: string; ai_daily_limit: string };
+type PlanValues = { names: PlanNames; item_limit: string; ai_daily_limit: string };
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
 /** Names and limits inputs, shared by an existing plan and a new one. */
 function PlanFields({ v, onChange }: { v: PlanValues; onChange: (v: PlanValues) => void }) {
   const t = useTranslations("admin");
-  const input = (k: keyof PlanValues, label: string, numeric = false) => (
+  const input = (k: "item_limit" | "ai_daily_limit", label: string, numeric = false) => (
     <label className="flex min-w-0 flex-col gap-1 text-xs text-muted">
       {label}
       <input
@@ -170,8 +172,18 @@ function PlanFields({ v, onChange }: { v: PlanValues; onChange: (v: PlanValues) 
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
-        {input("name_ru", t("planNameRu"))}
-        {input("name_en", t("planNameEn"))}
+        {LANGUAGES.filter((l) => l.enabled).map((l) => (
+          <label key={l.code} className="flex min-w-0 flex-col gap-1 text-xs text-muted">
+            {t("planName", { lang: l.native })}
+            <input
+              lang={l.code}
+              value={v.names[l.code] ?? ""}
+              onChange={(e) => onChange({ ...v, names: { ...v.names, [l.code]: e.target.value } })}
+              maxLength={50}
+              className={`${field} text-foreground`}
+            />
+          </label>
+        ))}
       </div>
       <div className="grid grid-cols-2 gap-2">
         {input("item_limit", t("itemLimit"), true)}
@@ -195,8 +207,7 @@ function PlanEditor({
   const t = useTranslations("admin");
   const tCommon = useTranslations("common");
   const [v, setV] = useState<PlanValues>({
-    name_ru: plan.name_ru,
-    name_en: plan.name_en,
+    names: toPlanNames(plan.names),
     item_limit: plan.item_limit === null ? "" : String(plan.item_limit),
     ai_daily_limit: plan.ai_daily_limit === null ? "" : String(plan.ai_daily_limit),
   });
@@ -252,8 +263,7 @@ function PlanEditor({
               () =>
                 updatePlan({
                   code: plan.code,
-                  name_ru: v.name_ru,
-                  name_en: v.name_en,
+                  names: v.names,
                   item_limit: num(v.item_limit),
                   ai_daily_limit: num(v.ai_daily_limit),
                   sort_order: plan.sort_order,
@@ -292,7 +302,7 @@ function PlanEditor({
   );
 }
 
-const EMPTY: PlanValues = { name_ru: "", name_en: "", item_limit: "", ai_daily_limit: "" };
+const EMPTY: PlanValues = { names: {}, item_limit: "", ai_daily_limit: "" };
 
 /** "Add a plan": a code (permanent) plus names and limits; it goes last. */
 function NewPlan() {
@@ -343,15 +353,14 @@ function NewPlan() {
         <Button
           variant="primary"
           pending={pending}
-          disabled={!code || !v.name_ru.trim() || !v.name_en.trim()}
+          disabled={!code || !v.names.en?.trim()}
           className="flex-1"
           onClick={() =>
             startTransition(async () => {
               setError(undefined);
               const r = await createPlan({
                 code,
-                name_ru: v.name_ru,
-                name_en: v.name_en,
+                names: v.names,
                 item_limit: num(v.item_limit),
                 ai_daily_limit: num(v.ai_daily_limit),
               });

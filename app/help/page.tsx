@@ -24,9 +24,12 @@ export default async function HelpPage() {
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-background/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur">
         <BackLink fallback={back.href} label={back.label} />
-        <div className="ml-auto py-1">
-          <LocaleSwitcher compact />
-        </div>
+        {/* Guests only: a signed-in user's interface is "my language" (Settings). */}
+        {!user && (
+          <div className="ml-auto py-1">
+            <LocaleSwitcher />
+          </div>
+        )}
       </header>
 
       <main className="flex flex-col gap-6 px-4 pt-5 pb-[max(2rem,env(safe-area-inset-bottom))]">

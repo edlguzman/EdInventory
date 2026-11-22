@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useDataLang } from "@/components/data-lang/context";
 import { ChevronRight, Home, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { matchesAllTokens, searchTokens } from "@/lib/search";
@@ -37,6 +38,7 @@ export function LocationPicker(props: Props) {
 function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, allowRoot = false, rootLabel, extra }: Props) {
   const t = useTranslations("locations");
   const { all, byId, childrenOf, subtreeIds, name, path, locale } = useLocations();
+  const { lang } = useDataLang();
   const excluded = useMemo(() => (excludeId ? subtreeIds(excludeId) : new Set<string>()), [excludeId, subtreeIds]);
 
   const start = initialId && byId.has(initialId) && !excluded.has(initialId) ? initialId : null;
@@ -49,12 +51,12 @@ function PickerSheet({ onClose, onSelect, title, initialId = null, excludeId, al
 
   const results = useMemo(() => {
     if (tokens.length === 0) return [];
-    const collator = new Intl.Collator(locale, { sensitivity: "base", numeric: true });
+    const collator = new Intl.Collator(locale === "en" ? "en" : lang, { sensitivity: "base", numeric: true });
     return all
-      .filter((l) => !excluded.has(l.id) && matchesAllTokens(`${l.pathRu} ${l.pathEn}`, tokens))
+      .filter((l) => !excluded.has(l.id) && matchesAllTokens(`${l.pathLocal} ${l.pathEn}`, tokens))
       .sort((a, b) => collator.compare(path(a), path(b)))
       .slice(0, 50);
-  }, [tokens, all, excluded, locale, path]);
+  }, [tokens, all, excluded, locale, lang, path]);
 
   const rows = childrenOf(cursor).filter((l) => !excluded.has(l.id));
 

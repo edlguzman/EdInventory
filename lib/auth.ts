@@ -1,8 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
-import { getLocale } from "next-intl/server";
-import { displayLang, isDataLang, type DataLang, type TextLang } from "@/lib/data-lang";
+import { dataLangOf, displaySlot, type DataLang, type Slot } from "@/lib/data-lang";
+import type { Lang } from "@/lib/languages";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -33,24 +33,30 @@ export type AccountStatus = "pending" | "active" | "disabled";
  * The signed-in user's profile (status and role) from public.profiles. RLS lets a user
  * read only their own row. A missing row is treated as pending (never as active).
  */
-export const getProfile = cache(async (): Promise<{ status: AccountStatus; isAdmin: boolean; dataLang: DataLang } | null> => {
-  const user = await getUser();
-  if (!user) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("status, role, data_lang").eq("user_id", user.id).maybeSingle();
-  const status = (data?.status ?? "pending") as AccountStatus;
-  const dataLang = isDataLang(data?.data_lang) ? data.data_lang : "en";
-  return { status, isAdmin: status === "active" && data?.role === "admin", dataLang };
-});
+export const getProfile = cache(
+  async (): Promise<{ status: AccountStatus; isAdmin: boolean; lang: Lang; dataLang: DataLang } | null> => {
+    const user = await getUser();
+    if (!user) return null;
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("status, role, lang, show_english")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const status = (data?.status ?? "pending") as AccountStatus;
+    const dataLang = dataLangOf(data?.lang, data?.show_english);
+    return { status, isAdmin: status === "active" && data?.role === "admin", lang: dataLang.lang, dataLang };
+  },
+);
 
-/** The user's data language mode (profiles.data_lang); "en" if unknown. */
+/** The user's language and record mode (profiles.lang + show_english); English if unknown. */
 export async function getDataLang(): Promise<DataLang> {
-  return (await getProfile())?.dataLang ?? "en";
+  return (await getProfile())?.dataLang ?? dataLangOf("en", false);
 }
 
-/** Language the data is shown in on the server (page titles): by mode and interface language. */
-export async function getDisplayLang(): Promise<TextLang> {
-  return displayLang(await getDataLang(), await getLocale());
+/** The text slot shown on the server (page titles). */
+export async function getDisplaySlot(): Promise<Slot> {
+  return displaySlot((await getDataLang()).mode);
 }
 
 /** Admin-only pages: anyone else gets a plain 404, so the page does not reveal itself. */

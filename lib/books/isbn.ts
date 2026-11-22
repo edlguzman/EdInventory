@@ -63,9 +63,11 @@ export type BookLookup = {
   description: string | null;
   /** Language of the book (ISO 639-1, e.g. "ru", "en"), if known. */
   language: string | null;
+  /** English title, if the catalogue knows one (the book's own title when it is in English). */
+  titleEn: string | null;
 };
 
 /** Names of a "Books" category in any case/language: the one a book goes to. */
 export function isBooksCategoryName(name: string | null | undefined): boolean {
-  return /^(книги|книга|books?)$/i.test((name ?? "").trim());
+  return /^(книги|книга|books?|libros?)$/i.test((name ?? "").trim());
 }

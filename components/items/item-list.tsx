@@ -28,7 +28,7 @@ function useItemLabels(categories: CategoryOption[], fullPath = false) {
   const { byId, path } = useLocations();
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   return {
-    name: (i: ItemSummary) => pickText(i.nameRu, i.nameEn, locale),
+    name: (i: ItemSummary) => pickText(i.nameLocal, i.nameEn, locale),
     /** "Author · 1999" for books, else null. */
     book: (i: ItemSummary) => [i.bookAuthor, i.bookYear].filter(Boolean).join(" · ") || null,
     place: (i: ItemSummary) => {
@@ -37,7 +37,7 @@ function useItemLabels(categories: CategoryOption[], fullPath = false) {
     },
     category: (i: ItemSummary) => {
       const c = i.categoryId ? categoryById.get(i.categoryId) : undefined;
-      return c ? pickText(c.name_ru, c.name_en, locale) : null;
+      return c ? pickText(c.name_local, c.name_en, locale) : null;
     },
   };
 }

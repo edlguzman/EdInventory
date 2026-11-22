@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { getProfile } from "@/lib/auth";
-import { isDataLang } from "@/lib/data-lang";
 import { notifyUser } from "@/lib/notify/user-email";
 import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -37,7 +36,7 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
   if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_set_status", { p_user_id: id.data, p_status: st.data });
+  const { data, error } = await supabase.rpc("admin_set_status_v2", { p_user_id: id.data, p_status: st.data });
   if (error) return { ok: false, error: mapError(error.code) };
 
   // Tell the user, only when the status really changed (in the background; a mail error
@@ -45,8 +44,7 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
   const contact = data?.[0];
   if (contact && contact.old_status !== st.data) {
     const kind = st.data === "disabled" ? "disabled" : contact.old_status === "pending" ? "approved" : "reactivated";
-    const dataLang = isDataLang(contact.data_lang) ? contact.data_lang : "en";
-    after(() => notifyUser({ kind, to: contact.email, dataLang }));
+    after(() => notifyUser({ kind, to: contact.email, lang: contact.lang }));
   }
 
   revalidatePath("/", "layout"); // the pending badge in the bottom navigation
@@ -111,8 +109,11 @@ export async function setUserPlan(userId: string, plan: string | null, until: st
 
 const planSchema = z.object({
   code: planCode,
-  name_ru: z.string().trim().min(1).max(50),
-  name_en: z.string().trim().min(1).max(50),
+  /** Names by language code; English required, empty ones dropped. */
+  names: z
+    .record(z.string().regex(/^[a-z]{2,3}$/), z.string().trim().max(50))
+    .transform((n) => Object.fromEntries(Object.entries(n).filter(([, v]) => v.length > 0)))
+    .refine((n) => !!n.en, { error: "invalid" }),
   item_limit: z.number().int().min(0).max(1_000_000).nullable(),
   ai_daily_limit: z.number().int().min(0).max(100_000).nullable(),
   sort_order: z.number().int().min(-1000).max(1000),
@@ -125,10 +126,9 @@ export async function updatePlan(input: z.input<typeof planSchema>): Promise<Adm
   if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_plan", {
+  const { error } = await supabase.rpc("admin_update_plan_v2", {
     p_code: v.data.code,
-    p_name_ru: v.data.name_ru,
-    p_name_en: v.data.name_en,
+    p_names: v.data.names,
     p_item_limit: v.data.item_limit as number,
     p_ai_daily_limit: v.data.ai_daily_limit as number,
     p_sort_order: v.data.sort_order,
@@ -147,10 +147,9 @@ export async function createPlan(input: z.input<typeof newPlanSchema>): Promise<
   if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_plan", {
+  const { error } = await supabase.rpc("admin_create_plan_v2", {
     p_code: v.data.code,
-    p_name_ru: v.data.name_ru,
-    p_name_en: v.data.name_en,
+    p_names: v.data.names,
     p_item_limit: v.data.item_limit as number,
     p_ai_daily_limit: v.data.ai_daily_limit as number,
   });

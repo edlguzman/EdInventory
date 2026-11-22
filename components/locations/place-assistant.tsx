@@ -80,7 +80,7 @@ export function PlaceAssistant({
     });
 
   const parent = result?.create?.parent_id ? byId.get(result.create.parent_id) : undefined;
-  const newPath = result?.create?.names.map((n) => pickText(n.name_ru, n.name_en, locale)).join(" → ");
+  const newPath = result?.create?.names.map((n) => pickText(n.name_local, n.name_en, locale)).join(" → ");
 
   return (
     <div className="flex flex-col gap-2">

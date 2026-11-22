@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_PHOTOS } from "@/lib/photos/paths";
 import { BOOK_AUTHOR_MAX, normalizeIsbn, parseYear } from "@/lib/books/isbn";
-import { hasRequiredName, isVisibleTag, resolvePair, type DataLang } from "@/lib/data-lang";
+import { hasRequiredName, langColumn, requiredSlot, resolvePair, type DataLang, type DataMode } from "@/lib/data-lang";
 import { LOCATION_NAME_MAX } from "./names";
 
 export const ITEM_NAME_MAX = LOCATION_NAME_MAX; // 200, same as the DB check
@@ -29,70 +29,85 @@ const bookIsbn = z
   .max(20, { error: "isbnInvalid" })
   .refine((v) => v === "" || normalizeIsbn(v) !== null, { error: "isbnInvalid" });
 
-/** Editable text fields of an item (what the form holds); the required name depends on the mode. */
-export const itemFieldsSchema = (mode: DataLang) =>
+const tagList = z.array(z.string().trim().min(1).max(TAG_MAX, { error: "tagTooLong" })).max(TAGS_MAX, { error: "tooManyTags" });
+
+/**
+ * Editable text fields of an item (what the form holds); the required name depends on the
+ * mode. `foreign`: the record is in another language than the user's (English is enough).
+ * Tags: own-language and English lists, together at most TAGS_MAX.
+ */
+export const itemFieldsSchema = (mode: DataMode, foreign = false) =>
   z
     .object({
-      name_ru: name,
+      name_local: name,
       name_en: name,
-      description_ru: description,
+      description_local: description,
       description_en: description,
-      tags: z
-        .array(z.string().trim().min(1).max(TAG_MAX, { error: "tagTooLong" }))
-        .max(TAGS_MAX, { error: "tooManyTags" }),
+      tags_local: tagList,
+      tags_en: tagList,
       book_author: bookAuthor.optional(),
       book_year: bookYear.optional(),
       book_isbn: bookIsbn.optional(),
     })
-    .refine((v) => hasRequiredName(mode, v.name_ru, v.name_en), {
+    .refine((v) => hasRequiredName(mode, v.name_local, v.name_en, foreign), {
       error: "nameRequired",
-      path: [mode === "en" ? "name_en" : "name_ru"],
+      path: [requiredSlot(mode) === "en" || foreign ? "name_en" : "name_local"],
+    })
+    .refine((v) => uniqueTags(v.tags_local).length + uniqueTags(v.tags_en).length <= TAGS_MAX, {
+      error: "tooManyTags",
+      path: ["tags_local"],
     });
 
 export type ItemFieldsInput = z.input<ReturnType<typeof itemFieldsSchema>>;
 
 type BookRow = { book_author: string | null; book_year: number | null; book_isbn: string | null };
 
+/** Stored text of an item with the local slot already passed through ownLocal. */
 export type ItemTextRow = {
-  name_ru: string | null;
+  name_local: string | null;
   name_en: string | null;
-  description_ru: string | null;
+  description_local: string | null;
   description_en: string | null;
-  tags: string[];
+  tags_local: string[];
+  tags_en: string[];
 };
 
-/**
- * Form values -> columns to write, by the data language mode (see resolvePair):
- * the hidden language is left as stored, empty descriptions become null, tags are
- * unique, and tags hidden in this mode are kept.
- */
-export function toItemRow(v: z.output<ReturnType<typeof itemFieldsSchema>>, mode: DataLang, current: ItemTextRow | null) {
-  const names = resolvePair(mode, { ru: v.name_ru, en: v.name_en }, current && { ru: current.name_ru, en: current.name_en }, {
-    copyToEnglish: true,
-  });
-  const descriptions = resolvePair(
-    mode,
-    { ru: v.description_ru, en: v.description_en },
-    current && { ru: current.description_ru, en: current.description_en },
-    { copyToEnglish: false },
-  );
-  const hidden = (current?.tags ?? []).filter((t) => !isVisibleTag(t, mode));
+/** Tags without case-insensitive duplicates, order kept. */
+export function uniqueTags(tags: string[]) {
   const seen = new Set<string>();
-  const tags = [...v.tags, ...hidden].filter((t) => {
+  return tags.filter((t) => {
     const key = t.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-  const row: Partial<ItemTextRow & BookRow> & { tags: string[] } = { tags: tags.slice(0, TAGS_MAX) };
-  // Book fields: written only when sent (the same in every data language mode).
+}
+
+/**
+ * Form values -> columns to write, by the user's language and mode (see resolvePair):
+ * a slot the user does not see is left as stored, empty descriptions become null, tags are
+ * unique; a new record (or one whose own text is rewritten) gets the user's language.
+ */
+export function toItemRow(v: z.output<ReturnType<typeof itemFieldsSchema>>, d: DataLang, current: ItemTextRow | null) {
+  const names = resolvePair(d.mode, { local: v.name_local, en: v.name_en }, current && { local: current.name_local, en: current.name_en });
+  const descriptions = resolvePair(
+    d.mode,
+    { local: v.description_local, en: v.description_en },
+    current && { local: current.description_local, en: current.description_en },
+  );
+  const row: Partial<ItemTextRow & BookRow & { lang: string }> = {};
+  // Tags: English only in en mode (the record's own-language tags stay); both otherwise.
+  row.tags_en = uniqueTags(v.tags_en);
+  if (d.mode !== "en") row.tags_local = uniqueTags(v.tags_local);
+  // Book fields: written only when sent (the same in every mode).
   if (v.book_author !== undefined) row.book_author = v.book_author || null;
   if (v.book_year !== undefined) row.book_year = v.book_year ? parseYear(v.book_year) : null;
   if (v.book_isbn !== undefined) row.book_isbn = normalizeIsbn(v.book_isbn);
-  if ("ru" in names) row.name_ru = names.ru;
+  if ("local" in names) row.name_local = names.local;
   if ("en" in names) row.name_en = names.en;
-  if ("ru" in descriptions) row.description_ru = descriptions.ru;
+  if ("local" in descriptions) row.description_local = descriptions.local;
   if ("en" in descriptions) row.description_en = descriptions.en;
+  Object.assign(row, langColumn(d.lang, current === null, { local: names.local }));
   return row;
 }
 

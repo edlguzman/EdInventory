@@ -1,12 +1,12 @@
 import "server-only";
 import { cache } from "react";
+import { toPlanNames, type PlanNames } from "@/lib/plan-names";
 import { createClient } from "@/lib/supabase/server";
 
-/** The signed-in user's effective plan and usage (SQL my_plan(), computed in the database). */
+/** The signed-in user's effective plan and usage (SQL my_plan_v2(), computed in the database). */
 export type MyPlan = {
   code: string;
-  nameRu: string;
-  nameEn: string;
+  names: PlanNames;
   itemLimit: number | null;
   aiDailyLimit: number | null;
   source: "manual" | "subscription" | "default";
@@ -20,14 +20,13 @@ export type MyPlan = {
 
 export const getMyPlan = cache(async (): Promise<MyPlan | null> => {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("my_plan");
+  const { data, error } = await supabase.rpc("my_plan_v2");
   const row = data?.[0];
   if (error || !row) return null;
   const itemLimit = row.item_limit ?? null;
   return {
     code: row.code,
-    nameRu: row.name_ru,
-    nameEn: row.name_en,
+    names: toPlanNames(row.names),
     itemLimit,
     aiDailyLimit: row.ai_daily_limit ?? null,
     source: (row.source as MyPlan["source"]) ?? "default",

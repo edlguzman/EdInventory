@@ -38,7 +38,7 @@ type Found = {
   selected: boolean;
   /** The user ticked or unticked it: the duplicate check no longer changes the tick. */
   touched: boolean;
-  name_ru: string;
+  name_local: string;
   name_en: string;
   category_id: string | null;
 };
@@ -96,7 +96,7 @@ export function MultiAdd({
   const tCommon = useTranslations("common");
   const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
-  const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
+  const { display: locale, mode: dataMode, edit: editLangs, lang: myLang } = useDataLang();
   const { byId, path } = useLocations();
   const offline = useOffline();
   const id = useId();
@@ -131,7 +131,7 @@ export function MultiAdd({
   };
   useEffect(() => releaseAll, []);
 
-  const label = (c: CategoryOption) => (locale === "en" ? c.name_en || c.name_ru : c.name_ru || c.name_en);
+  const label = (c: CategoryOption) => (locale === "en" ? c.name_en || c.name_local : c.name_local || c.name_en);
 
   function reset() {
     releaseAll();
@@ -183,7 +183,7 @@ export function MultiAdd({
           preview: track(crop.thumb),
           selected: true,
           touched: false,
-          name_ru: ai.name_ru,
+          name_local: ai.name_local,
           name_en: ai.name_en,
           category_id: ai.category_id,
         });
@@ -239,7 +239,7 @@ export function MultiAdd({
     if (!reviewKeys) return;
     const list = found;
     let stale = false;
-    findSimilarItems({ names: list.map((f) => ({ ru: f.ai.name_ru, en: f.ai.name_en })), locationId })
+    findSimilarItems({ names: list.map((f) => ({ local: f.ai.name_local, en: f.ai.name_en })), locationId })
       .then((matches) => {
         if (stale) return;
         const byKey: Record<string, ExistingItem> = {};
@@ -264,7 +264,7 @@ export function MultiAdd({
   async function save() {
     if (!overview || selected.length === 0) return;
     setError(undefined);
-    const bad = new Set(selected.filter((f) => !hasRequiredName(dataMode, f.name_ru, f.name_en)).map((f) => f.key));
+    const bad = new Set(selected.filter((f) => !hasRequiredName(dataMode, f.name_local, f.name_en)).map((f) => f.key));
     setInvalid(bad);
     if (bad.size > 0) {
       document.getElementById(`${id}-${[...bad][0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -316,13 +316,14 @@ export function MultiAdd({
         photo,
         category_id: f.category_id,
         fields: {
-          name_ru: f.name_ru,
-          // Ru mode shows only Russian: an edited Russian name makes the AI's English stale,
+          name_local: f.name_local,
+          // Only my language shown: an edited name makes the AI's English stale,
           // so it is cleared and translated again in the background.
-          name_en: dataMode === "ru" && f.name_ru.trim() !== f.ai.name_ru ? "" : f.name_en,
-          description_ru: f.ai.description_ru,
+          name_en: dataMode === "local" && f.name_local.trim() !== f.ai.name_local ? "" : f.name_en,
+          description_local: f.ai.description_local,
           description_en: f.ai.description_en,
-          tags: f.ai.tags,
+          tags_local: f.ai.tags_local,
+          tags_en: f.ai.tags_en,
           ...(f.ai.book && {
             book_author: f.ai.book.author ?? "",
             book_year: f.ai.book.year ? String(f.ai.book.year) : "",
@@ -459,7 +460,7 @@ export function MultiAdd({
               failed={books.failed}
               onDismiss={() => setAskBooksCategory(false)}
               onCreate={async () => {
-                const created = await books.create({ ru: tBooks("categoryRu"), en: tBooks("categoryEn") });
+                const created = await books.create({ local: tBooks("categoryName"), en: "Books" });
                 if (!created) return;
                 // Every found book without a category goes there.
                 setFound((list) => list.map((f) => (f.ai.book && !f.category_id ? { ...f, category_id: created } : f)));
@@ -555,11 +556,12 @@ export function MultiAdd({
                           <Photo src={f.preview} alt="" className="size-full object-cover" />
                         </button>
                         <div className="flex min-w-0 flex-1 flex-col gap-2">
-                          {editLangs.map((lang) => {
-                            const key = lang === "ru" ? "name_ru" : "name_en";
+                          {editLangs.map((slot) => {
+                            const key = slot === "local" ? "name_local" : "name_en";
+                            const lang = slot === "local" ? myLang : "en";
                             return (
                               <input
-                                key={lang}
+                                key={slot}
                                 lang={lang}
                                 value={f[key]}
                                 maxLength={ITEM_NAME_MAX}
@@ -679,7 +681,7 @@ export function MultiAdd({
         open={!!showBox}
         onClose={() => setShowBox(null)}
         title={
-          showBox ? (locale === "en" ? showBox.name_en || showBox.name_ru : showBox.name_ru || showBox.name_en) : ""
+          showBox ? (locale === "en" ? showBox.name_en || showBox.name_local : showBox.name_local || showBox.name_en) : ""
         }
       >
         {showBox && overview && (

@@ -1,4 +1,7 @@
 import "server-only";
+import { getDataLang } from "@/lib/auth";
+import { isForeign, ownLocal } from "@/lib/data-lang";
+import type { Lang } from "@/lib/languages";
 import { PHOTO_BUCKET, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
 import type { ItemDetail, ItemSummary } from "./types";
@@ -48,15 +51,17 @@ async function signUrls(supabase: Supabase, paths: string[]): Promise<Map<string
 }
 
 const SUMMARY_COLUMNS =
-  "id, name_ru, name_en, category_id, location_id, tags, book_author, book_year, created_at, item_photos(storage_path, is_primary)";
+  "id, lang, name_local, name_en, category_id, location_id, tags_local, tags_en, book_author, book_year, created_at, item_photos(storage_path, is_primary)";
 
 type SummaryRow = {
   id: string;
-  name_ru: string;
-  name_en: string;
+  lang: string | null;
+  name_local: string | null;
+  name_en: string | null;
   category_id: string | null;
   location_id: string | null;
-  tags: string[];
+  tags_local: string[];
+  tags_en: string[];
   book_author: string | null;
   book_year: number | null;
   created_at: string;
@@ -64,6 +69,7 @@ type SummaryRow = {
 };
 
 async function toSummaries(supabase: Supabase, rows: SummaryRow[]): Promise<ItemSummary[]> {
+  const { lang } = await getDataLang();
   const primaryOf = (r: SummaryRow) => (r.item_photos.find((p) => p.is_primary) ?? r.item_photos[0])?.storage_path;
   const thumbs = rows.map(primaryOf).filter((p): p is string => !!p).map(thumbPath);
   const urls = await signUrls(supabase, thumbs);
@@ -71,11 +77,12 @@ async function toSummaries(supabase: Supabase, rows: SummaryRow[]): Promise<Item
     const primary = primaryOf(r);
     return {
       id: r.id,
-      nameRu: r.name_ru,
+      nameLocal: ownLocal(r.lang, lang, r.name_local),
       nameEn: r.name_en,
       categoryId: r.category_id,
       locationId: r.location_id,
-      tags: r.tags,
+      tagsLocal: ownLocal(r.lang, lang, r.tags_local) ?? [],
+      tagsEn: r.tags_en,
       bookAuthor: r.book_author,
       bookYear: r.book_year,
       createdAt: r.created_at,
@@ -131,7 +138,7 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   const { data, error } = await supabase
     .from("items")
     .select(
-      "id, name_ru, name_en, description_ru, description_en, category_id, location_id, tags, book_author, book_year, book_isbn, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
+      "id, lang, name_local, name_en, description_local, description_en, category_id, location_id, tags_local, tags_en, book_author, book_year, book_isbn, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -141,16 +148,19 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
     (a, b) => Number(b.is_primary) - Number(a.is_primary) || a.created_at.localeCompare(b.created_at),
   );
   const urls = await signUrls(supabase, photos.flatMap((p) => [p.storage_path, thumbPath(p.storage_path)]));
+  const { lang } = await getDataLang();
 
   return {
     id: data.id,
-    nameRu: data.name_ru,
+    foreign: isForeign(data.lang, lang),
+    nameLocal: ownLocal(data.lang, lang, data.name_local),
     nameEn: data.name_en,
-    descriptionRu: data.description_ru,
+    descriptionLocal: ownLocal(data.lang, lang, data.description_local),
     descriptionEn: data.description_en,
     categoryId: data.category_id,
     locationId: data.location_id,
-    tags: data.tags,
+    tagsLocal: ownLocal(data.lang, lang, data.tags_local) ?? [],
+    tagsEn: data.tags_en,
     bookAuthor: data.book_author,
     bookYear: data.book_year,
     bookIsbn: data.book_isbn,
@@ -166,12 +176,24 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   };
 }
 
-export type CategoryOption = { id: string; name_ru: string | null; name_en: string | null };
+/** A category with its own-language name already passed through ownLocal. */
+export type CategoryOption = { id: string; name_local: string | null; name_en: string | null };
+
+/** Categories with name_local only when they are in the user's language. */
+export function toCategoryOptions(
+  rows: { id: string; lang: string | null; name_local: string | null; name_en: string | null }[],
+  lang: Lang,
+): CategoryOption[] {
+  return rows.map((c) => ({ id: c.id, name_local: ownLocal(c.lang, lang, c.name_local), name_en: c.name_en }));
+}
 
 export async function getCategories(): Promise<CategoryOption[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("id, name_ru, name_en").order("sort_order").order("created_at");
-  return data ?? [];
+  const [{ data }, { lang }] = await Promise.all([
+    supabase.from("categories").select("id, lang, name_local, name_en").order("sort_order").order("created_at"),
+    getDataLang(),
+  ]);
+  return toCategoryOptions(data ?? [], lang);
 }
 
 /** Items by id, in the given order (search results ranked by search_items). */
@@ -185,7 +207,7 @@ export async function getItemsByIds(ids: string[]): Promise<ItemSummary[]> {
   return toSummaries(supabase, rows);
 }
 
-/** Ranked search over the user's items, authors and ISBNs too (SQL function search_items_v2, RLS applies). */
+/** Ranked search over the user's items in their language and English, authors and ISBNs too (search_items_v3, RLS). */
 export async function searchItems(input: {
   terms: string[];
   location: string | null;
@@ -194,12 +216,12 @@ export async function searchItems(input: {
 }): Promise<ItemSummary[]> {
   if (input.terms.length === 0) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_items_v2", {
+  const { data, error } = await supabase.rpc("search_items_v3", {
     p_terms: input.terms,
     p_location_id: input.location ?? undefined,
     p_category_id: input.category ?? undefined,
     p_limit: input.limit ?? 50,
   });
-  if (error) throw new Error(`search_items_v2 failed: ${error.code}`);
+  if (error) throw new Error(`search_items_v3 failed: ${error.code}`);
   return getItemsByIds((data ?? []).map((r) => r.id));
 }

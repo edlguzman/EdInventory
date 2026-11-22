@@ -185,7 +185,7 @@ function ItemsBrowserList({
             <option value="none">{t("noCategory")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {pickText(c.name_ru, c.name_en, locale)}
+                {pickText(c.name_local, c.name_en, locale)}
               </option>
             ))}
           </select>

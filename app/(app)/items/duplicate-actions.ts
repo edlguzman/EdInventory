@@ -9,7 +9,7 @@ import { photoHashSchema } from "@/lib/validation/photo-hash";
 /** An existing item shown in a duplicate warning. */
 export type ExistingItem = {
   id: string;
-  name_ru: string | null;
+  name_local: string | null;
   name_en: string | null;
   location_id: string | null;
   created_at: string;
@@ -45,7 +45,7 @@ export async function findPhotoUses(hashes: string[]): Promise<Record<string, Ex
     if (list.some((x) => x.id === it.id)) continue;
     list.push({
       id: it.id,
-      name_ru: it.nameRu,
+      name_local: it.nameLocal,
       name_en: it.nameEn,
       location_id: it.locationId,
       created_at: it.createdAt,
@@ -57,16 +57,16 @@ export async function findPhotoUses(hashes: string[]): Promise<Record<string, Ex
 }
 
 const namesSchema = z
-  .array(z.object({ ru: z.string().max(200), en: z.string().max(200) }))
+  .array(z.object({ local: z.string().max(200), en: z.string().max(200) }))
   .max(MAX_BATCH_ITEMS);
 
 /**
  * Similar items already in the inventory, for the items found on a photo: for each input
  * (by position) the best match by name similarity, items in `locationId` and its nested
- * places first (SQL similar_items, RLS applies). No AI involved.
+ * places first (SQL similar_items_v2: own-language and English names, RLS applies). No AI involved.
  */
 export async function findSimilarItems(input: {
-  names: { ru: string; en: string }[];
+  names: { local: string; en: string }[];
   locationId: string | null;
 }): Promise<Record<number, ExistingItem & { inPlace: boolean }>> {
   const names = namesSchema.safeParse(input.names);
@@ -74,8 +74,8 @@ export async function findSimilarItems(input: {
   if (!names.success || !location.success || names.data.length === 0) return {};
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("similar_items", {
-    p_names_ru: names.data.map((n) => n.ru),
+  const { data, error } = await supabase.rpc("similar_items_v2", {
+    p_names_local: names.data.map((n) => n.local),
     p_names_en: names.data.map((n) => n.en),
     p_location_id: location.data ?? undefined,
     p_min: SIMILAR_MIN,
@@ -89,7 +89,7 @@ export async function findSimilarItems(input: {
     if (!it) continue;
     result[row.idx - 1] = {
       id: it.id,
-      name_ru: it.nameRu,
+      name_local: it.nameLocal,
       name_en: it.nameEn,
       location_id: it.locationId,
       created_at: it.createdAt,

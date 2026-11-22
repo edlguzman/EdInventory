@@ -5,11 +5,13 @@ import { createContext, use, useCallback, useEffect, useMemo, useState } from "r
 import { useRouter } from "next/navigation";
 
 import { createLocalStore } from "@/lib/local-store";
-import { name as nameOf, path as pathOf, type Locale, type LocationNode } from "@/lib/locations/types";
+import type { Slot } from "@/lib/data-lang";
+import { name as nameOf, path as pathOf, type LocationNode } from "@/lib/locations/types";
 
 type LocationsValue = {
   all: LocationNode[];
-  locale: Locale;
+  /** Slot names are shown in. */
+  locale: Slot;
   byId: Map<string, LocationNode>;
   /** Children of a place (null = top level), sorted alphabetically in the current language. */
   childrenOf: (parentId: string | null) => LocationNode[];
@@ -32,11 +34,11 @@ export function LocationsProvider({
   userId: string;
   children: React.ReactNode;
 }) {
-  const { display: locale } = useDataLang();
+  const { display: locale, lang } = useDataLang();
   const here = useMemo(() => hereStoreFor(userId), [userId]);
 
   const value = useMemo<LocationsValue>(() => {
-    const collator = new Intl.Collator(locale, { sensitivity: "base", numeric: true });
+    const collator = new Intl.Collator(locale === "en" ? "en" : lang, { sensitivity: "base", numeric: true });
     const byId = new Map(locations.map((l) => [l.id, l]));
     const children = new Map<string | null, LocationNode[]>();
     for (const l of locations) {
@@ -66,7 +68,7 @@ export function LocationsProvider({
       path: (loc) => pathOf(loc, locale),
       here,
     };
-  }, [locations, locale, here]);
+  }, [locations, locale, lang, here]);
 
   return <LocationsContext value={value}>{children}</LocationsContext>;
 }

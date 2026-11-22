@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDataLang, getUser } from "@/lib/auth";
 import { getMyPlan } from "@/lib/plans";
-import type { DataLang } from "@/lib/data-lang";
+import { isForeign, ownLocal, type DataLang } from "@/lib/data-lang";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
@@ -80,13 +80,16 @@ type SaveInput = {
   location_id: string | null;
 };
 
-/** `current`: the stored text of the item being edited (null for a new item). */
-function parseSave(input: SaveInput, mode: DataLang, current: ItemTextRow | null) {
-  const fields = itemFieldsSchema(mode).safeParse(input.fields);
+/**
+ * `current`: the stored text of the item being edited with its own-language text passed
+ * through ownLocal (null for a new item); `foreign`: it is in another language than mine.
+ */
+function parseSave(input: SaveInput, d: DataLang, current: ItemTextRow | null, foreign = false) {
+  const fields = itemFieldsSchema(d.mode, foreign).safeParse(input.fields);
   if (!fields.success) return { error: firstIssue(fields.error) } as const;
   const refs = itemRefsSchema.safeParse({ category_id: input.category_id, location_id: input.location_id });
   if (!refs.success) return { error: "notFound" as const };
-  return { row: { ...toItemRow(fields.data, mode, current), ...refs.data } } as const;
+  return { row: { ...toItemRow(fields.data, d, current), ...refs.data } } as const;
 }
 
 /**
@@ -255,11 +258,11 @@ export async function createItemsBatch(input: {
     return abort("unknown");
   }
 
-  // Ru mode: Gemini filled English too; only items whose Russian was edited lack it now.
+  // Gemini filled English too; only items whose own-language name was edited lack it now.
   translateAfterSave(
     mode,
     rows
-      .filter((r) => r.name_en === null || (r.description_ru && r.description_en === null))
+      .filter((r) => r.name_en === null || (r.description_local && r.description_en === null))
       .map((r) => ({ type: "item" as const, id: r.id })),
   );
   refresh();
@@ -288,13 +291,22 @@ export async function updateItem(
   if (!add.success) return abort(firstIssue(add.error));
   if (ownAdd.length !== add.data.length) return abort("photoInvalid");
   const mode = await getDataLang();
-  const { data: current } = await supabase
+  const { data: stored } = await supabase
     .from("items")
-    .select("name_ru, name_en, description_ru, description_en, tags")
+    .select("lang, name_local, name_en, description_local, description_en, tags_local, tags_en")
     .eq("id", id.data)
     .maybeSingle();
-  if (!current) return abort("notFound");
-  const parsed = parseSave(input, mode, current);
+  if (!stored) return abort("notFound");
+  // A record in another language: its own text is not mine (kept unless I write my own).
+  const current: ItemTextRow = {
+    name_local: ownLocal(stored.lang, mode.lang, stored.name_local),
+    name_en: stored.name_en,
+    description_local: ownLocal(stored.lang, mode.lang, stored.description_local),
+    description_en: stored.description_en,
+    tags_local: ownLocal(stored.lang, mode.lang, stored.tags_local) ?? [],
+    tags_en: stored.tags_en,
+  };
+  const parsed = parseSave(input, mode, current, isForeign(stored.lang, mode.lang));
   if ("error" in parsed) return abort(parsed.error ?? "unknown");
 
   const { data: existing, error: loadError } = await supabase

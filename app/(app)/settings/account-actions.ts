@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type DeleteAccountError = "wrongPassword" | "confirmMismatch" | "rateLimit" | "unauthorized" | "unknown";
 
-const CONFIRM_WORDS = ["УДАЛИТЬ", "DELETE"];
+const CONFIRM_WORDS = ["УДАЛИТЬ", "DELETE", "ELIMINAR"];
 
 /**
  * Deletes the account with all data and photos.

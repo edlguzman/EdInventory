@@ -5,6 +5,7 @@ import { BookOpen, ImageIcon, LoaderCircle, ScanBarcode, Search } from "lucide-r
 import { useTranslations } from "next-intl";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { createCategory } from "@/app/(app)/settings/category-actions";
+import { useDataLang } from "@/components/data-lang/context";
 import { Button } from "@/components/ui/buttons";
 import { readIsbn } from "@/lib/ai/client";
 import { findIsbnBarcode } from "@/lib/books/barcode";
@@ -20,23 +21,25 @@ const fieldClass =
 
 /** The user's "Books" category (by name, any language) and a way to create it on request. */
 export function useBooksCategory(categories: CategoryOption[]) {
+  const { mode } = useDataLang();
   const [created, setCreated] = useState<CategoryOption | null>(null);
   const all = created ? [...categories, created] : categories;
-  const booksId = all.find((c) => isBooksCategoryName(c.name_ru) || isBooksCategoryName(c.name_en))?.id ?? null;
+  const booksId = all.find((c) => isBooksCategoryName(c.name_local) || isBooksCategoryName(c.name_en))?.id ?? null;
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
 
   /** Creates "Книги / Books" (the server keeps only the languages of the data mode). */
-  async function create(names: { ru: string; en: string }): Promise<string | null> {
+  async function create(names: { local: string; en: string }): Promise<string | null> {
     setPending(true);
     setFailed(false);
-    const r = await createCategory({ name_ru: names.ru, name_en: names.en }).catch(() => null);
+    const r = await createCategory({ name_local: names.local, name_en: names.en }).catch(() => null);
     setPending(false);
     if (!r?.ok) {
       setFailed(true);
       return null;
     }
-    setCreated({ id: r.data.id, name_ru: names.ru, name_en: names.en });
+    // What the server keeps: English only for English users.
+    setCreated({ id: r.data.id, name_local: mode === "en" ? null : names.local, name_en: names.en });
     return r.data.id;
   }
   return { categories: all, booksId, create, pending, failed };

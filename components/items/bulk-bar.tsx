@@ -309,7 +309,7 @@ function CategorySheet({
     if (!text) return;
     setCreating(true);
     setCreateError(undefined);
-    const r = await createCategory(display === "en" ? { name_ru: "", name_en: text } : { name_ru: text, name_en: "" }).catch(() => null);
+    const r = await createCategory(display === "en" ? { name_local: "", name_en: text } : { name_local: text, name_en: "" }).catch(() => null);
     setCreating(false);
     if (!r?.ok) return setCreateError(errorText(r?.error ?? "network"));
     setName("");
@@ -325,7 +325,7 @@ function CategorySheet({
         </button>
         {categories.map((c) => (
           <button key={c.id} type="button" className={row} disabled={pending} onClick={() => onPick(c.id)}>
-            {pickText(c.name_ru, c.name_en, display)}
+            {pickText(c.name_local, c.name_en, display)}
           </button>
         ))}
         <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
@@ -354,7 +354,7 @@ function CategorySheet({
 
 // --- Sort into categories (AI) ------------------------------------------------------------------------
 
-type NewCategory = { key: string; name_ru: string; name_en: string };
+type NewCategory = { key: string; name_local: string; name_en: string };
 type Row = { item: CategorizedItem; target: { categoryId: string } | { newKey: string } };
 type Stage =
   | { kind: "confirm" }
@@ -362,7 +362,7 @@ type Stage =
   | { kind: "review"; rows: Row[]; newCategories: NewCategory[]; sorted: number; stoppedBy?: string }
   | { kind: "empty"; stoppedBy?: string };
 
-const newKey = (c: { name_ru: string; name_en: string }) => (c.name_en || c.name_ru).trim().toLowerCase();
+const newKey = (c: { name_local: string; name_en: string }) => (c.name_en || c.name_local).trim().toLowerCase();
 
 /**
  * Confirm ("this takes N AI requests") -> batches of 50 (1 request each) -> review: "item:
@@ -405,9 +405,9 @@ function CategorizeSheet({
   const categoryName = (id: string | null) => {
     if (!id) return t("noCategory");
     const c = categories.find((x) => x.id === id);
-    return c ? pickText(c.name_ru, c.name_en, display) : "—";
+    return c ? pickText(c.name_local, c.name_en, display) : "—";
   };
-  const newName = (c: { name_ru: string; name_en: string }) => pickText(c.name_ru || null, c.name_en || null, display);
+  const newName = (c: { name_local: string; name_en: string }) => pickText(c.name_local || null, c.name_en || null, display);
 
   async function start() {
     const batches = Array.from({ length: requests }, (_, i) => ids.slice(i * CATEGORIZE_BATCH, (i + 1) * CATEGORIZE_BATCH));
@@ -436,7 +436,7 @@ function CategorizeSheet({
         const created = s.newCategory;
         const key = newKey(created);
         if (!key) continue;
-        if (!news.has(key)) news.set(key, { key, name_ru: created.name_ru, name_en: created.name_en });
+        if (!news.has(key)) news.set(key, { key, name_local: created.name_local, name_en: created.name_en });
         rows.push({ item, target: { newKey: key } });
       }
     }
@@ -454,8 +454,8 @@ function CategorizeSheet({
     const createdIds = new Map<string, string>();
     for (const c of newCategories) {
       if (!chosen.some((r) => "newKey" in r.target && r.target.newKey === c.key)) continue;
-      // The required name of the mode must be there (en: English; ru: Russian).
-      const names = mode === "en" ? { name_ru: "", name_en: c.name_en || c.name_ru } : { name_ru: c.name_ru || c.name_en, name_en: c.name_en };
+      // The required name of the mode must be there (en: English; otherwise my language, else English).
+      const names = mode === "en" ? { name_local: "", name_en: c.name_en || c.name_local } : { name_local: c.name_local || c.name_en, name_en: c.name_en };
       const r = await createCategory(names).catch(() => null);
       if (!r?.ok) {
         setApplying(false);
@@ -573,7 +573,7 @@ function CategorizeSheet({
                 >
                   <span className={box(on)}>{on && <Check className="size-4" strokeWidth={3} />}</span>
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-medium">{pickText(r.item.nameRu, r.item.nameEn, display)}</span>
+                    <span className="truncate font-medium">{pickText(r.item.nameLocal, r.item.nameEn, display)}</span>
                     <span className="text-sm text-muted">
                       {categoryName(r.item.currentCategoryId)} → <span className="text-foreground">{to}</span>
                       {r.item.confidence < SURE && <span className="ml-1 text-amber-700 dark:text-amber-300">· {t("unsure")}</span>}

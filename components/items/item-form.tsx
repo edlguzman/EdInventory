@@ -26,7 +26,7 @@ import type { ItemDetail } from "@/lib/items/types";
 import { MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { processPhoto } from "@/lib/photos/process";
 import { createClient } from "@/lib/supabase/client";
-import { isVisibleTag } from "@/lib/data-lang";
+import { editSlots, slotLang, type Slot } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
@@ -61,7 +61,10 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   const tCommon = useTranslations("common");
   const tDup = useTranslations("duplicates");
   const errorText = useErrorText();
-  const { display: locale, mode: dataMode, edit: editLangs } = useDataLang();
+  const { display: locale, mode: dataMode, lang: myLang } = useDataLang();
+  // A record in another language is edited through English until translated.
+  const foreign = !!item?.foreign;
+  const editLangs = editSlots(dataMode, foreign);
   const aiOff = useAiOff();
   const offline = useOffline();
   const router = useRouter();
@@ -129,15 +132,16 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   });
 
   const form = useForm<ItemFieldsInput>({
-    resolver: zodResolver(itemFieldsSchema(dataMode)),
-    // Hidden-language text stays in the form values (not shown); the server decides what
-    // to write. Tags hidden in this mode are not shown and are kept by the server.
+    resolver: zodResolver(itemFieldsSchema(dataMode, foreign)),
+    // Text of a slot that is not shown stays in the form values; the server decides what
+    // to write (a slot the user does not see is kept as stored).
     defaultValues: {
-      name_ru: item?.nameRu ?? seeded?.name_ru ?? "",
+      name_local: item?.nameLocal ?? seeded?.name_local ?? "",
       name_en: item?.nameEn ?? seeded?.name_en ?? "",
-      description_ru: item?.descriptionRu ?? seeded?.description_ru ?? "",
+      description_local: item?.descriptionLocal ?? seeded?.description_local ?? "",
       description_en: item?.descriptionEn ?? seeded?.description_en ?? "",
-      tags: (item?.tags ?? seeded?.tags ?? []).filter((tag) => isVisibleTag(tag, dataMode)),
+      tags_local: item?.tagsLocal ?? seeded?.tags_local ?? [],
+      tags_en: item?.tagsEn ?? seeded?.tags_en ?? [],
       book_author: item?.bookAuthor ?? seeded?.book?.author ?? "",
       book_year: String(item?.bookYear ?? seeded?.book?.year ?? ""),
       book_isbn: item?.bookIsbn ?? seeded?.book?.isbn ?? "",
@@ -149,21 +153,25 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     setValue,
     formState: { errors, isSubmitting },
   } = form;
-  const tags = useWatch({ control, name: "tags" });
+  const tagsLocal = useWatch({ control, name: "tags_local" });
+  const tagsEn = useWatch({ control, name: "tags_en" });
+  /** Tag lists shown: English only (en), my language (local), both (local_en or a foreign record). */
+  const tagSlots: Slot[] = editLangs;
 
   const place = locationId ? byId.get(locationId) : undefined;
 
   /** AI prefills only empty fields: what the user typed is never overwritten. */
   function applyRecognition(r: RecognizeResult) {
     const v = form.getValues();
-    const fill = (name: "name_ru" | "name_en" | "description_ru" | "description_en", value: string) => {
+    const fill = (name: "name_local" | "name_en" | "description_local" | "description_en", value: string) => {
       if (value && !v[name].trim()) setValue(name, value, { shouldDirty: true, shouldValidate: name.startsWith("name") });
     };
-    fill("name_ru", r.name_ru);
+    fill("name_local", r.name_local);
     fill("name_en", r.name_en);
-    fill("description_ru", r.description_ru);
+    fill("description_local", r.description_local);
     fill("description_en", r.description_en);
-    if (r.tags.length && v.tags.length === 0) setValue("tags", r.tags, { shouldDirty: true });
+    if (r.tags_local.length && v.tags_local.length === 0) setValue("tags_local", r.tags_local, { shouldDirty: true });
+    if (r.tags_en.length && v.tags_en.length === 0) setValue("tags_en", r.tags_en, { shouldDirty: true });
     if (r.category_id) setCategoryId((current) => current ?? r.category_id);
     if (r.book) applyBook(r.book);
     // ISBN read from the user's own cover photo: the catalogue cover is offered, "not needed" by default.
@@ -183,21 +191,22 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   }
 
   /**
-   * A catalogue answer (by ISBN): the title goes into the empty name fields shown in this data
-   * mode (as published, not translated); the description into the field of the book's language.
+   * A catalogue answer (by ISBN): the title as published goes into the empty name in my
+   * language, and into English the English title if the catalogue knows one (else the same
+   * printed title); the description into the field of the book's language if that is shown.
    */
   function applyLookup(b: BookLookup) {
     const v = form.getValues();
     const opts = { shouldDirty: true, shouldValidate: true };
     if (b.title) {
-      for (const lang of editLangs) {
-        const field = lang === "ru" ? "name_ru" : "name_en";
-        if (!v[field].trim()) setValue(field, b.title.slice(0, ITEM_NAME_MAX), opts);
-      }
+      const local = dataMode === "en" ? null : b.title;
+      const en = dataMode === "en" ? (b.titleEn ?? b.title) : (b.titleEn ?? b.title);
+      if (local && !v.name_local.trim()) setValue("name_local", local.slice(0, ITEM_NAME_MAX), opts);
+      if (en && !v.name_en.trim()) setValue("name_en", en.slice(0, ITEM_NAME_MAX), opts);
     }
-    const descLang = b.language === "ru" || b.language === "en" ? b.language : null;
-    if (b.description && descLang && editLangs.includes(descLang)) {
-      const field = descLang === "ru" ? "description_ru" : "description_en";
+    const descSlot: Slot | null = b.language === "en" ? "en" : b.language && b.language === myLang ? "local" : null;
+    if (b.description && descSlot && editLangs.includes(descSlot)) {
+      const field = descSlot === "local" ? "description_local" : "description_en";
       if (!v[field].trim()) setValue(field, b.description.slice(0, DESCRIPTION_MAX), opts);
     }
     applyBook({ author: b.author, year: b.year, isbn: b.isbn });
@@ -356,18 +365,21 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
 
   function acceptSuggestion(s: ItemSuggestion) {
     const opts = { shouldDirty: true, shouldValidate: true };
-    if (s.name_ru) setValue("name_ru", s.name_ru, opts);
+    if (s.name_local) setValue("name_local", s.name_local, opts);
     if (s.name_en) setValue("name_en", s.name_en, opts);
-    if (s.description_ru) setValue("description_ru", s.description_ru, opts);
+    if (s.description_local) setValue("description_local", s.description_local, opts);
     if (s.description_en) setValue("description_en", s.description_en, opts);
-    if (s.tags_add.length) {
-      const current = form.getValues("tags");
+    const addTags = (field: "tags_local" | "tags_en", added: string[]) => {
+      if (!added.length) return;
+      const current = form.getValues(field);
       const lower = new Set(current.map((x) => x.toLowerCase()));
-      setValue("tags", [...current, ...s.tags_add.filter((x) => !lower.has(x.toLowerCase()))].slice(0, 50), opts);
-    }
+      setValue(field, [...current, ...added.filter((x) => !lower.has(x.toLowerCase()))].slice(0, 50), opts);
+    };
+    addTags("tags_local", s.tags_add_local);
+    addTags("tags_en", s.tags_add_en);
     setSuggestion(null);
   }
-  const label = (c: CategoryOption) => (locale === "en" ? c.name_en || c.name_ru : c.name_ru || c.name_en);
+  const label = (c: CategoryOption) => (locale === "en" ? c.name_en || c.name_local : c.name_local || c.name_en);
 
   const submit = form.handleSubmit(async (fields) => {
     setError(undefined);
@@ -431,7 +443,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           // First photo of an item with no name yet: recognize it automatically (1 AI request).
           const v = form.getValues();
           const firstPhoto = photos.length === 0 && next.length > 0;
-          if (firstPhoto && !v.name_ru.trim() && !v.name_en.trim() && !recognized) {
+          if (firstPhoto && !v.name_local.trim() && !v.name_en.trim() && !recognized) {
             void checkThenRecognize(next.find((p) => p.key === primary) ?? next[0], next);
           } else {
             void photosAlreadyUsed(next);
@@ -510,27 +522,30 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
 
       {error && <Alert>{errorText(error)}</Alert>}
 
-      <NameFields form={form as unknown as UseFormReturn<NamePairInput>} max={ITEM_NAME_MAX} />
+      <NameFields form={form as unknown as UseFormReturn<NamePairInput>} max={ITEM_NAME_MAX} foreign={foreign} />
 
-      {editLangs.map((lang) => {
-        const name = lang === "ru" ? "description_ru" : "description_en";
-        const otherName = lang === "ru" ? "description_en" : "description_ru";
+      {editLangs.map((slot) => {
+        const lang = slotLang(slot, myLang);
+        const name = slot === "local" ? "description_local" : "description_en";
+        const otherName = slot === "local" ? "description_en" : "description_local";
         const err = fieldError(errors[name]?.message);
         const set = (field: typeof name | typeof otherName) => (value: string) =>
           setValue(field, value, { shouldValidate: true, shouldDirty: true });
         return (
           <DictationField
-            key={lang}
-            label={editLangs.length === 1 ? t("description") : lang === "ru" ? t("descriptionRu") : t("descriptionEn")}
+            key={slot}
+            label={
+              editLangs.length === 1 ? t("description") : slot === "local" ? t("descriptionLocal", { lang: lang.toUpperCase() }) : t("descriptionEn")
+            }
             htmlFor={`${id}-${name}`}
-            lang={lang}
+            slot={slot}
             kind="description"
             max={DESCRIPTION_MAX}
             getValue={() => form.getValues(name)}
             setValue={set(name)}
             other={
               editLangs.length === 2
-                ? { lang: lang === "ru" ? "en" : "ru", get: () => form.getValues(otherName), set: set(otherName) }
+                ? { slot: slot === "local" ? "en" : "local", get: () => form.getValues(otherName), set: set(otherName) }
                 : undefined
             }
           >
@@ -559,7 +574,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
             const next = e.target.value || null;
             setCategoryId(next);
             const c = categories.find((x) => x.id === next);
-            if (c && (isBooksCategoryName(c.name_ru) || isBooksCategoryName(c.name_en))) setShowBook(true);
+            if (c && (isBooksCategoryName(c.name_local) || isBooksCategoryName(c.name_en))) setShowBook(true);
           }}
           className={`${fieldClass} min-h-12 appearance-none`}
         >
@@ -578,7 +593,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           failed={books.failed}
           onDismiss={() => setAskBooksCategory(false)}
           onCreate={async () => {
-            const created = await books.create({ ru: tBooks("categoryRu"), en: tBooks("categoryEn") });
+            const created = await books.create({ local: tBooks("categoryName"), en: "Books" });
             if (created) {
               setCategoryId(created);
               setAskBooksCategory(false);
@@ -639,7 +654,14 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           mode="form"
           getItemContext={() => {
             const v = form.getValues();
-            return { ...v, tags: v.tags };
+            return {
+              name_local: v.name_local,
+              name_en: v.name_en,
+              description_local: v.description_local,
+              description_en: v.description_en,
+              tags_local: v.tags_local,
+              tags_en: v.tags_en,
+            };
           }}
           onPlace={(next) => setLocationId(next)}
           onItemSuggestion={setSuggestion}
@@ -653,8 +675,25 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
         )}
       </div>
 
-      <TagsInput value={tags} onChange={(tags) => setValue("tags", tags, { shouldValidate: true, shouldDirty: true })} />
-      {errors.tags && <p className="-mt-4 text-sm text-red-600 dark:text-red-400">{fieldError(errors.tags.message ?? errors.tags[0]?.message)}</p>}
+      {tagSlots.map((slot) => {
+        const field = slot === "local" ? "tags_local" : "tags_en";
+        return (
+          <TagsInput
+            key={slot}
+            lang={slotLang(slot, myLang)}
+            label={tagSlots.length === 1 ? undefined : slot === "local" ? t("tagsLocal", { lang: myLang.toUpperCase() }) : t("tagsEn")}
+            value={slot === "local" ? tagsLocal : tagsEn}
+            onChange={(next) => setValue(field, next, { shouldValidate: true, shouldDirty: true })}
+          />
+        );
+      })}
+      {(errors.tags_local || errors.tags_en) && (
+        <p className="-mt-4 text-sm text-red-600 dark:text-red-400">
+          {fieldError(
+            errors.tags_local?.message ?? errors.tags_local?.[0]?.message ?? errors.tags_en?.message ?? errors.tags_en?.[0]?.message,
+          )}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <Button onClick={() => (onCancel ? onCancel() : router.back())} disabled={busy} className="flex-1">

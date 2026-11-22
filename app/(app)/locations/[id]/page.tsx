@@ -2,22 +2,23 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { LocationDetail } from "@/components/locations/location-detail";
-import { getDisplayLang } from "@/lib/auth";
-import { pickText } from "@/lib/data-lang";
+import { getDataLang, getDisplaySlot } from "@/lib/auth";
+import { ownLocal, pickText } from "@/lib/data-lang";
 import { getCategories, listItems } from "@/lib/items/data";
 import { createClient } from "@/lib/supabase/server";
 
 async function findLocation(id: string) {
   if (!z.uuid().safeParse(id).success) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("locations").select("id, name_ru, name_en").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("locations").select("id, lang, name_local, name_en").eq("id", id).maybeSingle();
   return data;
 }
 
 export async function generateMetadata({ params }: PageProps<"/locations/[id]">): Promise<Metadata> {
   const loc = await findLocation((await params).id);
   if (!loc) return {};
-  return { title: pickText(loc.name_ru, loc.name_en, await getDisplayLang()) };
+  const { lang } = await getDataLang();
+  return { title: pickText(ownLocal(loc.lang, lang, loc.name_local), loc.name_en, await getDisplaySlot()) };
 }
 
 export default async function LocationPage({ params }: PageProps<"/locations/[id]">) {

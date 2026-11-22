@@ -6,7 +6,18 @@ import { useTranslations } from "next-intl";
 import { TAG_MAX, TAGS_MAX } from "@/lib/validation/items";
 
 /** Tag chips: Enter or comma adds, Backspace on an empty input removes the last one. No duplicates. */
-export function TagsInput({ value, onChange }: { value: string[]; onChange: (tags: string[]) => void }) {
+export function TagsInput({
+  value,
+  onChange,
+  label,
+  lang,
+}: {
+  value: string[];
+  onChange: (tags: string[]) => void;
+  /** Overrides "Tags" (e.g. "Tags (EN)" next to the own-language list). */
+  label?: string;
+  lang?: string;
+}) {
   const t = useTranslations("items");
   const id = useId();
   const [draft, setDraft] = useState("");
@@ -29,7 +40,7 @@ export function TagsInput({ value, onChange }: { value: string[]; onChange: (tag
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-sm font-medium">
-        {t("tags")}
+        {label ?? t("tags")}
       </label>
       <div className="flex min-h-12 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-1.5 focus-within:border-accent">
         {value.map((tag) => (
@@ -46,6 +57,7 @@ export function TagsInput({ value, onChange }: { value: string[]; onChange: (tag
           </span>
         ))}
         <input
+          lang={lang}
           id={id}
           value={draft}
           enterKeyHint="enter"

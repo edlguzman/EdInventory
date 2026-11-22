@@ -11,16 +11,18 @@ import { translateBatch } from "@/lib/ai/client";
 import { useErrorText } from "@/lib/use-error-text";
 import { useDataLang } from "./context";
 
-type Texts = { name_ru: string | null; name_en: string | null; description_ru?: string | null; description_en?: string | null };
+/** Text of a record with the local slot passed through ownLocal (null = not in my language). */
+type Texts = { name_local: string | null; name_en: string | null; description_local?: string | null; description_en?: string | null };
 
-/** Text the user can see is missing in a language the mode shows (ru mode: Russian; ru_en: either). */
+/**
+ * Text the user can see is missing: no text in my language (local modes), or no English
+ * next to it (local_en). English alone is never asked for (en mode has nothing to translate).
+ */
 export function lacksVisibleText(mode: string, r: Texts) {
-  const langs = mode === "ru" ? ["ru"] : mode === "ru_en" ? ["ru", "en"] : [];
-  return langs.some((lang) => {
-    const o = lang === "ru" ? "en" : "ru";
-    const get = (field: "name" | "description", l: string) => r[`${field}_${l}` as keyof Texts];
-    return (!get("name", lang) && !!get("name", o)) || (!get("description", lang) && !!get("description", o));
-  });
+  if (mode === "en") return false;
+  const local = (!r.name_local && !!r.name_en) || (!r.description_local && !!r.description_en);
+  const en = (!r.name_en && !!r.name_local) || (!r.description_en && !!r.description_local);
+  return local || (mode === "local_en" && en);
 }
 
 /**
