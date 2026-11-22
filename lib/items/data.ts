@@ -104,12 +104,18 @@ export type ItemFilters = {
   offset?: number;
 };
 
-/** Latest items first. Fetches limit + 1 rows to know whether there are more. */
-export async function listItems(filters: ItemFilters): Promise<{ items: ItemSummary[]; hasMore: boolean }> {
+/**
+ * Latest items first. Fetches limit + 1 rows to know whether there are more.
+ * total: all items of these filters (counted in the same request), only for the first page.
+ */
+export async function listItems(
+  filters: ItemFilters,
+): Promise<{ items: ItemSummary[]; hasMore: boolean; total: number | null }> {
   const supabase = await createClient();
+  const first = !filters.offset;
   let query = supabase
     .from("items")
-    .select(SUMMARY_COLUMNS)
+    .select(SUMMARY_COLUMNS, first ? { count: "exact" } : undefined)
     .order("created_at", { ascending: false })
     .order("id")
     .range(filters.offset ?? 0, (filters.offset ?? 0) + filters.limit);
@@ -122,14 +128,18 @@ export async function listItems(filters: ItemFilters): Promise<{ items: ItemSumm
   } else if (filters.location) {
     const { data: ids, error } = await supabase.rpc("location_descendants", { loc_id: filters.location });
     if (error) throw new Error(`location_descendants failed: ${error.code}`);
-    if (!ids || ids.length === 0) return { items: [], hasMore: false };
+    if (!ids || ids.length === 0) return { items: [], hasMore: false, total: first ? 0 : null };
     query = query.in("location_id", ids);
   }
 
-  const { data, error } = await query;
+  const { data, count, error } = await query;
   if (error) throw new Error(`Failed to load items: ${error.code}`);
   const rows = data as SummaryRow[];
-  return { items: await toSummaries(supabase, rows.slice(0, filters.limit)), hasMore: rows.length > filters.limit };
+  return {
+    items: await toSummaries(supabase, rows.slice(0, filters.limit)),
+    hasMore: rows.length > filters.limit,
+    total: first ? (count ?? rows.length) : null,
+  };
 }
 
 /** One item with all photos (primary first), signed URLs for main files and thumbnails. */
@@ -207,21 +217,41 @@ export async function getItemsByIds(ids: string[]): Promise<ItemSummary[]> {
   return toSummaries(supabase, rows);
 }
 
-/** Ranked search over the user's items in their language and English, authors and ISBNs too (search_items_v3, RLS). */
+export const SEARCH_PAGE_SIZE = 50;
+
+/**
+ * Ranked search over the user's items in their language and English, authors and ISBNs too
+ * (search_items_v4, RLS). One page from `offset`, plus the total found (null past the end).
+ */
 export async function searchItems(input: {
   terms: string[];
   location: string | null;
   category: string | null;
   limit?: number;
-}): Promise<ItemSummary[]> {
-  if (input.terms.length === 0) return [];
+  offset?: number;
+}): Promise<{ items: ItemSummary[]; total: number | null }> {
+  const ids = await searchItemIds(input);
+  return { items: await getItemsByIds(ids.ids), total: ids.total };
+}
+
+/** Only the ids (in rank order) and the total: for "Select all found". */
+export async function searchItemIds(input: {
+  terms: string[];
+  location: string | null;
+  category: string | null;
+  limit?: number;
+  offset?: number;
+}): Promise<{ ids: string[]; total: number | null }> {
+  if (input.terms.length === 0) return { ids: [], total: 0 };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_items_v3", {
+  const { data, error } = await supabase.rpc("search_items_v4", {
     p_terms: input.terms,
     p_location_id: input.location ?? undefined,
     p_category_id: input.category ?? undefined,
-    p_limit: input.limit ?? 50,
+    p_limit: input.limit ?? SEARCH_PAGE_SIZE,
+    p_offset: input.offset ?? 0,
   });
-  if (error) throw new Error(`search_items_v3 failed: ${error.code}`);
-  return getItemsByIds((data ?? []).map((r) => r.id));
+  if (error) throw new Error(`search_items_v4 failed: ${error.code}`);
+  const rows = data ?? [];
+  return { ids: rows.map((r) => r.id), total: rows[0]?.total ?? (input.offset ? null : 0) };
 }

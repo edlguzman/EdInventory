@@ -16,6 +16,7 @@ import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { MicButton, RecordingStatus } from "@/components/voice-input";
 import { askSearch } from "@/lib/ai/client";
+import { loadMoreResults, selectAllResults } from "@/app/(app)/search/actions";
 import type { SearchResult } from "@/lib/ai/types";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
 import type { CategoryOption } from "@/lib/items/data";
@@ -34,15 +35,22 @@ function aiUrl(pathname: string, r: SearchResult) {
 export function SearchView({
   q,
   ai,
-  results,
+  results: firstPage,
+  total,
+  query,
   categories,
 }: {
   q: string;
   ai: AiState;
   results: ItemSummary[] | null;
+  /** All results of this search (the page shows the first ones and loads more). */
+  total: number;
+  /** What the server searched for: the same for the next pages and "Select all found". */
+  query: { terms: string[]; location: string | null; category: string | null };
   categories: CategoryOption[];
 }) {
   const t = useTranslations("search");
+  const tItems = useTranslations("items");
   const errorText = useErrorText();
   const { display: locale } = useDataLang();
   const router = useRouter();
@@ -58,6 +66,36 @@ export function SearchView({
   const [error, setError] = useState<string>();
   const [navigating, startNavigation] = useTransition();
   const typed = useRef(false);
+
+  // Next pages ("Show more"), for this exact search only: a new search starts over.
+  const searchKey = `${query.terms.join("")}|${query.location}|${query.category}|${firstPage?.[0]?.id ?? ""}`;
+  const [more, setMore] = useState<{ key: string; items: ItemSummary[] }>({ key: "", items: [] });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectingAll, setSelectingAll] = useState(false);
+  const extra = more.key === searchKey ? more.items : [];
+  const results = firstPage === null ? null : extra.length ? [...firstPage, ...extra] : firstPage;
+  const moreToLoad = results !== null && results.length < total;
+
+  async function loadMore() {
+    if (!results || loadingMore) return;
+    setLoadingMore(true);
+    const r = await loadMoreResults({ ...query, offset: results.length }).catch(() => null);
+    setLoadingMore(false);
+    if (!r) return setError("unknown");
+    const seen = new Set(results.map((x) => x.id));
+    setMore({ key: searchKey, items: [...extra, ...r.items.filter((x) => !seen.has(x.id))] });
+  }
+
+  /** Every result of this search, not only the loaded pages (the first 500). */
+  async function selectAllFound() {
+    if (!results) return;
+    if (results.length >= total) return selection.selectAll(results.map((r) => r.id), results.length);
+    setSelectingAll(true);
+    const r = await selectAllResults(query).catch(() => null);
+    setSelectingAll(false);
+    if (!r) return setError("unknown");
+    selection.selectAll(r.ids, r.total);
+  }
 
   // Instant search without AI: update the URL shortly after typing stops.
   useEffect(() => {
@@ -181,12 +219,14 @@ export function SearchView({
             {selection.active && (
               <SelectionHeader
                 selection={selection}
-                selectingAll={false}
-                onSelectAll={() => selection.selectAll(results.map((r) => r.id), results.length)}
+                selectingAll={selectingAll}
+                onSelectAll={() => void selectAllFound()}
               />
             )}
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm text-muted">{t("found", { count: results.length })}</p>
+              <p className="text-sm text-muted" aria-live="polite">
+                {tItems("countFound", { count: total })}
+              </p>
               {!selection.active && (
                 <button
                   type="button"
@@ -199,6 +239,11 @@ export function SearchView({
               )}
             </div>
             <ItemTable items={results} categories={categories} fullPath selection={selection} />
+            {moreToLoad && (
+              <Button onClick={() => void loadMore()} pending={loadingMore} className="w-full">
+                {tItems("showMore")}
+              </Button>
+            )}
             {selection.active && <BulkBar ids={[...selection.selected]} categories={categories} onDone={selection.exit} />}
           </div>
         ))}

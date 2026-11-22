@@ -28,6 +28,8 @@ type BrowserProps = {
   title: string;
   items: ItemSummary[];
   hasMore: boolean;
+  /** All items of these filters (not only the loaded pages). */
+  total: number;
   categories: CategoryOption[];
   filters: BrowserFilters;
   pageSize: number;
@@ -47,6 +49,7 @@ export function ItemsBrowser(props: BrowserProps) {
 function ItemsBrowserList({
   items,
   hasMore,
+  total,
   categories,
   filters,
   pageSize,
@@ -212,9 +215,15 @@ function ItemsBrowserList({
         )}
 
       </div>
-      {place && (
-        <p className="-mt-2 text-xs text-muted">
-          {place.id === hereId ? `${t("isHere")} · ${t("nestedIncluded")}` : t("nestedIncluded")}
+      {!openingHere && (
+        <p className="-mt-2 text-xs text-muted" aria-live="polite">
+          {[
+            hasFilters ? t("countFound", { count: total }) : t("countAll", { count: total }),
+            place && place.id === hereId && t("isHere"),
+            place && t("nestedIncluded"),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       )}
 

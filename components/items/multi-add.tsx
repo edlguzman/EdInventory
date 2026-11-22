@@ -11,6 +11,7 @@ import { LocationPicker } from "@/components/locations/location-picker";
 import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useHerePlace, useLocations } from "@/components/locations/locations-context";
 import { useOffline } from "@/components/offline-banner";
+import { StickyActions } from "@/components/ui/sticky-actions";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
@@ -625,7 +626,7 @@ export function MultiAdd({
                 })}
               </ul>
 
-              <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 flex gap-2 bg-background/95 px-4 py-2 backdrop-blur">
+              <StickyActions>
                 <Button onClick={cancel} disabled={saving} className="flex-1">
                   {tCommon("cancel")}
                 </Button>
@@ -642,7 +643,7 @@ export function MultiAdd({
                       ? tItems("saving")
                       : t("saveSelected", { count: selected.length })}
                 </Button>
-              </div>
+              </StickyActions>
             </>
           )}
         </>

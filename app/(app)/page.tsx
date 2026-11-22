@@ -23,7 +23,7 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
   const n = Number.parseInt(one(params.n) ?? "", 10);
   const limit = Number.isFinite(n) ? Math.min(Math.max(PAGE_SIZE, n), MAX_LIMIT) : PAGE_SIZE;
 
-  const [{ items, hasMore }, categories] = await Promise.all([
+  const [{ items, hasMore, total }, categories] = await Promise.all([
     listItems({ category: category ?? undefined, location: location ?? undefined, limit }),
     getCategories(),
   ]);
@@ -35,6 +35,7 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
       title={t("title")}
       items={items}
       hasMore={hasMore}
+      total={total ?? items.length}
       categories={categories}
       filters={{ category, location, limit }}
       pageSize={PAGE_SIZE}

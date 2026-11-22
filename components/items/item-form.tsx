@@ -15,6 +15,7 @@ import { PlaceAssistant } from "@/components/locations/place-assistant";
 import { useHerePlace, useLocations } from "@/components/locations/locations-context";
 import { DictationField } from "@/components/dictation-field";
 import { NameFields } from "@/components/name-fields";
+import { StickyActions } from "@/components/ui/sticky-actions";
 import { Alert, Button } from "@/components/ui/buttons";
 import { recognizeItem } from "@/lib/ai/client";
 import { findIsbnBarcode } from "@/lib/books/barcode";
@@ -124,6 +125,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     choice: CoverChoice;
   } | null>(null);
   const [coverBusy, setCoverBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [coverNote, setCoverNote] = useState<string>();
   // The latest photos for async cover placement (state in an awaited callback would be stale).
   const latest = useRef({ photos, primaryKey });
@@ -430,6 +432,16 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   });
 
   const busy = isSubmitting || progress !== null;
+  // Save waits for the AI and the photos: what the form is still doing, shown on the button.
+  const waitingFor = photoBusy
+    ? t("processing")
+    : scanning
+      ? tBooks("scanning")
+      : recognizing
+        ? t("recognizing")
+        : coverBusy
+          ? tBooks("coverSearching")
+          : null;
   const limitText = usePlanLimitText();
   const fieldError = (key?: string) => (key ? errorText(key) : undefined);
 
@@ -439,6 +451,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
         photos={photos}
         primaryKey={primaryKey}
         onError={setError}
+        onProcessing={setPhotoBusy}
         onChange={(next, primary) => {
           // First photo of an item with no name yet: recognize it automatically (1 AI request).
           const v = form.getValues();
@@ -695,25 +708,27 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
         </p>
       )}
 
-      <div className="flex gap-2">
+      <StickyActions>
         <Button onClick={() => (onCancel ? onCancel() : router.back())} disabled={busy} className="flex-1">
           {tCommon("cancel")}
         </Button>
         <Button
           variant="primary"
           type="submit"
-          pending={busy}
-          disabled={offline || (mode === "create" && aiOff)}
+          pending={busy || waitingFor !== null}
+          disabled={offline || (mode === "create" && aiOff) || waitingFor !== null}
           title={mode === "create" ? limitText : undefined}
-          className="flex-[2]"
+          className="min-w-0 flex-[2]"
         >
-          {progress
-            ? t("uploading", { done: Math.min(progress.done + 1, progress.total), total: progress.total })
-            : busy
-              ? t("saving")
-              : t("save")}
+          <span className="truncate">
+            {progress
+              ? t("uploading", { done: Math.min(progress.done + 1, progress.total), total: progress.total })
+              : busy
+                ? t("saving")
+                : (waitingFor ?? t("save"))}
+          </span>
         </Button>
-      </div>
+      </StickyActions>
 
       <LocationPicker
         open={picking}

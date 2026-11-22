@@ -619,6 +619,20 @@ export type Database = {
           score: number
         }[]
       }
+      search_items_v4: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_offset?: number
+          p_terms: string[]
+        }
+        Returns: {
+          id: string
+          score: number
+          total: number
+        }[]
+      }
       seed_default_categories: { Args: { uid: string }; Returns: undefined }
       similar_items: {
         Args: {

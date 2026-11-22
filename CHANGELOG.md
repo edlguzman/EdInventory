@@ -7,6 +7,13 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.0.1 — 2026-11-22
+
+- **Save is always visible:** in "One item", "Edit" and the "Several items" review, Cancel / Save are pinned at the bottom of the screen — above the menu, or right above the keyboard while it is open; the last fields are never hidden under them. Save waits with a spinner (and says what for) while photos are processed, a barcode is read, the AI recognizes or a cover is fetched.
+- **How many:** Items shows "Total: N" (no filters) or "Found: N" — all items of the current place (with nested places, "I'm here") and category, not only those loaded on screen. Search shows "Found: N" for all results; "Show more" loads the next 50; "Select all found" takes all of them (up to 500).
+- Database: search function v4 (a page plus the total found).
+- Help updated (RU, EN, ES): "Add an item" and "Items and search".
+
 ## v2.0.0 — 2026-11-22
 
 - **My language:** English, Русский or Español, chosen at sign-up. It is the language of the interface and of your records; an English copy of every record is filled in the background. Spanish is new (whole interface, help, AI, default categories).

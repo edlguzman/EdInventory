@@ -17,6 +17,8 @@
     "empty": "Aún no hay nada. Toca la cámara abajo para añadir tu primer objeto.",
     "emptyFiltered": "Nada coincide con estos filtros.",
     "showMore": "Mostrar más",
+    "countFound": "Encontrados: {count}",
+    "countAll": "Total: {count}",
     "viewGallery": "Galería",
     "viewTable": "Tabla",
     "filterCategory": "Categoría",
@@ -97,8 +99,7 @@
     "searchedFor": "Se buscó:",
     "searching": "Buscando…",
     "nothing": "No se encontró nada. Prueba “Preguntar a la IA”: añade sinónimos.",
-    "nothingAi": "No se encontró nada.",
-    "found": "{count, plural, one {# objeto encontrado} other {# objetos encontrados}}"
+    "nothingAi": "No se encontró nada."
   },
   "add": {
     "title": "Añadir objeto"
@@ -374,7 +375,7 @@
       "add": {
         "title": "Añadir un objeto",
         "points": [
-          "Toca la cámara abajo y elige \"Un objeto\": haz una foto o elige una de la galería. La IA rellena el nombre, la descripción, la categoría y las etiquetas; revísalos y toca \"Guardar\".",
+          "Toca la cámara abajo y elige \"Un objeto\": haz una foto o elige una de la galería. La IA rellena el nombre, la descripción, la categoría y las etiquetas; revísalos y toca \"Guardar\". El botón \"Guardar\" está siempre abajo en la pantalla: sobre el menú o, con el teclado abierto, justo encima de él. Mientras la IA reconoce o se procesan las fotos, espera con un indicador de carga.",
           "Un objeto puede tener hasta 10 fotos; la principal lleva una estrella y puedes cambiarla. \"Reconocer de nuevo\" vuelve a preguntar a la IA por la foto principal.",
           "Si la misma foto ya se añadió antes, la app muestra esos objetos antes de cualquier solicitud a la IA; tú decides si añadirla otra vez.",
           "Las fotos se comprimen en el teléfono; la ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro."
@@ -408,9 +409,9 @@
       "items": {
         "title": "Objetos y búsqueda",
         "points": [
-          "La pestaña Objetos se abre en \"Estoy aquí\" (con los lugares que contiene). Filtra por lugar y categoría; ve como galería de fotos o como tabla.",
+          "La pestaña Objetos se abre en \"Estoy aquí\" (con los lugares que contiene). Filtra por lugar y categoría; ve como galería de fotos o como tabla. La línea sobre la lista muestra cuántos objetos coinciden con los filtros en total, no solo los de la pantalla: \"Total: 175\" o \"Encontrados: 12\".",
           "En un objeto: \"Editar\", \"Mover\" (desde la lista o por voz) y \"Eliminar\". La flecha \"←\" de arriba vuelve a la pantalla anterior con los mismos filtros.",
-          "Búsqueda: escribe una palabra, \"taladro\"; también lo encuentra en inglés, \"drill\". Búsqueda inteligente: toca el micrófono o \"Preguntar a la IA\" y pregunta \"¿dónde está mi taladro?\"; la IA busca palabras parecidas (una solicitud).",
+          "Búsqueda: escribe una palabra, \"taladro\"; también lo encuentra en inglés, \"drill\". Búsqueda inteligente: toca el micrófono o \"Preguntar a la IA\" y pregunta \"¿dónde está mi taladro?\"; la IA busca palabras parecidas (una solicitud). Sobre los resultados: \"Encontrados: N\"; si hay más de 50, \"Mostrar más\" carga el resto.",
           "Las categorías vienen desde el principio, en tu idioma: herramientas, cocina, ropa y más. En Ajustes puedes renombrarlas, eliminarlas y añadir las tuyas."
         ]
       },

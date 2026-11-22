@@ -17,6 +17,8 @@
     "empty": "Nothing here yet. Tap the camera below to add your first item.",
     "emptyFiltered": "Nothing matches these filters.",
     "showMore": "Show more",
+    "countFound": "Found: {count}",
+    "countAll": "Total: {count}",
     "viewGallery": "Gallery",
     "viewTable": "Table",
     "filterCategory": "Category",
@@ -97,8 +99,7 @@
     "searchedFor": "Searched for:",
     "searching": "Searching…",
     "nothing": "Nothing found. Try “Ask AI”: it adds synonyms.",
-    "nothingAi": "Nothing found.",
-    "found": "{count, plural, one {# item found} other {# items found}}"
+    "nothingAi": "Nothing found."
   },
   "add": {
     "title": "Add item"
@@ -374,7 +375,7 @@
       "add": {
         "title": "Add an item",
         "points": [
-          "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\".",
+          "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\". The \"Save\" button is always at the bottom of the screen — above the menu, or above the keyboard while it is open. While the AI is recognizing or photos are being processed, it waits with a spinner.",
           "An item can have up to 10 photos; the main one has a star, and you can change it. \"Recognize again\" asks the AI again about the main photo.",
           "If the same photo was added before, the app shows those items before any AI request — you decide whether to add it again.",
           "Photos are compressed on the phone; the location (GPS) and other data stored in the photo are removed. Take the item close up on a light background."
@@ -408,9 +409,9 @@
       "items": {
         "title": "Items and search",
         "points": [
-          "The Items tab opens on \"I'm here\" (with the places inside it). Filter by place and category; view as a photo gallery or a table.",
+          "The Items tab opens on \"I'm here\" (with the places inside it). Filter by place and category; view as a photo gallery or a table. The line above the list shows how many items match the filters in total, not only those on screen: \"Total: 175\" or \"Found: 12\".",
           "On an item: \"Edit\", \"Move\" (from the list or by voice) and \"Delete\". The \"←\" arrow at the top goes back to the previous screen with the same filters.",
-          "Search: type a word — \"drill\". Smart search: tap the mic or \"Ask AI\" and ask \"where is my drill?\" — the AI finds similar words (one request).",
+          "Search: type a word — \"drill\". Smart search: tap the mic or \"Ask AI\" and ask \"where is my drill?\" — the AI finds similar words (one request). Above the results: \"Found: N\"; if there are more than 50, \"Show more\" loads the rest.",
           "Categories are there from the start, in your language: tools, kitchen, clothes and more. In Settings you can rename and delete them and add your own."
         ]
       },
