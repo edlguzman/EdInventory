@@ -18,16 +18,20 @@ export function PhotoPicker({
   primaryKey,
   onChange,
   onError,
+  onProcessing,
 }: {
   photos: PhotoDraft[];
   primaryKey: string | null;
   onChange: (photos: PhotoDraft[], primaryKey: string | null) => void;
   onError: (key: string) => void;
+  /** True while new photos are being compressed (the form waits before saving). */
+  onProcessing?: (busy: boolean) => void;
 }) {
   const t = useTranslations("items");
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(0);
+  useEffect(() => onProcessing?.(processing > 0), [processing, onProcessing]);
   const free = MAX_PHOTOS - photos.length;
 
   // Release blob: previews of new photos when they leave the list or the form unmounts.

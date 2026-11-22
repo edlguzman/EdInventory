@@ -15,7 +15,7 @@ const uuidOrNull = (v: string) => (z.uuid().safeParse(v).success ? v : null);
 /**
  * /search?q=… — instant text search (terms = the typed words, no AI).
  * /search?ai=1&q=<transcript>&t=<terms>&loc=&cat= — after the AI turned a question into terms and filters.
- * Both run the same database search (search_items); items never go to Gemini.
+ * Both run the same database search (search_items_v4: a page plus the total found); items never go to Gemini.
  */
 export default async function SearchPage({ searchParams }: PageProps<"/search">) {
   const params = await searchParams;
@@ -39,7 +39,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     <SearchView
       q={q}
       ai={ai ? { terms: aiTerms, location, category } : null}
-      results={results}
+      results={results?.items ?? null}
+      total={results ? (results.total ?? results.items.length) : 0}
+      query={{ terms, location, category }}
       categories={categories}
     />
   );
