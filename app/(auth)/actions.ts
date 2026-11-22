@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getLocale } from "next-intl/server";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth-errors";
-import { dataLangForLocale } from "@/lib/data-lang";
+import { isLang, toLang } from "@/lib/languages";
 import { notifyAdmin } from "@/lib/notify/admin-email";
 import { notifyUser } from "@/lib/notify/user-email";
 import { safeNext } from "@/lib/safe-next";
@@ -44,19 +44,20 @@ export async function signIn(input: LoginInput, next?: string): Promise<AuthActi
   redirect(safeNext(next));
 }
 
-export async function signUp(input: SignupInput): Promise<AuthActionResult> {
+export async function signUp(input: SignupInput & { lang?: string }): Promise<AuthActionResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) return { error: "unknown" };
 
   const supabase = await createClient();
-  const dataLang = dataLangForLocale(await getLocale());
+  // "My language" chosen on the sign-up screen (it is also the screen's language); read once
+  // by the profile trigger, which also creates the default categories in it.
+  const lang = isLang(input.lang) ? input.lang : toLang(await getLocale());
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       emailRedirectTo: `${await requestOrigin()}/auth/confirm?next=/`,
-      // Data language mode from the interface language (read once by the profile trigger).
-      data: { data_lang: dataLang },
+      data: { lang },
     },
   });
   if (error) return { error: authErrorKey(error) };
@@ -65,7 +66,7 @@ export async function signUp(input: SignupInput): Promise<AuthActionResult> {
   // answers an already registered email with a fake user without identities: no email then.
   if (data.user?.identities?.length) {
     const email = parsed.data.email;
-    after(() => Promise.all([notifyAdmin({ kind: "signup", email }), notifyUser({ kind: "registered", to: email, dataLang })]));
+    after(() => Promise.all([notifyAdmin({ kind: "signup", email }), notifyUser({ kind: "registered", to: email, lang })]));
   }
 
   // Email confirmation off: Supabase returns a session right away.

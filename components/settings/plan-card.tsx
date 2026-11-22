@@ -1,4 +1,5 @@
 import { HelpButton } from "@/components/help/help-sheet";
+import { planName } from "@/lib/plan-names";
 import { Gauge, Sparkles } from "lucide-react";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import type { MyPlan } from "@/lib/plans";
@@ -9,7 +10,7 @@ const WARN_AT = 0.9;
 /** Settings: "Plan: Free · 45 of 200 items", AI requests in 24 h, warnings near and at the limit. */
 export async function PlanCard({ plan }: { plan: MyPlan }) {
   const [t, locale, format] = await Promise.all([getTranslations("plan"), getLocale(), getFormatter()]);
-  const name = locale === "ru" ? plan.nameRu : plan.nameEn;
+  const name = planName(plan.names, locale, plan.code);
   const limit = plan.isAdmin ? null : plan.itemLimit;
   const share = limit ? Math.min(1, plan.itemsCount / limit) : 0;
   const left = limit === null ? null : Math.max(0, limit - plan.itemsCount);

@@ -77,7 +77,7 @@ export function recognizeItem(image: Blob, locale: string) {
   return call<RecognizeSingleResult>(
     "/api/ai/recognize",
     form({ image, meta: { locale } }),
-    (d): d is RecognizeSingleResult => isObject(d) && typeof d.name_ru === "string",
+    (d): d is RecognizeSingleResult => isObject(d) && typeof d.name_local === "string",
   );
 }
 
@@ -91,7 +91,7 @@ export function recognizeItems(image: Blob, locale: string) {
 }
 
 /** Dictation into one field: the recording -> text in the field's language. 1 unit of the daily limit. */
-export function transcribe(audio: Blob, meta: { lang: "ru" | "en"; kind: "name" | "description" }) {
+export function transcribe(audio: Blob, meta: { slot: "local" | "en"; kind: "name" | "description" }) {
   return call<TranscribeResult>(
     "/api/ai/transcribe",
     form({ audio, meta }),
@@ -132,7 +132,7 @@ export type TranslateBatchResult = { translated: number; remaining: number };
  * The server reads the records itself; one pack = 1 unit of the daily limit.
  */
 export function translateBatch(input: {
-  langs?: ("ru" | "en")[];
+  slot?: "en" | "local";
   targets?: { type: "item" | "location" | "category"; id: string }[];
 }) {
   return call<TranslateBatchResult>(

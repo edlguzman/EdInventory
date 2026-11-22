@@ -9,8 +9,8 @@ import type { ItemSuggestion } from "@/lib/ai/types";
 /**
  * Item details heard in a voice phrase, shown as a suggestion.
  * Nothing changes in the form until the user taps "Accept".
- * Only the languages of the data mode are shown; in ru mode the English text from the
- * same AI answer is accepted along with it (it stays hidden).
+ * Only the fields shown in this mode are listed; with only my language shown, the English
+ * text from the same AI answer is accepted along with it (it stays hidden).
  */
 export function ItemSuggestionCard({
   suggestion,
@@ -24,17 +24,22 @@ export function ItemSuggestionCard({
   const t = useTranslations("voice");
   const tItems = useTranslations("items");
   const tCommon = useTranslations("common");
-  const { edit } = useDataLang();
+  const { edit, lang: myLang } = useDataLang();
   const one = edit.length === 1;
+  const code = myLang.toUpperCase();
   const rows: [string, string][] = [];
-  for (const lang of edit) {
-    const name = lang === "ru" ? suggestion.name_ru : suggestion.name_en;
-    const description = lang === "ru" ? suggestion.description_ru : suggestion.description_en;
-    if (name) rows.push([one ? tCommon("name") : tCommon(lang === "ru" ? "nameRu" : "nameEn"), name]);
+  for (const slot of edit) {
+    const name = slot === "local" ? suggestion.name_local : suggestion.name_en;
+    const description = slot === "local" ? suggestion.description_local : suggestion.description_en;
+    if (name) rows.push([one ? tCommon("name") : slot === "local" ? tCommon("nameLocal", { lang: code }) : tCommon("nameEn"), name]);
     if (description)
-      rows.push([one ? tItems("description") : tItems(lang === "ru" ? "descriptionRu" : "descriptionEn"), description]);
+      rows.push([
+        one ? tItems("description") : slot === "local" ? tItems("descriptionLocal", { lang: code }) : tItems("descriptionEn"),
+        description,
+      ]);
   }
-  if (suggestion.tags_add.length) rows.push([tItems("tags"), suggestion.tags_add.map((x) => `+ ${x}`).join(", ")]);
+  const tagsAdd = edit.flatMap((slot) => (slot === "local" ? suggestion.tags_add_local : suggestion.tags_add_en));
+  if (tagsAdd.length) rows.push([tItems("tags"), tagsAdd.map((x) => `+ ${x}`).join(", ")]);
 
   return (
     <section aria-label={t("suggestionTitle")} className="flex flex-col gap-3 rounded-xl border border-accent/40 bg-surface p-3">

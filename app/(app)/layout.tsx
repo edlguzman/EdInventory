@@ -37,19 +37,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     return <AccountBlocked status={profile?.status === "disabled" ? "disabled" : "pending"} email={user.email ?? ""} />;
   }
 
-  const mode = profile.dataLang;
+  const data = profile.dataLang;
   const [locations, pendingCount, missingEn, plan] = await Promise.all([
     getLocations(),
     profile.isAdmin ? getPendingCount() : 0,
-    // Ru mode keeps English filled in the background; catch up what a failed save left.
-    mode === "ru" ? createClient().then((supabase) => countMissing(supabase, ["en"])) : 0,
+    // English is kept filled in the background; catch up what a failed save left.
+    data.mode !== "en" ? createClient().then((supabase) => countMissing(supabase, "en", data.lang)) : 0,
     getMyPlan(),
   ]);
   // Plan item limit reached: all AI is off, including the silent background translation.
   const silentMissingEn = plan?.atItemLimit ? 0 : missingEn;
   const planState = plan && {
-    nameRu: plan.nameRu,
-    nameEn: plan.nameEn,
+    names: plan.names,
     itemLimit: plan.itemLimit,
     atItemLimit: plan.atItemLimit,
   };
@@ -57,7 +56,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <PlanProvider plan={planState}>
-      <DataLangProvider mode={mode} silentMissingEn={silentMissingEn}>
+      <DataLangProvider data={data} silentMissingEn={silentMissingEn}>
         <LocationsProvider locations={locations} userId={user.id}>
           <LocationDialogsProvider>
             <CurrentLocationBar />

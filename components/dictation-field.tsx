@@ -5,13 +5,13 @@ import { Languages, LoaderCircle, Mic, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { transcribe, translateName } from "@/lib/ai/client";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
+import { slotLang, type Slot } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
+import { useDataLang } from "./data-lang/context";
 import { useOffline } from "./offline-banner";
 import { useAiOff, usePlanLimitText } from "./plan-context";
 import { Button } from "./ui/buttons";
 import { RecordingStatus } from "./voice-input";
-
-type Lang = "ru" | "en";
 
 type State =
   | { kind: "idle" }
@@ -32,13 +32,13 @@ function appendText(current: string, added: string, kind: "name" | "description"
  * A text field with dictation: the label row gets a mic button. The recording goes to
  * /api/ai/transcribe (text in the field's language, 1 AI unit) and comes back as a suggestion
  * under the field: "Insert" (empty field) or "Replace" / "Append", and "Cancel". Nothing
- * changes without a tap. In ru_en (`other` given), after a change while the other language
- * already has text, "Update translation" is offered (/api/ai/translate, 1 AI unit).
+ * changes without a tap. With English next to it (`other` given), after a change while the other
+ * field already has text, "Update translation" is offered (/api/ai/translate, 1 AI unit).
  */
 export function DictationField({
   label,
   htmlFor,
-  lang,
+  slot,
   kind,
   max,
   getValue,
@@ -48,15 +48,18 @@ export function DictationField({
 }: {
   label: string;
   htmlFor: string;
-  lang: Lang;
+  /** The field's slot: the user's language or English. */
+  slot: Slot;
   kind: "name" | "description";
   max: number;
   getValue: () => string;
   setValue: (value: string) => void;
-  other?: { lang: Lang; get: () => string; set: (value: string) => void };
+  other?: { slot: Slot; get: () => string; set: (value: string) => void };
   children: React.ReactNode;
 }) {
   const t = useTranslations("dictation");
+  const { lang: myLang } = useDataLang();
+  const lang = slotLang(slot, myLang);
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const offline = useOffline();
@@ -68,7 +71,7 @@ export function DictationField({
   const recorder = useVoiceRecorder({
     onAudio: async (audio) => {
       setState({ kind: "busy" });
-      const r = await transcribe(audio, { lang, kind });
+      const r = await transcribe(audio, { slot, kind });
       if ("error" in r) {
         setError(r.error);
         return setState({ kind: "idle" });
@@ -95,7 +98,7 @@ export function DictationField({
   async function updateTranslation(text: string) {
     if (!other) return;
     setState({ kind: "translating" });
-    const r = await translateName({ text, from: lang, kind });
+    const r = await translateName({ text, from: slot, kind });
     if ("error" in r) {
       setError(r.error);
       return setState({ kind: "offerTranslation", text });
@@ -184,7 +187,7 @@ export function DictationField({
             disabled={offline || aiOff}
           >
             {state.kind !== "translating" && <Languages className="size-5" aria-hidden />}
-            {t("updateTranslation", { lang: other.lang.toUpperCase() })}
+            {t("updateTranslation", { lang: slotLang(other.slot, myLang).toUpperCase() })}
           </Button>
           {state.kind === "offerTranslation" && (
             <Button variant="ghost" onClick={() => setState({ kind: "idle" })}>

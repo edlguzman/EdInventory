@@ -1,11 +1,12 @@
 "use client";
 
 import { createContext, use } from "react";
+import { planName, type PlanNames } from "@/lib/plan-names";
 import { Gauge } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 /** What the client needs to know about the plan: the item limit is reached (admins: never). */
-export type PlanState = { nameRu: string; nameEn: string; itemLimit: number | null; atItemLimit: boolean };
+export type PlanState = { names: PlanNames; itemLimit: number | null; atItemLimit: boolean };
 
 const PlanContext = createContext<PlanState | null>(null);
 
@@ -27,7 +28,7 @@ export function usePlanLimitText(): string | undefined {
   const locale = useLocale();
   const t = useTranslations("plan");
   if (!plan?.atItemLimit) return undefined;
-  return t("limitReached", { plan: locale === "ru" ? plan.nameRu : plan.nameEn });
+  return t("limitReached", { plan: planName(plan.names, locale) });
 }
 
 /** A bar under the header while the limit is reached (like the offline bar). */

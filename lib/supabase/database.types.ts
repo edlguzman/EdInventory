@@ -39,7 +39,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lang: string | null
           name_en: string | null
+          name_local: string | null
           name_ru: string | null
           sort_order: number
           user_id: string
@@ -47,7 +49,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lang?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           sort_order?: number
           user_id?: string
@@ -55,7 +59,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lang?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           sort_order?: number
           user_id?: string
@@ -108,14 +114,20 @@ export type Database = {
           category_id: string | null
           created_at: string
           description_en: string | null
+          description_local: string | null
           description_ru: string | null
           id: string
+          lang: string | null
           location_id: string | null
           name_en: string | null
+          name_local: string | null
           name_ru: string | null
           search_text: string | null
           search_text_v2: string | null
+          search_text_v3: string | null
           tags: string[]
+          tags_en: string[]
+          tags_local: string[]
           updated_at: string
           user_id: string
         }
@@ -126,14 +138,20 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description_en?: string | null
+          description_local?: string | null
           description_ru?: string | null
           id?: string
+          lang?: string | null
           location_id?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           search_text?: string | null
           search_text_v2?: string | null
+          search_text_v3?: string | null
           tags?: string[]
+          tags_en?: string[]
+          tags_local?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -144,14 +162,20 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description_en?: string | null
+          description_local?: string | null
           description_ru?: string | null
           id?: string
+          lang?: string | null
           location_id?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           search_text?: string | null
           search_text_v2?: string | null
+          search_text_v3?: string | null
           tags?: string[]
+          tags_en?: string[]
+          tags_local?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -176,7 +200,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lang: string | null
           name_en: string | null
+          name_local: string | null
           name_ru: string | null
           parent_id: string | null
           sort_order: number
@@ -185,7 +211,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lang?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           parent_id?: string | null
           sort_order?: number
@@ -194,7 +222,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lang?: string | null
           name_en?: string | null
+          name_local?: string | null
           name_ru?: string | null
           parent_id?: string | null
           sort_order?: number
@@ -218,6 +248,7 @@ export type Database = {
           item_limit: number | null
           name_en: string
           name_ru: string
+          names: Json
           sort_order: number
           stripe_price_month: string | null
           stripe_price_year: string | null
@@ -229,6 +260,7 @@ export type Database = {
           item_limit?: number | null
           name_en: string
           name_ru: string
+          names?: Json
           sort_order?: number
           stripe_price_month?: string | null
           stripe_price_year?: string | null
@@ -240,6 +272,7 @@ export type Database = {
           item_limit?: number | null
           name_en?: string
           name_ru?: string
+          names?: Json
           sort_order?: number
           stripe_price_month?: string | null
           stripe_price_year?: string | null
@@ -250,9 +283,11 @@ export type Database = {
         Row: {
           created_at: string
           data_lang: string
+          lang: string
           manual_plan: string | null
           manual_until: string | null
           role: string
+          show_english: boolean
           status: string
           status_changed_at: string | null
           stripe_customer_id: string | null
@@ -265,9 +300,11 @@ export type Database = {
         Insert: {
           created_at?: string
           data_lang?: string
+          lang?: string
           manual_plan?: string | null
           manual_until?: string | null
           role?: string
+          show_english?: boolean
           status?: string
           status_changed_at?: string | null
           stripe_customer_id?: string | null
@@ -280,9 +317,11 @@ export type Database = {
         Update: {
           created_at?: string
           data_lang?: string
+          lang?: string
           manual_plan?: string | null
           manual_until?: string | null
           role?: string
+          show_english?: boolean
           status?: string
           status_changed_at?: string | null
           stripe_customer_id?: string | null
@@ -346,6 +385,18 @@ export type Database = {
         }
         Relationships: []
       }
+      location_paths_v2: {
+        Row: {
+          depth: number | null
+          id: string | null
+          id_path: string[] | null
+          parent_id: string | null
+          path_en: string | null
+          path_local: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_check_delete: { Args: { p_user_id: string }; Returns: string }
@@ -356,6 +407,15 @@ export type Database = {
           p_item_limit: number
           p_name_en: string
           p_name_ru: string
+        }
+        Returns: undefined
+      }
+      admin_create_plan_v2: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_names: Json
         }
         Returns: undefined
       }
@@ -436,6 +496,14 @@ export type Database = {
           old_status: string
         }[]
       }
+      admin_set_status_v2: {
+        Args: { p_status: string; p_user_id: string }
+        Returns: {
+          email: string
+          lang: string
+          old_status: string
+        }[]
+      }
       admin_update_plan: {
         Args: {
           p_ai_daily_limit: number
@@ -447,11 +515,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_update_plan_v2: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_names: Json
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
       consume_ai_quota_v2: {
         Args: { p_fallback: number; p_kind: string }
         Returns: string
       }
       delete_my_account: { Args: never; Returns: undefined }
+      display_text: {
+        Args: { en: string; local: string; rec_lang: string; user_lang: string }
+        Returns: string
+      }
       effective_plan: {
         Args: { p_user: string }
         Returns: {
@@ -483,7 +565,24 @@ export type Database = {
           until: string
         }[]
       }
+      my_plan_v2: {
+        Args: never
+        Returns: {
+          ai_daily_limit: number
+          ai_used_24h: number
+          code: string
+          is_admin: boolean
+          item_limit: number
+          items_count: number
+          names: Json
+          source: string
+          until: string
+        }[]
+      }
       normalize_search: { Args: { t: string }; Returns: string }
+      normalize_search_v2: { Args: { t: string }; Returns: string }
+      owner_lang: { Args: { uid: string }; Returns: string }
+      plan_names_valid: { Args: { p_names: Json }; Returns: boolean }
       search_items: {
         Args: {
           p_category_id?: string
@@ -497,6 +596,18 @@ export type Database = {
         }[]
       }
       search_items_v2: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_terms: string[]
+        }
+        Returns: {
+          id: string
+          score: number
+        }[]
+      }
+      search_items_v3: {
         Args: {
           p_category_id?: string
           p_limit?: number
@@ -523,6 +634,29 @@ export type Database = {
           score: number
         }[]
       }
+      similar_items_v2: {
+        Args: {
+          p_location_id?: string
+          p_min?: number
+          p_names_en: string[]
+          p_names_local: string[]
+        }
+        Returns: {
+          idx: number
+          in_place: boolean
+          item_id: string
+          score: number
+        }[]
+      }
+      tags_split_en: {
+        Args: { lang: string; tags: string[] }
+        Returns: string[]
+      }
+      tags_split_local: {
+        Args: { lang: string; tags: string[] }
+        Returns: string[]
+      }
+      tags_union: { Args: { a: string[]; b: string[] }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

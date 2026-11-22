@@ -15,9 +15,9 @@ import { useErrorText } from "@/lib/use-error-text";
 type Step = "place" | "here" | "how";
 
 const PRESETS = [
-  { key: "apartment", icon: Building2, ru: "Квартира", en: "Apartment" },
-  { key: "house", icon: Home, ru: "Дом", en: "House" },
-  { key: "dacha", icon: Warehouse, ru: "Дача", en: "Country house" },
+  { key: "apartment", icon: Building2, en: "Apartment" },
+  { key: "house", icon: Home, en: "House" },
+  { key: "dacha", icon: Warehouse, en: "Country house" },
 ] as const;
 
 /**
@@ -49,10 +49,10 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
       if (goTo) router.push(goTo);
     });
 
-  const create = (name_ru: string, name_en: string) =>
+  const create = (name_local: string, name_en: string) =>
     startTransition(async () => {
       setError(undefined);
-      const result = await createLocation({ name_ru, name_en, parent_id: null });
+      const result = await createLocation({ name_local, name_en, parent_id: null });
       if (!result.ok) return setError(result.error);
       setPlaceId(result.data.id);
       setStep("here");
@@ -90,12 +90,13 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
             <p className="text-muted">{t("placeIntro")}</p>
             {error && <Alert>{errorText(error)}</Alert>}
             <div className="grid grid-cols-3 gap-2">
-              {PRESETS.map(({ key, icon: Icon, ru, en }) => (
+              {PRESETS.map(({ key, icon: Icon, en }) => (
                 <button
                   key={key}
                   type="button"
                   disabled={pending}
-                  onClick={() => create(ru, en)}
+                  // My language: the label as shown (English users: English only).
+                  onClick={() => create(dataMode === "en" ? "" : t(`presets.${key}`), en)}
                   className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 text-sm font-medium disabled:opacity-50"
                 >
                   <Icon className="size-6 text-accent" aria-hidden />
@@ -107,7 +108,7 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = custom.trim();
-                // The typed name goes into the language of the data mode (ru_en: Russian, copied to English).
+                // The typed name goes into my language (English for English users); English is filled in the background.
                 if (name) create(dataMode === "en" ? "" : name, dataMode === "en" ? name : "");
               }}
               className="flex gap-2"

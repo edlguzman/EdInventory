@@ -1,14 +1,19 @@
-/** Answers of /api/ai/* routes after server-side checks (ids belong to the user, "" -> null). */
+/**
+ * Answers of /api/ai/* routes after server-side checks (ids belong to the user, "" -> null).
+ * Languages: *_local is the user's language (profiles.lang), *_en English. For a user whose
+ * language is English every *_local field is "" / [] (the server clears them).
+ */
 
 import type { BookInfo } from "@/lib/books/isbn";
 
 export type RecognizeResult = {
-  name_ru: string;
+  name_local: string;
   name_en: string;
-  description_ru: string;
+  description_local: string;
   description_en: string;
   category_id: string | null;
-  tags: string[];
+  tags_local: string[];
+  tags_en: string[];
   /** A book: author, year, ISBN as recognized (null = not a book). */
   book: BookInfo | null;
 };
@@ -18,18 +23,19 @@ export type RecognizeSingleResult = RecognizeResult & { booksCategoryMissing: bo
 
 /** Changes to the item mentioned in a voice phrase ("it's dad's old drill, broken"). null = no change. */
 export type ItemSuggestion = {
-  name_ru: string | null;
+  name_local: string | null;
   name_en: string | null;
-  description_ru: string | null;
+  description_local: string | null;
   description_en: string | null;
-  tags_add: string[];
+  tags_add_local: string[];
+  tags_add_en: string[];
 };
 
 export type PlaceResult = {
   transcript: string;
   match: string | null;
   /** Missing part of the path: create `names` one inside another, starting under `parent_id` (null = top level). */
-  create: { parent_id: string | null; names: { name_ru: string; name_en: string }[] } | null;
+  create: { parent_id: string | null; names: { name_local: string; name_en: string }[] } | null;
   ambiguous: string[];
   item: ItemSuggestion | null;
 };
@@ -45,11 +51,12 @@ export type PlaceMode = "form" | "move";
 
 /** Current form values sent with a "form" phrase, so suggestions can merge with them. */
 export type ItemContext = {
-  name_ru: string;
+  name_local: string;
   name_en: string;
-  description_ru: string;
+  description_local: string;
   description_en: string;
-  tags: string[];
+  tags_local: string[];
+  tags_en: string[];
 };
 
 /** One item found on a photo of several items; box = [ymin, xmin, ymax, xmax], 0–1000. */
@@ -63,11 +70,11 @@ export type TranscribeResult = { text: string };
 /** "Sort into categories": an existing category of the user, or a new one to create. */
 export type CategorySuggestion =
   | { categoryId: string; newCategory: null }
-  | { categoryId: null; newCategory: { name_ru: string; name_en: string } };
+  | { categoryId: null; newCategory: { name_local: string; name_en: string } };
 
 export type CategorizedItem = {
   id: string;
-  nameRu: string | null;
+  nameLocal: string | null;
   nameEn: string | null;
   currentCategoryId: string | null;
   /** null: the model gave no usable answer for this item (left as it is). */

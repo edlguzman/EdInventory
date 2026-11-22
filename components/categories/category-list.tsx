@@ -15,7 +15,7 @@ import { pickText } from "@/lib/data-lang";
 import { useErrorText } from "@/lib/use-error-text";
 import { CATEGORY_NAME_MAX, categoryNamesSchema, type NamePairInput } from "@/lib/validation/names";
 
-export type Category = { id: string; name_ru: string | null; name_en: string | null };
+export type Category = { id: string; name_local: string | null; name_en: string | null };
 
 type Dialog = { kind: "create" } | { kind: "edit"; category: Category } | { kind: "delete"; category: Category };
 
@@ -25,9 +25,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
   const { display: locale, mode } = useDataLang();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const close = () => setDialog(null);
-  const label = (c: Category) => pickText(c.name_ru, c.name_en, locale);
-  // The second line (other language) only in the two-language mode.
-  const other = (c: Category) => (mode !== "ru_en" ? null : locale === "en" ? c.name_ru : c.name_en);
+  const label = (c: Category) => pickText(c.name_local, c.name_en, locale);
+  // The second line (English) only with English shown next to my language.
+  const other = (c: Category) => (mode === "local_en" && c.name_local ? c.name_en : null);
 
   return (
     <section className="flex flex-col gap-3">
@@ -82,10 +82,12 @@ function CategoryFormSheet({ category, onClose }: { category?: Category; onClose
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const { mode } = useDataLang();
+  const foreign = mode !== "en" && !!category && !category.name_local;
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
-    resolver: zodResolver(categoryNamesSchema(mode)),
-    defaultValues: { name_ru: category?.name_ru ?? "", name_en: category?.name_en ?? "" },
+    // A category not in my language (no own-language name) is edited through English.
+    resolver: zodResolver(categoryNamesSchema(mode, foreign)),
+    defaultValues: { name_local: category?.name_local ?? "", name_en: category?.name_en ?? "" },
   });
 
   const submit = form.handleSubmit(async (names) => {
@@ -113,7 +115,7 @@ function CategoryFormSheet({ category, onClose }: { category?: Category; onClose
     >
       <form id="category-form" onSubmit={submit} noValidate className="flex flex-col gap-4">
         {error && <Alert>{errorText(error)}</Alert>}
-        <NameFields form={form} max={CATEGORY_NAME_MAX} />
+        <NameFields form={form} max={CATEGORY_NAME_MAX} foreign={foreign} />
       </form>
     </Sheet>
   );

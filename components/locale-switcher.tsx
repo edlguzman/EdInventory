@@ -3,11 +3,14 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { locales } from "@/i18n/config";
 import { setLocale } from "@/i18n/actions";
+import { LANGUAGES } from "@/lib/languages";
 
-/** Full variant for settings; `compact` is a small RU/EN toggle for the auth screens. */
-export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
+/**
+ * Small EN / RU / ES toggle for guests (sign-in and sign-up screens, /help before signing in).
+ * Signed-in users have no switch: their interface is "my language", changed in Settings.
+ */
+export function LocaleSwitcher() {
   const t = useTranslations("settings");
   const current = useLocale();
   const router = useRouter();
@@ -19,54 +22,27 @@ export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
       router.refresh();
     });
 
-  if (compact) {
-    return (
-      <div role="group" aria-label={t("language")} className="flex rounded-xl border border-border p-0.5">
-        {locales.map((locale) => {
-          const active = locale === current;
-          return (
-            <button
-              key={locale}
-              type="button"
-              lang={locale}
-              disabled={pending}
-              aria-pressed={active}
-              aria-label={t(`languages.${locale}`)}
-              onClick={() => change(locale)}
-              className={`min-h-10 min-w-11 rounded-lg px-2 text-sm font-medium uppercase disabled:opacity-60 ${
-                active ? "bg-surface text-foreground" : "text-muted"
-              }`}
-            >
-              {locale}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
   return (
-    <fieldset disabled={pending} className="flex flex-col gap-2">
-      <legend className="mb-2 text-sm font-medium text-muted">{t("language")}</legend>
-      <div className="grid grid-cols-2 gap-2">
-        {locales.map((locale) => {
-          const active = locale === current;
-          return (
-            <button
-              key={locale}
-              type="button"
-              lang={locale}
-              aria-pressed={active}
-              onClick={() => change(locale)}
-              className={`min-h-11 rounded-xl border px-4 font-medium transition-colors disabled:opacity-60 ${
-                active ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
-              }`}
-            >
-              {t(`languages.${locale}`)}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
+    <div role="group" aria-label={t("language")} className="flex rounded-xl border border-border p-0.5">
+      {LANGUAGES.filter((l) => l.enabled).map(({ code, native }) => {
+        const active = code === current;
+        return (
+          <button
+            key={code}
+            type="button"
+            lang={code}
+            disabled={pending}
+            aria-pressed={active}
+            aria-label={native}
+            onClick={() => change(code)}
+            className={`min-h-10 min-w-10 rounded-lg px-1.5 text-sm font-medium uppercase disabled:opacity-60 ${
+              active ? "bg-surface text-foreground" : "text-muted"
+            }`}
+          >
+            {code}
+          </button>
+        );
+      })}
+    </div>
   );
 }

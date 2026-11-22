@@ -4,7 +4,8 @@ import { z } from "zod";
 export const translateRequestSchema = z
   .object({
     text: z.string().trim().min(1).max(2000),
-    from: z.enum(["ru", "en"]),
+    /** Slot of the source text: "local" (the user's language) or "en"; the server knows the language. */
+    from: z.enum(["local", "en"]),
     kind: z.enum(["name", "description"]).default("name"),
   })
   .refine((v) => v.kind === "description" || v.text.length <= 200);

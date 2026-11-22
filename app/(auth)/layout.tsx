@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {t("name")}
         </div>
         <div className="flex items-center gap-1">
-          <LocaleSwitcher compact />
+          <LocaleSwitcher />
           <HelpButton topic="start" />
         </div>
       </div>

@@ -152,7 +152,7 @@ export function SearchView({
               {category && (
                 <Link href={without("cat")} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-accent px-2 text-accent">
                   <Tag className="size-4" aria-hidden />
-                  {pickText(category.name_ru, category.name_en, locale)}
+                  {pickText(category.name_local, category.name_en, locale)}
                   <X className="size-4" aria-label={t("removeFilter")} />
                 </Link>
               )}

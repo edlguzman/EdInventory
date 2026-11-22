@@ -155,7 +155,7 @@ function CreateSheet({ parentId, onClose, notify }: { parentId: string | null; o
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
     resolver: zodResolver(locationNamesSchema(mode)),
-    defaultValues: { name_ru: "", name_en: "" },
+    defaultValues: { name_local: "", name_en: "" },
   });
   const parentNode = parent ? byId.get(parent) : undefined;
 
@@ -227,10 +227,12 @@ function RenameSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const { byId } = useLocations();
   const { mode } = useDataLang();
   const loc = byId.get(id);
+  // A place not in my language is renamed through English.
+  const foreign = mode !== "en" && !!loc && !loc.nameLocal;
   const [error, setError] = useState<string>();
   const form = useForm<NamePairInput>({
-    resolver: zodResolver(locationNamesSchema(mode)),
-    defaultValues: { name_ru: loc?.nameRu ?? "", name_en: loc?.nameEn ?? "" },
+    resolver: zodResolver(locationNamesSchema(mode, foreign)),
+    defaultValues: { name_local: loc?.nameLocal ?? "", name_en: loc?.nameEn ?? "" },
   });
   if (!loc) return null;
 
@@ -259,7 +261,7 @@ function RenameSheet({ id, onClose }: { id: string; onClose: () => void }) {
     >
       <form id="location-rename" onSubmit={submit} noValidate className="flex flex-col gap-4">
         {error && <Alert>{errorText(error)}</Alert>}
-        <NameFields form={form} max={LOCATION_NAME_MAX} />
+        <NameFields form={form} max={LOCATION_NAME_MAX} foreign={foreign} />
       </form>
     </Sheet>
   );

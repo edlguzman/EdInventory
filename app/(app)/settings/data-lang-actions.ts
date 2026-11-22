@@ -1,30 +1,63 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUser } from "@/lib/auth";
-import { isDataLang, promptLangs, type TextLang } from "@/lib/data-lang";
+import { cookies } from "next/headers";
+import { aiRequestsLeft } from "@/app/(app)/items/bulk-actions";
+import { getProfile, getUser } from "@/lib/auth";
+import { LOCALE_COOKIE } from "@/i18n/config";
+import { isLang } from "@/lib/languages";
 import { createClient } from "@/lib/supabase/server";
-import { countMissing } from "@/lib/translate/records";
+import { estimatePacks } from "@/lib/translate/records";
 
-export type SetDataLangResult = { ok: true; missing: number; langs: TextLang[] } | { ok: false };
+export type LanguageChangePreview =
+  | { ok: true; records: number; requests: number; aiLeft: number | null }
+  | { ok: false };
 
 /**
- * Switches the data language mode. Instant: nothing is deleted or rewritten, the other
- * language is only hidden or shown. Returns how many records lack text in the languages
- * the new mode shows, so the client can offer to translate them.
- * The database lets a user update only this column of their own profile.
+ * Before changing "my language": how many records would have no text in `next` (shown in
+ * English until translated) and about how many AI requests translating them takes.
  */
-export async function setDataLang(mode: string): Promise<SetDataLangResult> {
-  if (!isDataLang(mode)) return { ok: false };
+export async function previewLanguageChange(next: string): Promise<LanguageChangePreview> {
+  if (!isLang(next)) return { ok: false };
   const user = await getUser();
   if (!user) return { ok: false };
-
   const supabase = await createClient();
-  const { error } = await supabase.from("profiles").update({ data_lang: mode }).eq("user_id", user.id).select("data_lang").single();
-  if (error) return { ok: false };
+  const [estimate, aiLeft] = await Promise.all([estimatePacks(supabase, "local", next), aiRequestsLeft()]);
+  return { ok: true, ...estimate, aiLeft };
+}
 
-  const langs = promptLangs(mode);
-  const missing = await countMissing(supabase, langs);
+/**
+ * Changes "my language": the interface and new records. Nothing is deleted or rewritten here;
+ * records in the old language are shown in English until translated (the client starts that
+ * only if the user agreed). The database lets a user update only lang / show_english of
+ * their own profile. The locale cookie follows, so the sign-in screen matches after signing out.
+ */
+export async function setMyLanguage(next: string): Promise<{ ok: boolean }> {
+  if (!isLang(next)) return { ok: false };
+  const user = await getUser();
+  if (!user) return { ok: false };
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ lang: next }).eq("user_id", user.id).select("lang").single();
+  if (error) return { ok: false };
+  (await cookies()).set(LOCALE_COOKIE, next, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   revalidatePath("/", "layout");
-  return { ok: true, missing, langs };
+  return { ok: true };
+}
+
+/** "Show English next to it" (not for English as "my language"). */
+export async function setShowEnglish(show: boolean): Promise<{ ok: boolean }> {
+  const profile = await getProfile();
+  if (!profile || typeof show !== "boolean" || (show && profile.lang === "en")) return { ok: false };
+  const user = await getUser();
+  if (!user) return { ok: false };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ show_english: show })
+    .eq("user_id", user.id)
+    .select("show_english")
+    .single();
+  if (error) return { ok: false };
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

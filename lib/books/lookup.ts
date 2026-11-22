@@ -13,8 +13,24 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 1000;
 const cache = new Map<string, { value: BookLookup | null; expires: number }>();
 
-type Partial = Omit<BookLookup, "isbn">;
+type Partial = Omit<BookLookup, "isbn" | "titleEn">;
 const EMPTY: Partial = { title: null, author: null, year: null, description: null, language: null };
+
+/**
+ * ISBN groups of English-language publishing (978-0, 978-1, 979-8): a book there with no
+ * language from the catalogues is taken as English (Open Library's answer has no language).
+ */
+const ENGLISH_GROUP_PREFIXES = ["9780", "9781", "9798"];
+
+/**
+ * English title: the book's own title when it is in English. The catalogues give only the
+ * title of this edition, so a translated book gets null (the user's language field keeps the
+ * printed title; English is filled in by the usual translation).
+ */
+function englishTitle(p: Partial, isbn13: string): string | null {
+  const language = p.language ?? (ENGLISH_GROUP_PREFIXES.some((g) => isbn13.startsWith(g)) ? "en" : null);
+  return language === "en" ? p.title : null;
+}
 
 /** A catalogue answered with an HTTP error; only the status is kept (never the URL: it may hold the key). */
 class CatalogueError extends Error {
@@ -152,7 +168,7 @@ export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
     }
   }
 
-  const value = found ? { isbn, ...result } : null;
+  const value: BookLookup | null = found ? { isbn, ...result, titleEn: englishTitle(result, key) } : null;
   // Do not remember "not found" when a catalogue was down: next time it may answer.
   if (failures === 0 || found) {
     if (cache.size >= CACHE_MAX) cache.clear();

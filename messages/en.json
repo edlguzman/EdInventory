@@ -33,7 +33,6 @@
     "colPlace": "Place",
     "colCategory": "Category",
     "description": "Description",
-    "descriptionRu": "Description (RU)",
     "descriptionEn": "Description (EN)",
     "category": "Category",
     "place": "Place",
@@ -81,7 +80,10 @@
     "placeVoiceHint": "Or say where you put it, details about the item welcome:",
     "placeIsHere": "This is your \"I'm here\" place: it stays for the next items too.",
     "isHere": "I'm here",
-    "loadingMore": "Loading more…"
+    "loadingMore": "Loading more…",
+    "descriptionLocal": "Description ({lang})",
+    "tagsLocal": "Tags ({lang})",
+    "tagsEn": "Tags (EN)"
   },
   "search": {
     "title": "Search",
@@ -142,7 +144,8 @@
     "language": "Interface language",
     "languages": {
       "ru": "Русский",
-      "en": "English"
+      "en": "English",
+      "es": "Español"
     },
     "account": "Account",
     "signedInAs": "Signed in as",
@@ -174,7 +177,9 @@
       "haveAccount": "Already have an account?",
       "loginLink": "Sign in",
       "checkEmailTitle": "Check your email",
-      "checkEmail": "We sent an email to {email}. Open the link in it to confirm your address."
+      "checkEmail": "We sent an email to {email}. Open the link in it to confirm your address.",
+      "myLanguage": "My language",
+      "myLanguageHint": "The interface and your records. You can change it later in Settings."
     },
     "forgot": {
       "title": "Reset password",
@@ -218,12 +223,12 @@
     "translate": "Translate",
     "translating": "Translating…",
     "name": "Name",
-    "nameRu": "Name (RU)",
     "nameEn": "Name (EN)",
-    "nameHint": "You can fill in one field. An empty English name gets the Russian text; the Translate button fills the other field with a translation.",
+    "nameHint": "You can fill in one field: the other one is translated automatically after saving. The Translate button does it right away.",
     "moreActions": "More actions",
     "search": "Search",
-    "back": "Back"
+    "back": "Back",
+    "nameLocal": "Name ({lang})"
   },
   "errors": {
     "nameRequired": "Enter a name in at least one language",
@@ -360,9 +365,9 @@
         "title": "Getting started",
         "points": [
           "After you sign up, an administrator approves your account. Until then you only see \"Your account is awaiting approval\" after signing in; once approved, reload the page.",
+          "When signing up, pick \"My language\" (English, Русский or Español): the interface and your records will be in it. You can change it later in Settings.",
           "The help opens with the \"?\" at the top of any screen — right on the matching section. Close it with the arrow or the Back gesture: everything you typed stays in place.",
           "Install on iPhone: open the site in Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ → \"Install app\".",
-          "The interface language (English or Russian) is changed in Settings or with the switch on the sign-in screen.",
           "The browser asks for camera and microphone access the first time. Without a connection the app does not work: \"Offline\" shows at the top, saving and AI wait for it."
         ]
       },
@@ -406,7 +411,7 @@
           "The Items tab opens on \"I'm here\" (with the places inside it). Filter by place and category; view as a photo gallery or a table.",
           "On an item: \"Edit\", \"Move\" (from the list or by voice) and \"Delete\". The \"←\" arrow at the top goes back to the previous screen with the same filters.",
           "Search: type a word — \"drill\". Smart search: tap the mic or \"Ask AI\" and ask \"where is my drill?\" — the AI finds similar words (one request).",
-          "Categories are there from the start: tools, kitchen, clothes and more. In Settings you can rename and delete them and add your own."
+          "Categories are there from the start, in your language: tools, kitchen, clothes and more. In Settings you can rename and delete them and add your own."
         ]
       },
       "books": {
@@ -428,12 +433,13 @@
         ]
       },
       "languages": {
-        "title": "Data languages",
+        "title": "Language",
         "points": [
-          "Settings → \"Data languages\": the language your names and descriptions are kept in (the interface language is chosen separately).",
-          "\"English only\": one English field in the forms. \"Russian only\": one Russian field, the English translation appears by itself in the background.",
-          "\"Russian and English\": RU and EN fields in the forms, \"Translate\" fills the other one. On screen, records show in the interface language.",
-          "Switching deletes nothing. If records lack a translation, Settings offer to translate them in batches; a single record has a \"Translate\" button."
+          "You choose \"My language\" when you sign up: English, Русский or Español. The interface and all your records — names, descriptions and tags of items, places and categories — are in it. You only see and type your own language.",
+          "An English version of names and descriptions is filled in by itself in the background. That's why search — plain, \"Ask AI\" and voice — looks in your language and in English: \"дрель\", \"drill\" and \"taladro\" find the same item. Accents don't matter: \"camara\" finds \"cámara\".",
+          "Speak in your language — voice works in all three.",
+          "Using Russian or Spanish and want to see English too? Settings → \"Show English next to it\": forms then have two fields, your language and English.",
+          "\"My language\" can be changed only in Settings → \"Language\". The interface and new records switch to it; records you already saved stay as they are and show in English until translated. The app offers to translate them now in the background (about 1 AI request per 40 records) or later: in Settings (\"Not in your language: N\") or with \"Translate\" on a record. The English version always stays."
         ]
       },
       "plan": {
@@ -511,8 +517,6 @@
     },
     "plans": "Plans",
     "plansIntro": "Changes apply at once. An empty item limit means no limit; an empty AI limit means the server default.",
-    "planNameRu": "Name (RU)",
-    "planNameEn": "Name (EN)",
     "itemLimit": "Items",
     "aiLimit": "AI per day",
     "order": "Order",
@@ -549,7 +553,8 @@
     "addPlan": "Add a plan",
     "newPlan": "New plan",
     "planCode": "Code",
-    "planCodeHint": "Latin letters, digits and \"_\", e.g. business. Cannot be changed later."
+    "planCodeHint": "Latin letters, digits and \"_\", e.g. business. Cannot be changed later.",
+    "planName": "Name ({lang})"
   },
   "notify": {
     "adminLink": "Admin page:",
@@ -563,28 +568,21 @@
     }
   },
   "dataLang": {
-    "title": "Data languages",
-    "intro": "The language of names and descriptions of items, places and categories. The interface language is chosen separately.",
-    "options": {
-      "en": {
-        "title": "English only",
-        "hint": "Forms and AI in English only."
-      },
-      "ru": {
-        "title": "Russian only",
-        "hint": "Everything in Russian; the English translation is filled in automatically."
-      },
-      "ru_en": {
-        "title": "Russian and English",
-        "hint": "Both languages in forms, with a Translate button."
-      }
-    },
-    "askTitle": "Translate records?",
-    "askText": "{count, plural, one {# record has} other {# records have}} no translation. Translate now? It runs in the background in packs; each pack is 1 AI request from the daily limit.",
-    "translateNow": "Translate now",
-    "later": "Later",
-    "laterHint": "You can translate later here or with the Translate button on each record.",
-    "untranslated": "Not translated: {count, plural, one {# record} other {# records}}",
+    "title": "Language",
+    "intro": "My language: the interface and the names, descriptions and tags of your items, places and categories. An English copy is filled in automatically, so search also finds things in English.",
+    "showEnglish": "Show English next to it",
+    "showEnglishHint": "Forms get a second field in English.",
+    "changeTitle": "Switch to {lang}?",
+    "changeText": "The interface and new records will be in {lang}. Records you already saved stay as they are and are shown in English until they are translated.",
+    "changeToEnglish": "Every record already has its English copy, so everything is shown in English right away.",
+    "changeTranslate": "Translate {count, plural, one {# record} other {# records}} into {lang} now? It runs in the background and takes about {requests, plural, one {# AI request} other {# AI requests}} from the daily limit.",
+    "changeLeft": "Left today: {left}.",
+    "changeNote": "The translation replaces the text in the old language; the English copy always stays. You can also translate later here or with the Translate button on a record.",
+    "changeAndTranslate": "Switch and translate",
+    "changeOnly": "Switch only",
+    "change": "Switch",
+    "cancel": "Cancel",
+    "untranslated": "Not in your language: {count, plural, one {# record} other {# records}}",
     "translateAll": "Translate",
     "progress": "Translating records: {done} of {total}",
     "progressDone": "Done, translated: {done}",
@@ -592,7 +590,12 @@
     "progressLabel": "Translating records",
     "stop": "Stop",
     "close": "Close",
-    "translateRecord": "Translate"
+    "translateRecord": "Translate",
+    "languageNames": {
+      "en": "English",
+      "ru": "Russian",
+      "es": "Spanish"
+    }
   },
   "userMail": {
     "link": "Inventory:",
@@ -707,8 +710,6 @@
     "createCategory": "Create \"Books\"",
     "createCategoryFailed": "Could not create the category. Try again.",
     "notNow": "Not now",
-    "categoryRu": "Книги",
-    "categoryEn": "Books",
     "createCategoryQuestionMany": "There seem to be books here, and you have no \"Books\" category. Create it?",
     "notFoundIsbnKept": "The catalogues don't know this book. The ISBN is kept; fill in the rest yourself.",
     "scanIsbn": "Scan ISBN",
@@ -726,7 +727,8 @@
     "coverMain": "Make it the main photo",
     "coverSecond": "Add as the second photo",
     "coverNone": "Not needed",
-    "coverNoRoom": "The item already has 10 photos: delete one to add the cover."
+    "coverNoRoom": "The item already has 10 photos: delete one to add the cover.",
+    "categoryName": "Books"
   },
   "bulk": {
     "select": "Select",

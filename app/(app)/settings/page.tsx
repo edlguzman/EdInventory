@@ -4,7 +4,6 @@ import { ChevronRight, CircleHelp, LogOut, ShieldCheck } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { signOut } from "@/app/(auth)/actions";
 import { CategoryList } from "@/components/categories/category-list";
-import { LocaleSwitcher } from "@/components/locale-switcher";
 import { PageTitle } from "@/components/page-title";
 import { DbHeartbeat } from "@/components/settings/db-heartbeat";
 import { DataLangSettings } from "@/components/settings/data-lang-settings";
@@ -12,7 +11,7 @@ import { DeleteAccount } from "@/components/settings/delete-account";
 import { PlanCard } from "@/components/settings/plan-card";
 import { getPendingCount } from "@/lib/admin/data";
 import { getProfile, requireUser } from "@/lib/auth";
-import { promptLangs } from "@/lib/data-lang";
+import { getCategories } from "@/lib/items/data";
 import { createClient } from "@/lib/supabase/server";
 import { countMissing } from "@/lib/translate/records";
 import { getMyPlan } from "@/lib/plans";
@@ -33,11 +32,11 @@ export default async function SettingsPage() {
   const tNav = await getTranslations("nav");
   const profile = await getProfile();
   const supabase = await createClient();
-  const [{ data: categories }, { data: status }, pendingCount, untranslated, plan] = await Promise.all([
-    supabase.from("categories").select("id, name_ru, name_en").order("sort_order").order("created_at"),
+  const [categories, { data: status }, pendingCount, untranslated, plan] = await Promise.all([
+    getCategories(),
     supabase.from("system_status").select("last_keepalive_at").maybeSingle(),
     profile?.isAdmin ? getPendingCount() : 0,
-    countMissing(supabase, promptLangs(profile?.dataLang ?? "en")),
+    profile ? countMissing(supabase, "local", profile.lang) : 0,
     getMyPlan(),
   ]);
 
@@ -64,11 +63,9 @@ export default async function SettingsPage() {
 
         {plan && <PlanCard plan={plan} />}
 
-        <LocaleSwitcher />
-
         <DataLangSettings untranslated={untranslated} />
 
-        <CategoryList categories={categories ?? []} />
+        <CategoryList categories={categories} />
 
         <Link
           href="/help"

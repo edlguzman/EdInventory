@@ -5,6 +5,7 @@ import { z } from "zod";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { createClient } from "@/lib/supabase/server";
 import { getDataLang } from "@/lib/auth";
+import { isForeign, ownLocal } from "@/lib/data-lang";
 import { translateAfterSave } from "@/lib/translate/after-save";
 import { locationNamesSchema, toNameRow, type NamePairInput } from "@/lib/validation/names";
 
@@ -29,8 +30,8 @@ function refresh() {
 export async function createLocation(
   input: NamePairInput & { parent_id: string | null },
 ): Promise<ActionResult<{ id: string }>> {
-  const mode = await getDataLang();
-  const names = locationNamesSchema(mode).safeParse(input);
+  const d = await getDataLang();
+  const names = locationNamesSchema(d.mode).safeParse(input);
   if (!names.success) return fail(zodError(names.error));
   const parent = id.nullable().safeParse(input.parent_id);
   if (!parent.success) return fail("parentNotFound");
@@ -38,35 +39,37 @@ export async function createLocation(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("locations")
-    .insert({ ...toNameRow(mode, names.data, null), parent_id: parent.data })
+    .insert({ ...toNameRow(d, names.data, null), parent_id: parent.data })
     .select("id")
     .single();
   if (error) return fail(dataErrorKey(error));
 
-  translateAfterSave(mode, [{ type: "location", id: data.id }]);
+  translateAfterSave(d, [{ type: "location", id: data.id }]);
   refresh();
   return { ok: true, data: { id: data.id } };
 }
 
 export async function renameLocation(input: NamePairInput & { id: string }): Promise<ActionResult> {
-  const mode = await getDataLang();
-  const names = locationNamesSchema(mode).safeParse(input);
-  if (!names.success) return fail(zodError(names.error));
+  const d = await getDataLang();
   const target = id.safeParse(input.id);
   if (!target.success) return fail("notFound");
 
   const supabase = await createClient();
-  const { data: current } = await supabase.from("locations").select("name_ru, name_en").eq("id", target.data).maybeSingle();
-  if (!current) return fail("notFound");
+  const { data: row } = await supabase.from("locations").select("lang, name_local, name_en").eq("id", target.data).maybeSingle();
+  if (!row) return fail("notFound");
+  // A record in another language is edited through English (its own text is kept).
+  const names = locationNamesSchema(d.mode, isForeign(row.lang, d.lang)).safeParse(input);
+  if (!names.success) return fail(zodError(names.error));
+  const current = { name_local: ownLocal(row.lang, d.lang, row.name_local), name_en: row.name_en };
   const { error } = await supabase
     .from("locations")
-    .update(toNameRow(mode, names.data, current))
+    .update(toNameRow(d, names.data, current))
     .eq("id", target.data)
     .select("id")
     .single();
   if (error) return fail(dataErrorKey(error));
 
-  translateAfterSave(mode, [{ type: "location", id: target.data }]);
+  translateAfterSave(d, [{ type: "location", id: target.data }]);
   refresh();
   return { ok: true, data: undefined };
 }
@@ -116,8 +119,8 @@ export async function createLocationChain(input: {
   const parent = id.nullable().safeParse(input.parent_id);
   if (!parent.success) return fail("parentNotFound");
   if (!Array.isArray(input.names) || input.names.length === 0 || input.names.length > 5) return fail("nameRequired");
-  const mode = await getDataLang();
-  const parsed = input.names.map((n) => locationNamesSchema(mode).safeParse(n));
+  const d = await getDataLang();
+  const parsed = input.names.map((n) => locationNamesSchema(d.mode).safeParse(n));
   const bad = parsed.find((p) => !p.success);
   if (bad && !bad.success) return fail(zodError(bad.error));
 
@@ -128,7 +131,7 @@ export async function createLocationChain(input: {
     if (!p.success) continue;
     const { data, error } = await supabase
       .from("locations")
-      .insert({ ...toNameRow(mode, p.data, null), parent_id: parentId })
+      .insert({ ...toNameRow(d, p.data, null), parent_id: parentId })
       .select("id")
       .single();
     if (error) {
@@ -140,7 +143,7 @@ export async function createLocationChain(input: {
     parentId = data.id;
   }
 
-  translateAfterSave(mode, created.map((createdId) => ({ type: "location" as const, id: createdId })));
+  translateAfterSave(d, created.map((createdId) => ({ type: "location" as const, id: createdId })));
   refresh();
   return { ok: true, data: { id: parentId! } };
 }

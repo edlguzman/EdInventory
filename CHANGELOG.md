@@ -7,6 +7,18 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.0.0 — 2026-11-22
+
+- **My language:** English, Русский or Español, chosen at sign-up. It is the language of the interface and of your records; an English copy of every record is filled in the background. Spanish is new (whole interface, help, AI, default categories).
+- **Show English next to it** (Settings → Language): edit both your language and English, as the old "Russian + English" mode did. Existing accounts keep how they worked: Russian + English stays on, English stays English.
+- **Changing the language** only in Settings → Language, with a warning and an offer to translate your records with the cost in AI requests ("11 records ≈ 1 request"). Records not in your language are shown in English until translated; "Not in your language: N" with Translate.
+- Search (typed, smart, voice) finds by your language and English; accents do not matter (`camara` finds `cámara`).
+- AI answers in your language + English; you can speak in your language or in English. Books: the title as printed, plus the English title when known.
+- Before sign-in: the browser's language if supported, else English; a small EN / RU / ES switch on the sign-in screens and in the help.
+- Plan names and emails in the user's language.
+- Database: record language and own-language text next to English (old columns kept in sync for now; removed later by a separate migration).
+- Help updated (RU, EN, ES): "Languages" rewritten, "Getting started" and "Items and search" updated.
+
 ## v1.11.0 — 2026-11-21
 
 - **"?" on every screen:** a small help icon in the header (and on the sign-in and "awaiting approval" screens) opens the help over the current screen, right on the matching section: Add → "Add an item", Items and Search → "Items and search", selection mode → "Many items at once", "Several items", a book → "Books", Places → "Places and I'm here", Settings → "Account", with their own "?" for data languages and plan.

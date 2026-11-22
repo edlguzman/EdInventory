@@ -12,8 +12,8 @@ const SHOWN = 3;
 
 export function useExistingName() {
   const { display } = useDataLang();
-  return (it: Pick<ExistingItem, "name_ru" | "name_en">) =>
-    (display === "en" ? it.name_en || it.name_ru : it.name_ru || it.name_en) ?? "";
+  return (it: Pick<ExistingItem, "name_local" | "name_en">) =>
+    (display === "en" ? it.name_en || it.name_local : it.name_local || it.name_en) ?? "";
 }
 
 /** "Date · place" of an existing item. */
