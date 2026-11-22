@@ -107,7 +107,7 @@
     "title": "Lugares",
     "add": "Añadir lugar",
     "addInside": "Añadir dentro",
-    "empty": "Aún no hay lugares. Añade una casa, un piso o una casa de campo, y dentro habitaciones, armarios y estantes.",
+    "empty": "Aún no hay lugares. Añade una casa, un apartamento o una casa de campo, y dentro habitaciones, armarios y estantes.",
     "itemsCount": "{count, plural, =0 {sin objetos} one {# objeto} other {# objetos}}",
     "expand": "Expandir “{name}”",
     "collapse": "Contraer “{name}”",
@@ -118,7 +118,7 @@
     "moveTitle": "Mover “{name}” a…",
     "parent": "Está en",
     "topLevel": "Nivel superior",
-    "topLevelHint": "casa, piso, casa de campo",
+    "topLevelHint": "casa, apartamento, casa de campo",
     "deleteTitle": "¿Eliminar “{name}”?",
     "deleteConfirm": "Se eliminará el lugar. No se puede deshacer.",
     "deleteBlocked": "No se puede eliminar: contiene {places, plural, =0 {} one {# lugar} other {# lugares}}{both, select, yes { y } other {}}{items, plural, =0 {} one {# objeto} other {# objetos}}. Muévelos o elimínalos primero.",
@@ -329,7 +329,7 @@
     "welcome": "¡Bienvenido!",
     "placeIntro": "Los objetos viven en lugares: una casa, habitaciones, armarios, estantes. Empieza por el principal: ¿dónde están tus cosas?",
     "presets": {
-      "apartment": "Piso",
+      "apartment": "Apartamento",
       "house": "Casa",
       "dacha": "Casa de campo"
     },
