@@ -3,14 +3,16 @@ import type { Lang } from "@/lib/languages";
 import { BOOK_AUTHOR_MAX, normalizeIsbn, parseYear, type BookInfo } from "@/lib/books/isbn";
 
 /**
- * Prompt lines for books, shared by single and multi recognition. A title is never translated:
- * it goes as printed into the field of the user's language (English users: name_en); for other
- * users name_en gets the established English title of the work if the model is sure of one.
+ * Prompt lines for books, shared by single and multi recognition. The title in the user's
+ * language field is never translated: it goes as printed; name_en gets the established English
+ * title of the work if the model is sure of one (English users have only name_en: that title,
+ * else the printed one).
  */
 export function bookRules(lang: Lang) {
   const title =
     lang === "en"
-      ? ["name_en = its title exactly as printed on the cover or spine, in the original language and script (never translate a title);",
+      ? ["name_en = the established English title of this work if you are sure one exists (a well-known translated book),",
+         "otherwise its title exactly as printed on the cover or spine, in the original language and script;",
          'name_local = "".']
       : ["name_local = its title exactly as printed on the cover or spine, in the original language and script (never translate it);",
          "name_en = the established English title of this work only if you are sure one exists (a well-known translated book),",

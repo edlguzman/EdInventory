@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       description_local: local(r.description_local),
       description_en: r.description_en.trim() || (lang === "en" ? r.description_local.trim() : ""),
       // A book goes to the user's "Books" category, if there is one.
-      category_id: (book && categories.booksId) || ownId(r.category_id, categories.ids),
+      category_id: book ? categories.booksId : ownId(r.category_id, categories.ids),
       tags_local: localTags(lang, r.tags_local, (t) => cleanTags(t)),
       tags_en: cleanTags(r.tags_en),
       book,

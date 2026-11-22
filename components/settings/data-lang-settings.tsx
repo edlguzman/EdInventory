@@ -16,7 +16,7 @@ import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
-import { LANGUAGES, languageInfo, type Lang } from "@/lib/languages";
+import { LANGUAGES, type Lang } from "@/lib/languages";
 
 type Ask = { next: Lang; preview: Extract<LanguageChangePreview, { ok: true }> };
 
@@ -71,7 +71,8 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
       router.refresh();
     });
 
-  const nextName = ask ? languageInfo(ask.next).native : "";
+  // The language named in the interface language ("испанский", "Spanish", "español").
+  const nextName = ask ? t(`languageNames.${ask.next}`) : "";
   const canTranslate = !!ask && ask.next !== "en" && ask.preview.records > 0;
 
   return (

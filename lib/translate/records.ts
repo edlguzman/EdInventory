@@ -145,7 +145,8 @@ const outputSchema = z.object({
         k: z.string().max(8),
         name: z.string().max(400),
         description: z.string().max(4000),
-        tags: z.array(z.string().max(100)).max(TAGS_MAX),
+        // No nested limits: Gemini refuses them on a list ("too many states"); trimmed below.
+        tags: z.array(z.string()),
       }),
     )
     .max(BATCH_RECORDS),

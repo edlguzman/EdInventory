@@ -572,10 +572,10 @@
     "intro": "Mi idioma: la interfaz y los nombres, descripciones y etiquetas de tus objetos, lugares y categorías. Se rellena sola una copia en inglés, así la búsqueda también encuentra en inglés.",
     "showEnglish": "Mostrar el inglés al lado",
     "showEnglishHint": "Los formularios tendrán un segundo campo en inglés.",
-    "changeTitle": "¿Cambiar a {lang}?",
+    "changeTitle": "¿Cambiar el idioma a {lang}?",
     "changeText": "La interfaz y los registros nuevos estarán en {lang}. Los registros que ya guardaste se quedan como están y se muestran en inglés hasta que se traduzcan.",
     "changeToEnglish": "Todos los registros ya tienen su copia en inglés, así que todo se verá en inglés enseguida.",
-    "changeTranslate": "¿Traducir {count, plural, one {# registro} other {# registros}} al {lang} ahora? Se hace en segundo plano y usa unas {requests, plural, one {# solicitud} other {# solicitudes}} de IA del límite diario.",
+    "changeTranslate": "¿Traducir {count, plural, one {# registro} other {# registros}} al {lang} ahora? Se hace en segundo plano y usa {requests, plural, one {# solicitud} other {unas # solicitudes}} de IA del límite diario.",
     "changeLeft": "Quedan hoy: {left}.",
     "changeNote": "La traducción sustituye el texto en el idioma anterior; la copia en inglés se queda siempre. También puedes traducir más tarde aquí o con el botón Traducir de cada registro.",
     "changeAndTranslate": "Cambiar y traducir",
@@ -590,7 +590,12 @@
     "progressLabel": "Traduciendo registros",
     "stop": "Detener",
     "close": "Cerrar",
-    "translateRecord": "Traducir"
+    "translateRecord": "Traducir",
+    "languageNames": {
+      "en": "inglés",
+      "ru": "ruso",
+      "es": "español"
+    }
   },
   "userMail": {
     "link": "Inventory:",

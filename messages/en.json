@@ -590,7 +590,12 @@
     "progressLabel": "Translating records",
     "stop": "Stop",
     "close": "Close",
-    "translateRecord": "Translate"
+    "translateRecord": "Translate",
+    "languageNames": {
+      "en": "English",
+      "ru": "Russian",
+      "es": "Spanish"
+    }
   },
   "userMail": {
     "link": "Inventory:",

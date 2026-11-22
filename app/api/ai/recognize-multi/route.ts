@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         name_en: nameEn,
         description_local: local(it.description_local, 2000),
         description_en: en(it.description_en, it.description_local, 2000),
-        category_id: (book && categories.booksId) || ownId(it.category_id, categories.ids),
+        category_id: book ? categories.booksId : ownId(it.category_id, categories.ids),
         tags_local: localTags(lang, it.tags_local, (t) => cleanTags(t, 8)),
         tags_en: cleanTags(it.tags_en, 8),
         book,
