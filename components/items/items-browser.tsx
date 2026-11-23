@@ -1,9 +1,10 @@
 "use client";
 
+import { isExpiryFilter, type ExpiryFilter } from "@/lib/items/expiry-filter";
 import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare, ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
+import { CalendarClock, CheckSquare, ChevronDown, LayoutGrid, List, LoaderCircle, MapPin, X } from "lucide-react";
 import { selectAllItemIds } from "@/app/(app)/items/bulk-actions";
 import { useErrorText } from "@/lib/use-error-text";
 import { BulkBar, UndoToast, useBulkVersion } from "./bulk-bar";
@@ -17,7 +18,7 @@ import { pickText, type ItemSummary } from "@/lib/items/types";
 import { ItemGallery, ItemTable, viewStore } from "./item-list";
 import { useMoreItems } from "./use-more-items";
 
-export type BrowserFilters = { category: string | null; location: string | null; limit: number };
+export type BrowserFilters = { category: string | null; location: string | null; expiry: ExpiryFilter | null; limit: number };
 
 const chip =
   "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-xl border px-3 text-sm font-medium";
@@ -30,6 +31,8 @@ type BrowserProps = {
   hasMore: boolean;
   /** All items of these filters (not only the loaded pages). */
   total: number;
+  /** Expired / expiring within 30 days in the current place and category (the banner). */
+  expiring: { expired: number; soon: number };
   categories: CategoryOption[];
   filters: BrowserFilters;
   pageSize: number;
@@ -50,6 +53,7 @@ function ItemsBrowserList({
   items,
   hasMore,
   total,
+  expiring,
   categories,
   filters,
   pageSize,
@@ -57,6 +61,7 @@ function ItemsBrowserList({
 }: BrowserProps) {
   const t = useTranslations("items");
   const tBulk = useTranslations("bulk");
+  const tMed = useTranslations("medicine");
   const errorText = useErrorText();
   // Bulk edit: "Select" or a long press on a card.
   const selection = useItemSelection();
@@ -75,6 +80,7 @@ function ItemsBrowserList({
     const merged = { ...filters, ...next };
     const params = new URLSearchParams();
     if (merged.category) params.set("category", merged.category);
+    if (merged.expiry) params.set("expiry", merged.expiry);
     // Always explicit: a place id or "all". Only a bare URL follows "I'm here".
     params.set("location", merged.location ?? "all");
     if (merged.limit > pageSize) params.set("n", String(merged.limit));
@@ -118,21 +124,22 @@ function ItemsBrowserList({
     loadMore,
     setSentinel,
   } = useMoreItems({
-    filterKey: `${filters.category}|${filters.location}`,
+    filterKey: `${filters.category}|${filters.location}|${filters.expiry}`,
     category: filters.category,
     location: filters.location,
+    expiry: filters.expiry,
     initial: items,
     initialHasMore: hasMore,
   });
 
   const place = filters.location ? byId.get(filters.location) : undefined;
-  const hasFilters = Boolean(filters.category || filters.location);
+  const hasFilters = Boolean(filters.category || filters.location || filters.expiry);
 
   /** Every item of these filters, not only the loaded pages (the first 500). */
   async function selectAllFound() {
     setSelectingAll(true);
     setSelectError(undefined);
-    const r = await selectAllItemIds({ category: filters.category, location: filters.location }).catch(() => null);
+    const r = await selectAllItemIds({ category: filters.category, location: filters.location, expiry: filters.expiry }).catch(() => null);
     setSelectingAll(false);
     if (!r?.ok) return setSelectError(errorText(r?.error ?? "network"));
     selection.selectAll(r.data.ids, r.data.total);
@@ -204,10 +211,27 @@ function ItemsBrowserList({
           <span className="truncate">{place ? path(place) : t("allPlaces")}</span>
         </button>
 
+        {(filters.expiry || expiring.expired + expiring.soon > 0) && (
+          <label className={`${chip} relative ${filters.expiry ? "border-accent text-accent" : "border-border"}`}>
+            <span className="sr-only">{tMed("filterExpiry")}</span>
+            <CalendarClock className="size-4 shrink-0" aria-hidden />
+            <select
+              value={filters.expiry ?? ""}
+              onChange={(e) => apply({ expiry: isExpiryFilter(e.target.value) ? e.target.value : null })}
+              className="max-w-44 appearance-none truncate bg-transparent pr-5 outline-none"
+            >
+              <option value="">{tMed("filterExpiryAll")}</option>
+              <option value="soon">{tMed("filterExpirySoon")}</option>
+              <option value="expired">{tMed("filterExpired")}</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 size-4" aria-hidden />
+          </label>
+        )}
+
         {hasFilters && (
           <button type="button" onClick={() => {
               setHere(null);
-              apply({ category: null, location: null });
+              apply({ category: null, location: null, expiry: null });
             }} className={`${chip} border-transparent text-muted`}>
             <X className="size-4" aria-hidden />
             {t("resetFilters")}
@@ -215,6 +239,23 @@ function ItemsBrowserList({
         )}
 
       </div>
+      {!openingHere && !filters.expiry && expiring.expired + expiring.soon > 0 && (
+        <p className="flex flex-wrap items-center gap-x-1.5 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          <CalendarClock className="size-4 shrink-0" aria-hidden />
+          <span>{tMed("bannerTitle")}</span>
+          {expiring.expired > 0 && (
+            <button type="button" onClick={() => apply({ expiry: "expired" })} className="min-h-9 font-semibold underline underline-offset-2">
+              {tMed("bannerExpired", { count: expiring.expired })}
+            </button>
+          )}
+          {expiring.expired > 0 && expiring.soon > 0 && <span aria-hidden>·</span>}
+          {expiring.soon > 0 && (
+            <button type="button" onClick={() => apply({ expiry: "soon" })} className="min-h-9 font-semibold underline underline-offset-2">
+              {tMed("bannerSoon", { count: expiring.soon })}
+            </button>
+          )}
+        </p>
+      )}
       {!openingHere && (
         <p className="-mt-2 text-xs text-muted" aria-live="polite">
           {[

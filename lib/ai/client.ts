@@ -2,6 +2,7 @@ import type { TranslateRequest } from "./translate-schema";
 import type {
   CategorizeResult,
   IsbnReadResult,
+  MedicineSummaryResult,
   ItemContext,
   PlaceMode,
   PlaceResult,
@@ -73,11 +74,23 @@ function form(parts: { audio?: Blob | null; image?: Blob | null; text?: string; 
   return { body };
 }
 
-export function recognizeItem(image: Blob, locale: string) {
-  return call<RecognizeSingleResult>(
-    "/api/ai/recognize",
-    form({ image, meta: { locale } }),
-    (d): d is RecognizeSingleResult => isObject(d) && typeof d.name_local === "string",
+/**
+ * Photos of one item (1-4, sides of a package) -> its data. 1 unit of the daily limit.
+ * `ndc`: a drug NDC read from a barcode on the phone (the server adds the official FDA data).
+ */
+export function recognizeItem(images: Blob[], options: { ndc?: string | null } = {}) {
+  const body = new FormData();
+  images.slice(0, 4).forEach((image, i) => body.append("image", image, `photo-${i + 1}.jpg`));
+  body.set("meta", JSON.stringify(options.ndc ? { ndc: options.ndc } : {}));
+  return call<RecognizeSingleResult>("/api/ai/recognize", { body }, (d): d is RecognizeSingleResult => isObject(d) && typeof d.name_local === "string");
+}
+
+/** NDC -> official FDA data, uses and warnings condensed by the AI (1 request; none if the FDA does not know it). */
+export function medicineSummary(ndc: string) {
+  return call<MedicineSummaryResult>(
+    "/api/ai/medicine-summary",
+    { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ndc }) },
+    (d): d is MedicineSummaryResult => isObject(d) && "drug" in d,
   );
 }
 

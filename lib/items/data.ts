@@ -4,7 +4,9 @@ import { isForeign, ownLocal } from "@/lib/data-lang";
 import type { Lang } from "@/lib/languages";
 import { PHOTO_BUCKET, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
-import type { ItemDetail, ItemSummary } from "./types";
+import { maskMedicineAttrs, readMedicineAttrs } from "@/lib/medicines/attrs";
+import { withExpiry, type ExpiryFilter } from "./expiry-filter";
+import type { ItemDetail, ItemKind, ItemSummary } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -51,7 +53,7 @@ async function signUrls(supabase: Supabase, paths: string[]): Promise<Map<string
 }
 
 const SUMMARY_COLUMNS =
-  "id, lang, name_local, name_en, category_id, location_id, tags_local, tags_en, book_author, book_year, created_at, item_photos(storage_path, is_primary)";
+  "id, lang, name_local, name_en, category_id, location_id, tags_local, tags_en, book_author, book_year, kind, expires_on, expiry_precision:attrs->>expiry_precision, created_at, item_photos(storage_path, is_primary)";
 
 type SummaryRow = {
   id: string;
@@ -64,9 +66,14 @@ type SummaryRow = {
   tags_en: string[];
   book_author: string | null;
   book_year: number | null;
+  kind: string;
+  expires_on: string | null;
+  expiry_precision: string | null;
   created_at: string;
   item_photos: { storage_path: string; is_primary: boolean }[];
 };
+
+const kindOf = (k: string | null | undefined): ItemKind => (k === "book" || k === "medicine" ? k : "item");
 
 async function toSummaries(supabase: Supabase, rows: SummaryRow[]): Promise<ItemSummary[]> {
   const { lang } = await getDataLang();
@@ -85,6 +92,9 @@ async function toSummaries(supabase: Supabase, rows: SummaryRow[]): Promise<Item
       tagsEn: r.tags_en,
       bookAuthor: r.book_author,
       bookYear: r.book_year,
+      kind: kindOf(r.kind),
+      expiresOn: r.expires_on,
+      expiryPrecision: r.expiry_precision === "month" ? "month" : "day",
       createdAt: r.created_at,
       thumbUrl: primary ? (urls.get(thumbPath(primary)) ?? null) : null,
       photoCount: r.item_photos.length,
@@ -99,6 +109,8 @@ export type ItemFilters = {
   location?: string;
   /** Only items directly in this place (place page). */
   directLocation?: string;
+  /** Expiry: expires within 30 days / already expired. */
+  expiry?: ExpiryFilter;
   limit: number;
   /** Skip this many (the next pages of infinite scroll). */
   offset?: number;
@@ -122,6 +134,7 @@ export async function listItems(
 
   if (filters.category === "none") query = query.is("category_id", null);
   else if (filters.category) query = query.eq("category_id", filters.category);
+  query = withExpiry(query, filters.expiry);
 
   if (filters.directLocation) {
     query = query.eq("location_id", filters.directLocation);
@@ -148,7 +161,7 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   const { data, error } = await supabase
     .from("items")
     .select(
-      "id, lang, name_local, name_en, description_local, description_en, category_id, location_id, tags_local, tags_en, book_author, book_year, book_isbn, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
+      "id, lang, name_local, name_en, description_local, description_en, category_id, location_id, tags_local, tags_en, book_author, book_year, book_isbn, kind, attrs, expires_on, created_at, updated_at, item_photos(id, storage_path, is_primary, created_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -159,10 +172,12 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
   );
   const urls = await signUrls(supabase, photos.flatMap((p) => [p.storage_path, thumbPath(p.storage_path)]));
   const { lang } = await getDataLang();
+  const foreign = isForeign(data.lang, lang);
+  const medicine = data.kind === "medicine" ? maskMedicineAttrs(readMedicineAttrs(data.attrs), foreign) : null;
 
   return {
     id: data.id,
-    foreign: isForeign(data.lang, lang),
+    foreign,
     nameLocal: ownLocal(data.lang, lang, data.name_local),
     nameEn: data.name_en,
     descriptionLocal: ownLocal(data.lang, lang, data.description_local),
@@ -174,6 +189,10 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
     bookAuthor: data.book_author,
     bookYear: data.book_year,
     bookIsbn: data.book_isbn,
+    kind: kindOf(data.kind),
+    medicine,
+    expiresOn: data.expires_on,
+    expiryPrecision: medicine?.expiry_precision ?? "day",
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     photos: photos.map((p) => ({
@@ -221,7 +240,7 @@ export const SEARCH_PAGE_SIZE = 50;
 
 /**
  * Ranked search over the user's items in their language and English, authors and ISBNs too
- * (search_items_v4, RLS). One page from `offset`, plus the total found (null past the end).
+ * (search_items_v5, RLS: also active ingredients, supplement components, NDC). One page from `offset`, plus the total found (null past the end).
  */
 export async function searchItems(input: {
   terms: string[];
@@ -244,14 +263,38 @@ export async function searchItemIds(input: {
 }): Promise<{ ids: string[]; total: number | null }> {
   if (input.terms.length === 0) return { ids: [], total: 0 };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_items_v4", {
+  const { data, error } = await supabase.rpc("search_items_v5", {
     p_terms: input.terms,
     p_location_id: input.location ?? undefined,
     p_category_id: input.category ?? undefined,
     p_limit: input.limit ?? SEARCH_PAGE_SIZE,
     p_offset: input.offset ?? 0,
   });
-  if (error) throw new Error(`search_items_v4 failed: ${error.code}`);
+  if (error) throw new Error(`search_items_v5 failed: ${error.code}`);
   const rows = data ?? [];
   return { ids: rows.map((r) => r.id), total: rows[0]?.total ?? (input.offset ? null : 0) };
+}
+
+/**
+ * Items with an expiry date that has passed / comes within 30 days, among the items of the
+ * current place (with nested places) and category: the "Expiry: N expired, M within 30 days" line.
+ */
+export async function expiryCounts(filters: { category?: string; location?: string }): Promise<{ expired: number; soon: number }> {
+  const supabase = await createClient();
+  let places: string[] | null = null;
+  if (filters.location) {
+    const { data } = await supabase.rpc("location_descendants", { loc_id: filters.location });
+    places = data ?? [];
+    if (places.length === 0) return { expired: 0, soon: 0 };
+  }
+  const count = async (f: ExpiryFilter) => {
+    let q = supabase.from("items").select("id", { count: "exact", head: true }).not("expires_on", "is", null);
+    if (filters.category === "none") q = q.is("category_id", null);
+    else if (filters.category) q = q.eq("category_id", filters.category);
+    if (places) q = q.in("location_id", places);
+    const { count: n } = await withExpiry(q, f);
+    return n ?? 0;
+  };
+  const [expired, soon] = await Promise.all([count("expired"), count("soon")]);
+  return { expired, soon };
 }

@@ -7,6 +7,7 @@ import { ITEMS_PAGE_SIZE, type ItemSummary } from "@/lib/items/types";
 const inputSchema = z.object({
   category: z.union([z.literal("none"), z.uuid()]).nullable(),
   location: z.uuid().nullable(),
+  expiry: z.enum(["soon", "expired"]).nullable().optional(),
   offset: z.number().int().min(0).max(5000),
 });
 
@@ -21,6 +22,7 @@ export async function loadMoreItems(input: z.input<typeof inputSchema>): Promise
     return await listItems({
       category: v.data.category ?? undefined,
       location: v.data.location ?? undefined,
+      expiry: v.data.expiry ?? undefined,
       limit: ITEMS_PAGE_SIZE,
       offset: v.data.offset,
     });

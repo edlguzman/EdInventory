@@ -27,12 +27,14 @@ export function useMoreItems({
   filterKey,
   category,
   location,
+  expiry,
   initial,
   initialHasMore,
 }: {
   filterKey: string;
   category: string | null;
   location: string | null;
+  expiry: "soon" | "expired" | null;
   initial: ItemSummary[];
   initialHasMore: boolean;
 }) {
@@ -49,7 +51,7 @@ export function useMoreItems({
     if (loading || !state.hasMore) return;
     setLoading(true);
     setFailed(false);
-    const r = await loadMoreItems({ category, location, offset: state.items.length }).catch(() => null);
+    const r = await loadMoreItems({ category, location, expiry, offset: state.items.length }).catch(() => null);
     setLoading(false);
     if (!r) return setFailed(true);
     setState((s) => {
@@ -58,7 +60,7 @@ export function useMoreItems({
       loadedCache.set(filterKey, { ...next, sig });
       return next;
     });
-  }, [category, location, filterKey, sig, loading, state.hasMore, state.items.length]);
+  }, [category, location, expiry, filterKey, sig, loading, state.hasMore, state.items.length]);
 
   // The sentinel after the list (a callback ref): load the next page about a screen before the end.
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);

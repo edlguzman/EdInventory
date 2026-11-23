@@ -7,6 +7,7 @@ import { dailyLimit } from "@/lib/ai/route";
 import { getMyPlan } from "@/lib/plans";
 import { photoFiles, PHOTO_BUCKET } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
+import { withExpiry } from "@/lib/items/expiry-filter";
 
 /**
  * Bulk edit of selected items (v1.9.0). Every action: signed-in active account, zod, at most
@@ -184,6 +185,7 @@ export async function bulkDelete(input: { ids: string[] }): Promise<BulkResult<{
 const filtersSchema = z.object({
   category: z.union([z.literal("none"), z.uuid()]).nullable(),
   location: z.uuid().nullable(),
+  expiry: z.enum(["soon", "expired"]).nullable().optional(),
 });
 
 /**
@@ -205,6 +207,7 @@ export async function selectAllItemIds(input: z.input<typeof filtersSchema>): Pr
     .limit(BULK_MAX);
   if (f.data.category === "none") query = query.is("category_id", null);
   else if (f.data.category) query = query.eq("category_id", f.data.category);
+  query = withExpiry(query, f.data.expiry);
   if (f.data.location) {
     const { data: places, error } = await s.supabase.rpc("location_descendants", { loc_id: f.data.location });
     if (error) return fail("unknown");

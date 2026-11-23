@@ -5,6 +5,43 @@
  */
 
 import type { BookInfo } from "@/lib/books/isbn";
+import type { MedSource, MedSubtype, RxStatus } from "@/lib/medicines/attrs";
+import type { Expiry } from "@/lib/medicines/expiry";
+
+/** Official US drug data by NDC (openFDA), as the client gets it (no label text). */
+export type FdaDrugInfo = {
+  ndc: string;
+  brandName: string | null;
+  genericName: string | null;
+  activeIngredients: { name: string; strength: string | null }[];
+  dosageForm: string | null;
+  rx: RxStatus | null;
+  /** The FDA has the label text (uses, warnings) for it. */
+  hasLabel: boolean;
+};
+
+/** "Scan barcode" in a filled form: the FDA data and the condensed notes (null: unknown NDC). */
+export type MedicineSummaryResult = { drug: FdaDrugInfo | null; medicine: MedicineSuggestion | null };
+
+/** A medicine or supplement as recognized ("" = unknown). Only prefills the form. */
+export type MedicineSuggestion = {
+  subtype: MedSubtype;
+  active_local: string;
+  active_en: string;
+  strength: string;
+  form_local: string;
+  form_en: string;
+  rx: RxStatus | null;
+  components: { name_local: string; name_en: string; amount: string }[];
+  expires: Expiry | null;
+  uses_local: string;
+  uses_en: string;
+  warnings_local: string;
+  warnings_en: string;
+  ndc: string | null;
+  /** "fda": uses / warnings summarized from the official FDA label; "ai": from the AI. */
+  source: MedSource;
+};
 
 export type RecognizeResult = {
   name_local: string;
@@ -16,6 +53,8 @@ export type RecognizeResult = {
   tags_en: string[];
   /** A book: author, year, ISBN as recognized (null = not a book). */
   book: BookInfo | null;
+  /** A medicine or supplement (null = neither). */
+  medicine: MedicineSuggestion | null;
 };
 
 /** A single recognition with the hint that a book was found but the user has no "Books" category. */

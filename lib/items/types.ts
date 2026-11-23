@@ -1,3 +1,7 @@
+import type { MedicineAttrs } from "@/lib/medicines/attrs";
+
+export type ItemKind = "item" | "book" | "medicine";
+
 /** Items per page of the Items list (first page on the server, next pages while scrolling). */
 export const ITEMS_PAGE_SIZE = 48;
 
@@ -14,6 +18,11 @@ export type ItemSummary = {
   /** Book fields (null when not a book / not known). */
   bookAuthor: string | null;
   bookYear: number | null;
+  /** "item" | "book" | "medicine" (medicines and supplements). */
+  kind: ItemKind;
+  /** Expiry date (YYYY-MM-DD; month-only packaging: the month's last day) and how it was printed. */
+  expiresOn: string | null;
+  expiryPrecision: "month" | "day";
   createdAt: string;
   thumbUrl: string | null;
   photoCount: number;
@@ -34,6 +43,8 @@ export type ItemDetail = Omit<ItemSummary, "thumbUrl" | "photoCount"> & {
   descriptionLocal: string | null;
   descriptionEn: string | null;
   bookIsbn: string | null;
+  /** Medicine / supplement data (kind = "medicine"), own-language text masked for a foreign record. */
+  medicine: MedicineAttrs | null;
   updatedAt: string;
   photos: ItemPhoto[];
 };

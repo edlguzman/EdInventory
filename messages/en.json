@@ -267,7 +267,10 @@
     "yearInvalid": "Year: four digits, from 1400 to 2100.",
     "isbnInvalid": "This ISBN is not valid: 10 or 13 digits with a correct check digit.",
     "badRequest": "Invalid request.",
-    "invalid": "Invalid data. Reload the page."
+    "invalid": "Invalid data. Reload the page.",
+    "medicineTooLong": "A text in the Medicine block is too long",
+    "expiryInvalid": "Could not read the expiry date. For example: 05/2027",
+    "ndcInvalid": "Invalid NDC: 10 digits needed"
   },
   "here": {
     "label": "I'm here",
@@ -376,8 +379,8 @@
         "title": "Add an item",
         "points": [
           "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\". The \"Save\" button is always at the bottom of the screen — above the menu, or above the keyboard while it is open. While the AI is recognizing or photos are being processed, it waits with a spinner.",
-          "An item can have up to 10 photos; the main one has a star, and you can change it. \"Recognize again\" asks the AI again about the main photo.",
-          "If the same photo was added before, the app shows those items before any AI request — you decide whether to add it again.",
+          "An item can have up to 10 photos; the main one has a star. Take several sides of a package — the AI gets up to 4 photos in one request and combines what it sees. The second and later photos have \"Read more\" (1 request): it fills only empty fields and shows \"Replace\" when the photo has a different value. \"Recognize again\" asks the AI again.",
+          "Every photo is checked for a barcode right on the phone, without AI: a book by its ISBN and a US medicine by its NDC are filled in from catalogues. If the same photo was added before, the app shows those items before any AI request.",
           "Photos are compressed on the phone; the location (GPS) and other data stored in the photo are removed. Take the item close up on a light background."
         ]
       },
@@ -422,6 +425,15 @@
           "The ISBN is often inside the book: in the Book block tap \"Scan ISBN\" and photograph the copyright page. A barcode is looked for first; without one the AI reads the number (one request). This photo is not saved. You can also type the ISBN.",
           "Once the ISBN is known, the app offers a catalogue cover: \"Make it the main photo\", \"Add as the second photo\" or \"Not needed\". For a saved book — \"Find cover\".",
           "Photograph a shelf of books as \"Several items\": every book becomes a card. Books go to a \"Books\" category (if you have none, the app offers to create it); search finds authors and ISBNs."
+        ]
+      },
+      "medicines": {
+        "title": "Medicines and supplements",
+        "points": [
+          "Medicines and vitamins are recognized from a photo — one item or \"Several items\": brand name, active ingredient (for supplements, the ingredients from Supplement Facts), strength, form, prescription or not, expiry date (if visible), what it is for and important warnings. Fill in \"For whom\" yourself if you like.",
+          "US packages: the barcode (UPC or DataMatrix) gives the NDC, and the data comes from the official FDA label — the AI only shortens it, marked \"from the FDA label\". Without a barcode, on other packages and for supplements it is \"from the AI\". Only the NDC is sent to the FDA.",
+          "\"EXP 05/2027\" is kept as 05/2027. Items shows \"Expiry: N expired, M expire within 30 days\" — tap to see those items; there is also an expiry filter. Cards get a red or yellow mark.",
+          "This is reference information, not medical advice: check the label, your doctor or pharmacist. Supplements are not evaluated by the FDA for effectiveness."
         ]
       },
       "bulk": {
@@ -770,5 +782,64 @@
     "newMark": "new",
     "unsure": "AI not sure",
     "apply": "Apply ({count})"
+  },
+  "medicine": {
+    "titleMedicine": "Medicine",
+    "titleSupplement": "Supplement",
+    "subtype": "What it is",
+    "subtypeMedicine": "Medicine",
+    "subtypeSupplement": "Supplement",
+    "notMedicine": "Not a medicine or supplement",
+    "addMedicineData": "This is a medicine or supplement",
+    "active": "Active ingredient",
+    "strength": "Strength",
+    "form": "Form",
+    "rx": "Dispensing",
+    "rxUnknown": "Not specified",
+    "rxOtc": "Over the counter",
+    "rxRx": "Prescription",
+    "components": "Ingredients (Supplement Facts)",
+    "componentsEmpty": "No ingredients yet.",
+    "componentName": "Ingredient",
+    "componentAmount": "Amount",
+    "addComponent": "Add ingredient",
+    "removeComponent": "Remove ingredient",
+    "expires": "Expiry date",
+    "expiresPlaceholder": "05/2027",
+    "expiresHint": "If the package shows only month and year, type \"05/2027\".",
+    "expiresInvalid": "Could not read the date. For example: 05/2027 or 14/05/2027.",
+    "expiresOn": "Exp. {date}",
+    "expiredOn": "Expired · {date}",
+    "forWhom": "For whom",
+    "forWhomPlaceholder": "Optional: e.g. \"dad\" or \"kids\"",
+    "aboutTitle": "Reference",
+    "uses": "What it is for",
+    "warnings": "Important warnings",
+    "sourceFda": "from the FDA label",
+    "sourceAi": "from the AI",
+    "disclaimerMedicine": "Reference information, not medical advice. Check the label, your doctor or pharmacist.",
+    "disclaimerSupplement": "Supplements are not evaluated by the FDA for effectiveness. Reference information, not medical advice.",
+    "scanBarcode": "Scan barcode",
+    "scanning": "Reading the barcode…",
+    "scanNoCode": "No drug barcode (UPC or DataMatrix with an NDC) found on the photo.",
+    "fdaNotFound": "The FDA database has no such NDC: the number and expiry from the barcode are kept.",
+    "foundByBarcode": "Found by barcode: NDC {ndc}, FDA data.",
+    "categoryMedicines": "Medicines",
+    "categorySupplements": "Vitamins & supplements",
+    "createCategoryQuestion": "Create the \"{name}\" category?",
+    "readMore": "Read more",
+    "readMoreHint": "Read more from this photo (1 AI request): fills only empty fields",
+    "filterExpiry": "Expiry",
+    "filterExpiryAll": "Any expiry",
+    "filterExpirySoon": "Expires within 30 days",
+    "filterExpired": "Expired",
+    "bannerTitle": "Expiry:",
+    "bannerExpired": "{count} expired",
+    "bannerSoon": "{count, plural, one {# expires} other {# expire}} within 30 days"
+  },
+  "found": {
+    "title": "The photo shows a different value:",
+    "replace": "Replace",
+    "keep": "Keep mine"
   }
 }
