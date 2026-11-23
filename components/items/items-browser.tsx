@@ -31,7 +31,7 @@ type BrowserProps = {
   hasMore: boolean;
   /** All items of these filters (not only the loaded pages). */
   total: number;
-  /** Expired / expiring within 30 days in the current place and category (the banner). */
+  /** Expired / expiring within 30 days in all places and categories (the banner). */
   expiring: { expired: number; soon: number };
   categories: CategoryOption[];
   filters: BrowserFilters;
@@ -134,6 +134,13 @@ function ItemsBrowserList({
 
   const place = filters.location ? byId.get(filters.location) : undefined;
   const hasFilters = Boolean(filters.category || filters.location || filters.expiry);
+
+  /**
+   * The banner counts every place: its numbers open "All places" with the expiry filter. "I'm
+   * here" is reset by the URL sync below ("all" in the URL), not here: resetting it first would
+   * make the sync rewrite the URL without the filter.
+   */
+  const showExpiring = (expiry: ExpiryFilter) => apply({ category: null, location: null, expiry });
 
   /** Every item of these filters, not only the loaded pages (the first 500). */
   async function selectAllFound() {
@@ -244,13 +251,13 @@ function ItemsBrowserList({
           <CalendarClock className="size-4 shrink-0" aria-hidden />
           <span>{tMed("bannerTitle")}</span>
           {expiring.expired > 0 && (
-            <button type="button" onClick={() => apply({ expiry: "expired" })} className="min-h-9 font-semibold underline underline-offset-2">
+            <button type="button" onClick={() => showExpiring("expired")} className="min-h-9 font-semibold underline underline-offset-2">
               {tMed("bannerExpired", { count: expiring.expired })}
             </button>
           )}
           {expiring.expired > 0 && expiring.soon > 0 && <span aria-hidden>·</span>}
           {expiring.soon > 0 && (
-            <button type="button" onClick={() => apply({ expiry: "soon" })} className="min-h-9 font-semibold underline underline-offset-2">
+            <button type="button" onClick={() => showExpiring("soon")} className="min-h-9 font-semibold underline underline-offset-2">
               {tMed("bannerSoon", { count: expiring.soon })}
             </button>
           )}

@@ -276,8 +276,8 @@ export async function searchItemIds(input: {
 }
 
 /**
- * Items with an expiry date that has passed / comes within 30 days, among the items of the
- * current place (with nested places) and category: the "Expiry: N expired, M within 30 days" line.
+ * Items with an expiry date that has passed / comes within 30 days (the "Expiry: N expired,
+ * M within 30 days" line counts all places and categories; filters optional).
  */
 export async function expiryCounts(filters: { category?: string; location?: string }): Promise<{ expired: number; soon: number }> {
   const supabase = await createClient();

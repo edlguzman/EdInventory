@@ -29,7 +29,8 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
   const [{ items, hasMore, total }, categories, expiring] = await Promise.all([
     listItems({ category: category ?? undefined, location: location ?? undefined, expiry: expiry ?? undefined, limit }),
     getCategories(),
-    expiryCounts({ category: category ?? undefined, location: location ?? undefined }),
+    // All places and categories: an expiring medicine anywhere is worth knowing about.
+    expiryCounts({}),
   ]);
 
   return (

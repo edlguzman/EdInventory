@@ -7,6 +7,18 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.1.0 — 2026-11-23
+
+- **Medicines and supplements:** recognized from a photo (one item or "Several items"): brand name, active ingredient (supplements: ingredients from Supplement Facts with amounts), strength, form, prescription or OTC, expiry date if visible, what it is for and important warnings, in your language and English. "For whom" is your own note. The AI decides between medicine and supplement; you can switch.
+- **US packages:** the barcode (UPC or DataMatrix) gives the NDC; facts come from the official FDA data and the AI only condenses the official label text — marked "from the FDA label" (otherwise "from the AI"). Only the NDC is sent to the FDA. A DataMatrix also gives the exact expiry date.
+- Reference-only note on every medicine (supplements: "not evaluated by the FDA for effectiveness").
+- **Expiry:** "EXP 05/2027" is kept as the last day of that month and shown as 05/2027. Items shows "Expiry: N expired, M within 30 days" for all places — tapping opens All places with the expiry filter; filter "Expires within 30 days / Expired"; red or yellow marks on cards.
+- Search finds medicines by brand, active ingredient and supplement ingredients in both languages, and by NDC.
+- New accounts get the "Medicines" and "Vitamins & supplements" categories; others are offered to create them.
+- **Photos (all items):** every added photo is checked for a barcode on the phone (ISBN, NDC), no AI. Several photos taken before recognition go to the AI together (up to 4, one request). "Read more" on the second and later photos (1 request) fills only empty fields and offers "Replace" when the photo shows a different value.
+- Database: item type, attributes and expiry date; search function v5; default categories for new accounts.
+- Help updated (RU, EN, ES): new "Medicines and supplements" section, "Add an item" rewritten.
+
 ## v2.0.1 — 2026-11-22
 
 - **Save is always visible:** in "One item", "Edit" and the "Several items" review, Cancel / Save are pinned at the bottom of the screen — above the menu, or right above the keyboard while it is open; the last fields are never hidden under them. Save waits with a spinner (and says what for) while photos are processed, a barcode is read, the AI recognizes or a cover is fetched.
