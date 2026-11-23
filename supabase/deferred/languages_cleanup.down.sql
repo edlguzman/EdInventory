@@ -445,16 +445,18 @@ as $$
     d.name_en,
     d.sort_order
   from me, (values
-    ('Мебель',         'Furniture',        'Muebles',              10),
-    ('Инструменты',    'Tools',            'Herramientas',         20),
-    ('Кухня',          'Kitchen',          'Cocina',               30),
-    ('Электроника',    'Electronics',      'Electrónica',          40),
-    ('Одежда',         'Clothing',         'Ropa',                 50),
-    ('Документы',      'Documents',        'Documentos',           60),
-    ('Хозтовары',      'Household',        'Artículos del hogar',  70),
-    ('Спорт и отдых',  'Sports & Leisure', 'Deporte y ocio',       80),
-    ('Личные вещи',    'Personal items',   'Objetos personales',   90),
-    ('Другое',         'Other',            'Otros',               100)
+    ('Мебель',              'Furniture',              'Muebles',                  10),
+    ('Инструменты',         'Tools',                  'Herramientas',             20),
+    ('Кухня',               'Kitchen',                'Cocina',                   30),
+    ('Электроника',         'Electronics',            'Electrónica',              40),
+    ('Одежда',              'Clothing',               'Ropa',                     50),
+    ('Документы',           'Documents',              'Documentos',               60),
+    ('Хозтовары',           'Household',              'Artículos del hogar',      70),
+    ('Спорт и отдых',       'Sports & Leisure',       'Deporte y ocio',           80),
+    ('Личные вещи',         'Personal items',         'Objetos personales',       90),
+    ('Лекарства',           'Medicines',              'Medicamentos',             93),
+    ('Витамины и добавки',  'Vitamins & supplements', 'Vitaminas y suplementos',  96),
+    ('Другое',              'Other',                  'Otros',                   100)
   ) as d (name_ru, name_en, name_es, sort_order);
 $$;
 
