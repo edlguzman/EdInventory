@@ -108,6 +108,7 @@ export type Database = {
       }
       items: {
         Row: {
+          attrs: Json
           book_author: string | null
           book_isbn: string | null
           book_year: number | null
@@ -116,7 +117,9 @@ export type Database = {
           description_en: string | null
           description_local: string | null
           description_ru: string | null
+          expires_on: string | null
           id: string
+          kind: string
           lang: string | null
           location_id: string | null
           name_en: string | null
@@ -125,6 +128,7 @@ export type Database = {
           search_text: string | null
           search_text_v2: string | null
           search_text_v3: string | null
+          search_text_v4: string | null
           tags: string[]
           tags_en: string[]
           tags_local: string[]
@@ -132,6 +136,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attrs?: Json
           book_author?: string | null
           book_isbn?: string | null
           book_year?: number | null
@@ -140,7 +145,9 @@ export type Database = {
           description_en?: string | null
           description_local?: string | null
           description_ru?: string | null
+          expires_on?: string | null
           id?: string
+          kind?: string
           lang?: string | null
           location_id?: string | null
           name_en?: string | null
@@ -149,6 +156,7 @@ export type Database = {
           search_text?: string | null
           search_text_v2?: string | null
           search_text_v3?: string | null
+          search_text_v4?: string | null
           tags?: string[]
           tags_en?: string[]
           tags_local?: string[]
@@ -156,6 +164,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          attrs?: Json
           book_author?: string | null
           book_isbn?: string | null
           book_year?: number | null
@@ -164,7 +173,9 @@ export type Database = {
           description_en?: string | null
           description_local?: string | null
           description_ru?: string | null
+          expires_on?: string | null
           id?: string
+          kind?: string
           lang?: string | null
           location_id?: string | null
           name_en?: string | null
@@ -173,6 +184,7 @@ export type Database = {
           search_text?: string | null
           search_text_v2?: string | null
           search_text_v3?: string | null
+          search_text_v4?: string | null
           tags?: string[]
           tags_en?: string[]
           tags_local?: string[]
@@ -525,6 +537,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      attrs_search_text: { Args: { a: Json }; Returns: string }
       consume_ai_quota_v2: {
         Args: { p_fallback: number; p_kind: string }
         Returns: string
@@ -620,6 +633,20 @@ export type Database = {
         }[]
       }
       search_items_v4: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_offset?: number
+          p_terms: string[]
+        }
+        Returns: {
+          id: string
+          score: number
+          total: number
+        }[]
+      }
+      search_items_v5: {
         Args: {
           p_category_id?: string
           p_limit?: number

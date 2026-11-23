@@ -5,6 +5,15 @@ import { z } from "zod";
 import { getDataLang, getUser } from "@/lib/auth";
 import { getMyPlan } from "@/lib/plans";
 import { isForeign, ownLocal, type DataLang } from "@/lib/data-lang";
+import {
+  maskMedicineAttrs,
+  medicineInputSchema,
+  readMedicineAttrs,
+  toMedicineRow,
+  type MedicineAttrs,
+  type MedicineInput,
+} from "@/lib/medicines/attrs";
+import type { Json } from "@/lib/supabase/database.types";
 import { dataErrorKey, type DataErrorKey } from "@/lib/db-errors";
 import { isOwnPhotoPath, MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +37,9 @@ export type ItemErrorKey =
   | "authorTooLong"
   | "yearInvalid"
   | "isbnInvalid"
+  | "medicineTooLong"
+  | "expiryInvalid"
+  | "ndcInvalid"
   | "photoTooMany"
   | "photoInvalid"
   | "photoUpload"
@@ -51,6 +63,9 @@ function firstIssue(error: z.ZodError): ItemErrorKey {
     "authorTooLong",
     "yearInvalid",
     "isbnInvalid",
+    "medicineTooLong",
+    "expiryInvalid",
+    "ndcInvalid",
     "photoTooMany",
   ];
   return known.includes(key as ItemErrorKey) ? (key as ItemErrorKey) : "unknown";
@@ -78,18 +93,49 @@ type SaveInput = {
   fields: ItemFieldsInput;
   category_id: string | null;
   location_id: string | null;
+  /** Medicine / supplement block: an object = it is one; null = it is not; absent = unchanged. */
+  medicine?: MedicineInput | null;
 };
+
+/** What is stored of the item's type (for an edit; null for a new item). */
+type StoredKind = { kind: string; attrs: MedicineAttrs | null; masked: MedicineAttrs | null };
+
+/**
+ * Item type columns: kind, attrs and expires_on. A medicine block makes it a medicine (attrs by
+ * the language rules, see toMedicineRow); without one it is a book when it has book data, else
+ * a plain item. Absent `medicine` (callers that do not know it) leaves a medicine as it is.
+ */
+function kindColumns(
+  input: SaveInput,
+  fields: z.output<ReturnType<typeof itemFieldsSchema>>,
+  d: DataLang,
+  stored: StoredKind | null,
+): { error: ItemErrorKey } | { row: { kind?: string; attrs?: Json; expires_on?: string | null } } {
+  const hasBook = !!(fields.book_author || fields.book_year || fields.book_isbn);
+  if (input.medicine === undefined) {
+    if (stored?.kind === "medicine") return { row: {} };
+    const bookSent = fields.book_author !== undefined || fields.book_year !== undefined || fields.book_isbn !== undefined;
+    return { row: bookSent ? { kind: hasBook ? "book" : "item" } : stored ? {} : { kind: "item" } };
+  }
+  if (input.medicine === null) return { row: { kind: hasBook ? "book" : "item", attrs: {}, expires_on: null } };
+  const m = medicineInputSchema.safeParse(input.medicine);
+  if (!m.success) return { error: firstIssue(m.error) };
+  const { attrs, expires_on } = toMedicineRow(m.data, d.mode, stored?.masked ?? null, stored?.attrs ?? null);
+  return { row: { kind: "medicine", attrs: attrs as unknown as Json, expires_on } };
+}
 
 /**
  * `current`: the stored text of the item being edited with its own-language text passed
  * through ownLocal (null for a new item); `foreign`: it is in another language than mine.
  */
-function parseSave(input: SaveInput, d: DataLang, current: ItemTextRow | null, foreign = false) {
+function parseSave(input: SaveInput, d: DataLang, current: ItemTextRow | null, foreign = false, stored: StoredKind | null = null) {
   const fields = itemFieldsSchema(d.mode, foreign).safeParse(input.fields);
   if (!fields.success) return { error: firstIssue(fields.error) } as const;
   const refs = itemRefsSchema.safeParse({ category_id: input.category_id, location_id: input.location_id });
   if (!refs.success) return { error: "notFound" as const };
-  return { row: { ...toItemRow(fields.data, d, current), ...refs.data } } as const;
+  const kind = kindColumns(input, fields.data, d, stored);
+  if ("error" in kind) return { error: kind.error } as const;
+  return { row: { ...toItemRow(fields.data, d, current), ...refs.data, ...kind.row } } as const;
 }
 
 /**
@@ -148,7 +194,7 @@ export async function createItem(
   return { ok: true, data: { id: id.data } };
 }
 
-type BatchItemInput = { id: string; fields: ItemFieldsInput; category_id: string | null; photo: string };
+type BatchItemInput = { id: string; fields: ItemFieldsInput; category_id: string | null; photo: string; medicine?: MedicineInput | null };
 
 /** Runs `tasks` with at most `limit` at a time; resolves to their results in order. */
 async function pool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
@@ -211,7 +257,11 @@ export async function createItemsBatch(input: {
   const mode = await getDataLang();
   const parsedRows = [];
   for (const it of items) {
-    const parsed = parseSave({ fields: it.fields, category_id: it.category_id, location_id: input.location_id }, mode, null);
+    const parsed = parseSave(
+      { fields: it.fields, category_id: it.category_id, location_id: input.location_id, medicine: it.medicine ?? null },
+      mode,
+      null,
+    );
     if ("error" in parsed) return abort(parsed.error ?? "unknown");
     parsedRows.push({ id: it.id, ...parsed.row });
   }
@@ -258,11 +308,16 @@ export async function createItemsBatch(input: {
     return abort("unknown");
   }
 
-  // Gemini filled English too; only items whose own-language name was edited lack it now.
+  // Gemini filled English too; only items whose own-language text was edited lack it now.
   translateAfterSave(
     mode,
     rows
-      .filter((r) => r.name_en === null || (r.description_local && r.description_en === null))
+      .filter(
+        (r) =>
+          r.name_en === null ||
+          (r.description_local && r.description_en === null) ||
+          (r.attrs as { needs_en?: boolean } | undefined)?.needs_en === true,
+      )
       .map((r) => ({ type: "item" as const, id: r.id })),
   );
   refresh();
@@ -293,7 +348,7 @@ export async function updateItem(
   const mode = await getDataLang();
   const { data: stored } = await supabase
     .from("items")
-    .select("lang, name_local, name_en, description_local, description_en, tags_local, tags_en")
+    .select("lang, name_local, name_en, description_local, description_en, tags_local, tags_en, kind, attrs")
     .eq("id", id.data)
     .maybeSingle();
   if (!stored) return abort("notFound");
@@ -306,7 +361,13 @@ export async function updateItem(
     tags_local: ownLocal(stored.lang, mode.lang, stored.tags_local) ?? [],
     tags_en: stored.tags_en,
   };
-  const parsed = parseSave(input, mode, current, isForeign(stored.lang, mode.lang));
+  const foreign = isForeign(stored.lang, mode.lang);
+  const storedAttrs = stored.kind === "medicine" ? readMedicineAttrs(stored.attrs) : null;
+  const parsed = parseSave(input, mode, current, foreign, {
+    kind: stored.kind,
+    attrs: storedAttrs,
+    masked: storedAttrs && maskMedicineAttrs(storedAttrs, foreign),
+  });
   if ("error" in parsed) return abort(parsed.error ?? "unknown");
 
   const { data: existing, error: loadError } = await supabase

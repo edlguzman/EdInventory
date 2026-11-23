@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Camera, Check, ChevronRight, ImagePlus, LoaderCircle, ScanSearch, X } from "lucide-react";
+import { BookOpen, Camera, Check, ChevronRight, ImagePlus, LoaderCircle, Pill, ScanSearch, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useHelpTopic } from "@/components/help/help-sheet";
 import { createItemsBatch } from "@/app/(app)/items/actions";
@@ -28,6 +28,10 @@ import { findPhotoUses, findSimilarItems, type ExistingItem } from "@/app/(app)/
 import { setBackOverride } from "@/lib/nav-history";
 import { fileHash } from "@/lib/photos/hash";
 import { BooksCategoryCard, useBooksCategory } from "./books";
+import { ExpiryBadge, MedicineCategoryCard } from "./medicine";
+import { medicineCategoryId, type MedSubtype } from "@/lib/medicines/attrs";
+import { inputFromSuggestion } from "@/lib/medicines/merge";
+import type { MedicineSuggestion } from "@/lib/ai/types";
 import { PhotoUsedNotice, SimilarNote } from "./duplicate-notice";
 import type { ItemSeed } from "./item-form";
 
@@ -88,10 +92,17 @@ export function MultiAdd({
 }) {
   const t = useTranslations("multi");
   const tBooks = useTranslations("books");
+  const tMed = useTranslations("medicine");
+  const [askMedicineCategory, setAskMedicineCategory] = useState<MedSubtype | null>(null);
   useHelpTopic("multi");
   // Categories plus a "Books" category created here; books found without one -> offer it.
   const books = useBooksCategory(initialCategories);
   const categories = books.categories;
+  /** A medicine / supplement kind among `list` that has no category of its own (to offer it). */
+  const missingMedicineCategory = (list: { ai: { medicine: MedicineSuggestion | null } }[]): MedSubtype | null =>
+    (["medicine", "supplement"] as const).find(
+      (k) => list.some((f) => f.ai.medicine?.subtype === k) && !medicineCategoryId(categories, k),
+    ) ?? null;
   const [askBooksCategory, setAskBooksCategory] = useState(false);
   const tItems = useTranslations("items");
   const tCommon = useTranslations("common");
@@ -191,6 +202,7 @@ export function MultiAdd({
       }
       setFound(items);
       setAskBooksCategory(!books.booksId && items.some((f) => f.ai.book));
+      setAskMedicineCategory(missingMedicineCategory(items));
       setStage({ kind: "review" });
     } catch (e) {
       setError(e instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
@@ -331,6 +343,7 @@ export function MultiAdd({
             book_isbn: f.ai.book.isbn ?? "",
           }),
         },
+        medicine: f.ai.medicine ? inputFromSuggestion(f.ai.medicine) : null,
       })),
     });
     setSaving(false);
@@ -466,6 +479,29 @@ export function MultiAdd({
                 // Every found book without a category goes there.
                 setFound((list) => list.map((f) => (f.ai.book && !f.category_id ? { ...f, category_id: created } : f)));
                 setAskBooksCategory(false);
+              }}
+            />
+          )}
+          {askMedicineCategory && !medicineCategoryId(categories, askMedicineCategory) && found.length > 1 && (
+            <MedicineCategoryCard
+              subtype={askMedicineCategory}
+              pending={books.pending}
+              failed={books.failed}
+              onDismiss={() => setAskMedicineCategory(null)}
+              onCreate={async () => {
+                const subtype = askMedicineCategory;
+                const created = await books.create(
+                  subtype === "supplement"
+                    ? { local: tMed("categorySupplements"), en: "Vitamins & supplements" }
+                    : { local: tMed("categoryMedicines"), en: "Medicines" },
+                );
+                if (!created) return;
+                // Every found medicine / supplement of this kind without a category goes there.
+                const next = found.map((f) => (f.ai.medicine?.subtype === subtype && !f.category_id ? { ...f, category_id: created } : f));
+                setFound(next);
+                setAskMedicineCategory(
+                  missingMedicineCategory(next.filter((f) => f.ai.medicine?.subtype !== subtype)),
+                );
               }}
             />
           )}
@@ -620,6 +656,7 @@ export function MultiAdd({
                           </span>
                         </p>
                       )}
+                      {f.ai.medicine && <MedicineLine m={f.ai.medicine} />}
                       {similar[f.key] && <SimilarNote item={similar[f.key]} />}
                     </li>
                   );
@@ -702,5 +739,23 @@ export function MultiAdd({
         )}
       </Sheet>
     </div>
+  );
+}
+
+/** "Ibuprofen · 200 mg", or the first components of a supplement, and the expiry chip. */
+function MedicineLine({ m }: { m: MedicineSuggestion }) {
+  const t = useTranslations("medicine");
+  const { display } = useDataLang();
+  const pick = (l: string, e: string) => (display === "local" ? l || e : e || l);
+  const text =
+    m.subtype === "supplement"
+      ? m.components.slice(0, 3).map((c) => [pick(c.name_local, c.name_en), c.amount].filter(Boolean).join(" ")).join(", ")
+      : [pick(m.active_local, m.active_en), m.strength].filter(Boolean).join(" · ");
+  return (
+    <p className="flex items-center gap-1.5 px-1 text-sm text-muted">
+      <Pill className="size-4 shrink-0 text-accent" aria-label={m.subtype === "supplement" ? t("subtypeSupplement") : t("subtypeMedicine")} />
+      <span className="min-w-0 truncate">{text || (m.subtype === "supplement" ? t("subtypeSupplement") : t("subtypeMedicine"))}</span>
+      {m.expires && <ExpiryBadge date={m.expires.date} precision={m.expires.precision} always />}
+    </p>
   );
 }

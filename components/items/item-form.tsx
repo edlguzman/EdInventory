@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpen, ChevronRight, LoaderCircle, Sparkles, X } from "lucide-react";
+import { BookOpen, ChevronRight, LoaderCircle, Pill, ScanText, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useHelpTopic } from "@/components/help/help-sheet";
 import { createItem, updateItem } from "@/app/(app)/items/actions";
@@ -17,8 +17,8 @@ import { DictationField } from "@/components/dictation-field";
 import { NameFields } from "@/components/name-fields";
 import { StickyActions } from "@/components/ui/sticky-actions";
 import { Alert, Button } from "@/components/ui/buttons";
-import { recognizeItem } from "@/lib/ai/client";
-import { findIsbnBarcode } from "@/lib/books/barcode";
+import { medicineSummary, recognizeItem } from "@/lib/ai/client";
+import { scanBarcodes } from "@/lib/books/barcode";
 import { fetchCoverImage, lookupBook } from "@/lib/books/client";
 import { formatIsbn, isBooksCategoryName, normalizeIsbn, type BookInfo, type BookLookup } from "@/lib/books/isbn";
 import type { ItemSuggestion, RecognizeResult } from "@/lib/ai/types";
@@ -27,7 +27,19 @@ import type { ItemDetail } from "@/lib/items/types";
 import { MAX_PHOTOS, PHOTO_BUCKET, photoFiles, photoPath, thumbPath } from "@/lib/photos/paths";
 import { processPhoto } from "@/lib/photos/process";
 import { createClient } from "@/lib/supabase/client";
-import { editSlots, slotLang, type Slot } from "@/lib/data-lang";
+import { displaySlot, editSlots, slotLang, type Slot } from "@/lib/data-lang";
+import {
+  emptyMedicineInput,
+  isMedicinesCategoryName,
+  isSupplementsCategoryName,
+  medicineCategoryId,
+  medicineInputOf,
+  type MedicineInput,
+  type MedSubtype,
+} from "@/lib/medicines/attrs";
+import { lookupDrug } from "@/lib/medicines/client";
+import { inputFromSuggestion, mergeMedicine, suggestionFromDrug, type MedConflict } from "@/lib/medicines/merge";
+import type { NdcScan } from "@/lib/medicines/ndc";
 import { useErrorText } from "@/lib/use-error-text";
 import { DESCRIPTION_MAX, ITEM_NAME_MAX, itemFieldsSchema, type ItemFieldsInput } from "@/lib/validation/items";
 import type { NamePairInput } from "@/lib/validation/names";
@@ -36,6 +48,8 @@ import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { BookFields, BooksCategoryCard, CoverOffer, useBooksCategory, type CoverChoice, type IsbnOutcome } from "./books";
 import { PhotoUsedNotice } from "./duplicate-notice";
+import { FoundValuesCard, type FoundValue } from "./found-values";
+import { MedicineCategoryCard, MedicineFields } from "./medicine";
 import { ItemSuggestionCard } from "./item-suggestion";
 import { TagsInput } from "./tags-input";
 
@@ -107,7 +121,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   const [suggestion, setSuggestion] = useState<ItemSuggestion | null>(null);
   // Duplicate check (new items): items that already have a photo made from the same file.
   const [photoUses, setPhotoUses] = useState<ExistingItem[] | null>(null);
-  const [heldRecognition, setHeldRecognition] = useState<PhotoDraft | null>(null);
+  const [heldRecognition, setHeldRecognition] = useState<PhotoDraft[] | null>(null);
   const checkedHashes = useRef(new Set<string>());
   // Books: the author/year/ISBN block, "create the Books category?", a book found by its barcode.
   const [showBook, setShowBook] = useState(!!(item?.bookAuthor || item?.bookYear || item?.bookIsbn || seeded?.book));
@@ -126,6 +140,25 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   } | null>(null);
   const [coverBusy, setCoverBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  // Medicines and supplements: the block (null = not one), its category card, a scanned NDC.
+  const [medicine, setMedicineState] = useState<MedicineInput | null>(() =>
+    item?.medicine ? medicineInputOf(item.medicine, item.expiresOn) : seeded?.medicine ? inputFromSuggestion(seeded.medicine) : null,
+  );
+  // The latest block for async callbacks (state read in an awaited callback would be stale).
+  const medRef = useRef(medicine);
+  const setMedicine = (next: MedicineInput | null) => {
+    medRef.current = next;
+    setMedicineState(next);
+  };
+  useHelpTopic("medicines", medicine !== null);
+  const [askMedicineCategory, setAskMedicineCategory] = useState<MedSubtype | null>(null);
+  const [medScanning, setMedScanning] = useState(false);
+  const [medNote, setMedNote] = useState<string>();
+  const [foundNdc, setFoundNdc] = useState<NdcScan | null>(null);
+  // "Read more from this photo": the photo being read, and values that differ from the form.
+  const [reading, setReading] = useState<string | null>(null);
+  const [found, setFound] = useState<FoundValue[]>([]);
+  const tMed = useTranslations("medicine");
   const [coverNote, setCoverNote] = useState<string>();
   // The latest photos for async cover placement (state in an awaited callback would be stale).
   const latest = useRef({ photos, primaryKey });
@@ -162,8 +195,11 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
 
   const place = locationId ? byId.get(locationId) : undefined;
 
-  /** AI prefills only empty fields: what the user typed is never overwritten. */
-  function applyRecognition(r: RecognizeResult) {
+  /**
+   * AI prefills only empty fields: what the user typed is never overwritten. `offer` ("Read more
+   * from this photo"): factual values that differ from filled fields are offered, not applied.
+   */
+  function applyRecognition(r: RecognizeResult, offer = false) {
     const v = form.getValues();
     const fill = (name: "name_local" | "name_en" | "description_local" | "description_en", value: string) => {
       if (value && !v[name].trim()) setValue(name, value, { shouldDirty: true, shouldValidate: name.startsWith("name") });
@@ -175,9 +211,145 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     if (r.tags_local.length && v.tags_local.length === 0) setValue("tags_local", r.tags_local, { shouldDirty: true });
     if (r.tags_en.length && v.tags_en.length === 0) setValue("tags_en", r.tags_en, { shouldDirty: true });
     if (r.category_id) setCategoryId((current) => current ?? r.category_id);
-    if (r.book) applyBook(r.book);
+    if (r.book) {
+      if (offer) offerBook(r.book);
+      applyBook(r.book);
+    }
     // ISBN read from the user's own cover photo: the catalogue cover is offered, "not needed" by default.
     if (r.book?.isbn) void searchCover(r.book.isbn, "none");
+    if (r.medicine) applyMedicine(r.medicine, offer);
+  }
+
+  /** Book values from a photo that differ from filled fields: "Found: ... · Replace". */
+  function offerBook(b: BookInfo) {
+    const v = form.getValues();
+    const opts = { shouldDirty: true, shouldValidate: true };
+    const offers: FoundValue[] = [];
+    const author = b.author;
+    if (author && v.book_author?.trim() && v.book_author.trim() !== author)
+      offers.push({ key: "book_author", label: tBooks("author"), value: author, apply: () => setValue("book_author", author, opts) });
+    const year = b.year ? String(b.year) : null;
+    if (year && v.book_year?.trim() && v.book_year.trim() !== year)
+      offers.push({ key: "book_year", label: tBooks("year"), value: year, apply: () => setValue("book_year", year, opts) });
+    const isbn = b.isbn;
+    const cur = normalizeIsbn(v.book_isbn ?? "");
+    if (isbn && cur && cur !== isbn)
+      offers.push({ key: "book_isbn", label: "ISBN", value: formatIsbn(isbn), apply: () => setValue("book_isbn", isbn, opts) });
+    addFound(offers);
+  }
+
+  function addFound(offers: FoundValue[]) {
+    if (offers.length) setFound((cur) => [...cur.filter((f) => !offers.some((o) => o.key === f.key)), ...offers]);
+  }
+
+  const medFieldLabel: Record<MedConflict["field"], string> = {
+    active: tMed("active"),
+    strength: tMed("strength"),
+    rx: tMed("rx"),
+    components: tMed("components"),
+    expires: tMed("expires"),
+    ndc: "NDC",
+    uses: tMed("uses"),
+    warnings: tMed("warnings"),
+  };
+  const medValueText = (c: MedConflict) => (c.field === "rx" ? (c.shown === "rx" ? tMed("rxRx") : tMed("rxOtc")) : c.shown);
+
+  /** Medicine data: empty fields filled; with `offer` differing values are offered; category chosen or offered. */
+  function applyMedicine(sug: NonNullable<RecognizeResult["medicine"]>, offer: boolean) {
+    const { next, conflicts } = mergeMedicine(medRef.current, sug, { offer, slot: displaySlot(dataMode) });
+    setMedicine(next);
+    addFound(
+      conflicts.map((c) => ({
+        key: `med_${c.field}`,
+        label: medFieldLabel[c.field],
+        value: medValueText(c),
+        apply: () => {
+          if (medRef.current) setMedicine({ ...medRef.current, ...c.patch });
+        },
+      })),
+    );
+    chooseMedicineCategory(next.subtype);
+  }
+
+  /** The Medicines / Vitamins & supplements category: chosen if there is one, else offered. */
+  function chooseMedicineCategory(subtype: MedSubtype) {
+    const found = medicineCategoryId(categories, subtype);
+    if (found) setCategoryId((current) => current ?? found);
+    else setAskMedicineCategory(subtype);
+  }
+
+  /** Only the NDC and the expiry from the barcode (the FDA does not know it, or could not be asked). */
+  function applyBarcodeOnly(scan: NdcScan) {
+    applyMedicine(
+      {
+        subtype: medRef.current?.subtype ?? "medicine",
+        active_local: "",
+        active_en: "",
+        strength: "",
+        form_local: "",
+        form_en: "",
+        rx: null,
+        components: [],
+        expires: scan.expiry,
+        uses_local: "",
+        uses_en: "",
+        warnings_local: "",
+        warnings_en: "",
+        ndc: scan.ndc,
+        source: medRef.current?.source || "ai",
+      },
+      true,
+    );
+  }
+
+  /**
+   * A drug barcode (NDC, read on the phone): FDA facts fill empty fields (no AI). With
+   * `summarize` (the form is already filled) the official uses and warnings are condensed by
+   * the AI (1 request); before the first recognition they come with it instead (same request).
+   */
+  async function takeNdc(scan: NdcScan, summarize: boolean) {
+    setFoundNdc(scan);
+    const r = await lookupDrug(scan.ndc);
+    if ("error" in r) {
+      setMedNote(r.error === "rateLimited" ? tBooks("lookupRateLimited") : errorText(r.error));
+      return applyBarcodeOnly(scan);
+    }
+    if (!r.drug) {
+      setMedNote(tMed("fdaNotFound"));
+      return applyBarcodeOnly(scan);
+    }
+    setMedNote(tMed("foundByBarcode", { ndc: scan.ndc }));
+    const v = form.getValues();
+    const opts = { shouldDirty: true, shouldValidate: true };
+    if (r.drug.brandName) {
+      if (!v.name_en.trim()) setValue("name_en", r.drug.brandName.slice(0, ITEM_NAME_MAX), opts);
+      if (dataMode !== "en" && !v.name_local.trim()) setValue("name_local", r.drug.brandName.slice(0, ITEM_NAME_MAX), opts);
+    }
+    applyMedicine(suggestionFromDrug(r.drug, scan.expiry), true);
+    if (summarize && r.drug.hasLabel && !aiOff) {
+      setMedScanning(true);
+      const sum = await medicineSummary(scan.ndc);
+      setMedScanning(false);
+      if ("error" in sum) return setMedNote(errorText(sum.error));
+      if (sum.medicine) applyMedicine(sum.medicine, true);
+    }
+  }
+
+  /** "Scan barcode" in the block: a photo of the package's barcode (read on the phone, not stored). */
+  async function scanMedicineBarcode(file: File) {
+    setMedNote(undefined);
+    setMedScanning(true);
+    try {
+      const { main } = await processPhoto(file);
+      const r = await scanBarcodes(main);
+      if (!r.ndc) return setMedNote(tMed("scanNoCode"));
+      setMedScanning(false);
+      await takeNdc(r.ndc, true);
+    } catch {
+      setMedNote(errorText("photoUnsupported"));
+    } finally {
+      setMedScanning(false);
+    }
   }
 
   /** Book fields: only empty ones are filled; the block opens; the Books category is chosen or offered. */
@@ -279,46 +451,69 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
   }
 
   /**
-   * An ISBN barcode on the photo (read on the phone, no AI): look the book up in the catalogues.
-   * Found -> the form is filled and true is returned (no AI request). Not found -> only the
-   * ISBN is kept, and the photo is recognized as usual.
+   * Barcodes on new photos (read on the phone, no AI): a book ISBN is looked up in the
+   * catalogues (found -> the form is filled, `book` true: no AI request needed); a drug NDC
+   * goes to the FDA (see takeNdc). Every added photo is checked.
    */
-  async function fillFromBarcode(photo: PhotoDraft): Promise<boolean> {
-    if (photo.kind !== "new") return false;
+  async function scanNewPhotos(list: PhotoDraft[], summarize: boolean): Promise<{ book: boolean; ndc: NdcScan | null }> {
+    const fresh = list.filter((p): p is Extract<PhotoDraft, { kind: "new" }> => p.kind === "new" && p.key !== COVER_KEY);
+    if (fresh.length === 0) return { book: false, ndc: null };
     setScanning(true);
     try {
-      const isbn = await findIsbnBarcode(photo.main);
-      if (!isbn) return false;
-      const r = await lookupBook(isbn);
-      // The photo was a barcode shot: a catalogue cover is offered as the main photo.
-      void searchCover(isbn, "main");
-      if ("error" in r || !r.book) {
-        applyBook({ author: null, year: null, isbn });
-        return false;
+      let isbn: string | null = null;
+      let ndc: NdcScan | null = null;
+      for (const p of fresh) {
+        const r = await scanBarcodes(p.main);
+        isbn ??= r.isbn;
+        if (r.ndc && (!ndc || (!ndc.expiry && r.ndc.expiry))) ndc = r.ndc;
       }
-      applyLookup(r.book);
-      setFoundIsbn(isbn);
-      return true;
+      let book = false;
+      if (isbn && !normalizeIsbn(form.getValues("book_isbn") ?? "")) {
+        const r = await lookupBook(isbn);
+        // A barcode shot as the only photo: the catalogue cover is offered as the main photo.
+        void searchCover(isbn, latest.current.photos.filter((p) => p.key !== COVER_KEY).length <= 1 ? "main" : "none");
+        if ("error" in r || !r.book) applyBook({ author: null, year: null, isbn });
+        else {
+          applyLookup(r.book);
+          setFoundIsbn(isbn);
+          book = true;
+        }
+      }
+      if (ndc) await takeNdc(ndc, summarize);
+      return { book, ndc };
     } finally {
       setScanning(false);
     }
   }
 
-  /** First photo of a new item: a book barcode first (free), else the AI recognition. */
-  async function scanThenRecognize(photo: PhotoDraft) {
-    if (await fillFromBarcode(photo)) return;
-    void recognize(photo);
+  /** First photos of a new item: barcodes first (free); a book found by them needs no AI. */
+  async function scanThenRecognize(list: PhotoDraft[]) {
+    const r = await scanNewPhotos(list, false);
+    if (r.book) return;
+    void recognize(list, r.ndc?.ndc ?? null);
   }
 
-  async function recognize(photo: PhotoDraft | undefined) {
-    if (!photo || aiOff) return; // plan limit reached: no AI (the server refuses it as well)
+  /** Photo for the AI: the processed JPEG of a new photo, else the stored one through its signed URL. */
+  async function photoBlob(photo: PhotoDraft): Promise<Blob | null> {
+    const image = photo.kind === "new" ? photo.main : photo.url ? await (await fetch(photo.url)).blob() : null;
+    return image ? new Blob([image], { type: "image/jpeg" }) : null;
+  }
+
+  /** Up to 4 photos of the item (primary first) in one AI request: data from all sides of a package. */
+  async function recognize(list: PhotoDraft[], ndc: string | null = null) {
+    if (list.length === 0 || aiOff) return; // plan limit reached: no AI (the server refuses it as well)
     setAiError(undefined);
     setRecognizing(true);
     try {
-      // New photo: the processed JPEG; stored photo: download it through its signed URL.
-      const image = photo.kind === "new" ? photo.main : photo.url ? await (await fetch(photo.url)).blob() : null;
-      if (!image) return setAiError("aiFailed");
-      const r = await recognizeItem(new Blob([image], { type: "image/jpeg" }), locale);
+      const own = list.filter((p) => p.key !== COVER_KEY);
+      const ordered = [...own.filter((p) => p.key === primaryKey), ...own.filter((p) => p.key !== primaryKey)].slice(0, 4);
+      // Up to 4 MB together (Vercel's request body limit is 4.5 MB); the primary photo always goes.
+      let bytes = 0;
+      const images = (await Promise.all(ordered.map(photoBlob)))
+        .filter((b): b is Blob => !!b)
+        .filter((b, i) => (bytes += b.size) <= 4_000_000 || i === 0);
+      if (images.length === 0) return setAiError("aiFailed");
+      const r = await recognizeItem(images, { ndc: ndc ?? foundNdc?.ndc ?? (medRef.current?.ndc || null) });
       if ("error" in r) return setAiError(r.error);
       applyRecognition(r);
       setRecognized(true);
@@ -326,6 +521,26 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
       setAiError("network");
     } finally {
       setRecognizing(false);
+    }
+  }
+
+  /** "Read more from this photo": its barcodes, then 1 AI request; only empty fields are filled. */
+  async function readMore(photo: PhotoDraft) {
+    if (aiOff) return;
+    setAiError(undefined);
+    setReading(photo.key);
+    try {
+      const image = await photoBlob(photo);
+      if (!image) return setAiError("aiFailed");
+      const codes = await scanBarcodes(image);
+      if (codes.ndc && codes.ndc.ndc !== foundNdc?.ndc) await takeNdc(codes.ndc, false);
+      const r = await recognizeItem([image], { ndc: codes.ndc?.ndc ?? null });
+      if ("error" in r) return setAiError(r.error);
+      applyRecognition(r, true);
+    } catch {
+      setAiError("network");
+    } finally {
+      setReading(null);
     }
   }
 
@@ -344,10 +559,10 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     return true;
   }
 
-  /** First photo of a new item: check for a repeat first, so a known photo costs no AI request. */
-  async function checkThenRecognize(photo: PhotoDraft, list: PhotoDraft[]) {
-    if (await photosAlreadyUsed(list)) return setHeldRecognition(photo);
-    void scanThenRecognize(photo);
+  /** First photos of a new item: check for a repeat first, so a known photo costs no AI request. */
+  async function checkThenRecognize(list: PhotoDraft[]) {
+    if (await photosAlreadyUsed(list)) return setHeldRecognition(list);
+    void scanThenRecognize(list);
   }
 
   // Photos handed over without a recognition: recognize the first one once (1 AI request),
@@ -359,7 +574,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     // After this render (state updates belong in the async callback, not the effect body).
     void Promise.resolve().then(async () => {
       if (seed.recognition) await photosAlreadyUsed(photos);
-      else await checkThenRecognize(photos[0], photos);
+      else await checkThenRecognize(photos);
     });
     // Runs once on mount for the seeded photos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -414,7 +629,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     // 2. Save the item; the server action removes the uploaded files itself if saving fails.
     const ordered = photos.map((p) => pathByKey.get(p.key)!);
     const primary = primaryKey ? (pathByKey.get(primaryKey) ?? null) : null;
-    const common = { fields, category_id: categoryId, location_id: locationId };
+    const common = { fields, category_id: categoryId, location_id: locationId, medicine };
     const result =
       mode === "create"
         ? await createItem({ ...common, id: itemId, photos: ordered, primary, hashes })
@@ -437,11 +652,13 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     ? t("processing")
     : scanning
       ? tBooks("scanning")
-      : recognizing
+      : recognizing || reading
         ? t("recognizing")
-        : coverBusy
-          ? tBooks("coverSearching")
-          : null;
+        : medScanning
+          ? tMed("scanning")
+          : coverBusy
+            ? tBooks("coverSearching")
+            : null;
   const limitText = usePlanLimitText();
   const fieldError = (key?: string) => (key ? errorText(key) : undefined);
 
@@ -452,14 +669,31 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
         primaryKey={primaryKey}
         onError={setError}
         onProcessing={setPhotoBusy}
+        tileAction={(p, i) =>
+          i > 0 && p.key !== COVER_KEY && (recognized || mode === "edit") ? (
+            <button
+              type="button"
+              onClick={() => void readMore(p)}
+              disabled={aiOff || offline || reading !== null || recognizing}
+              title={tMed("readMoreHint")}
+              className="absolute inset-x-0 bottom-0 flex min-h-11 items-center justify-center gap-1 bg-black/55 px-1 text-xs font-medium text-white disabled:opacity-60"
+            >
+              {reading === p.key ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <ScanText className="size-4" aria-hidden />}
+              {tMed("readMore")}
+            </button>
+          ) : null
+        }
         onChange={(next, primary) => {
-          // First photo of an item with no name yet: recognize it automatically (1 AI request).
+          // First photos of an item with no name yet: recognized automatically (all, up to 4: 1 AI request).
           const v = form.getValues();
-          const firstPhoto = photos.length === 0 && next.length > 0;
-          if (firstPhoto && !v.name_local.trim() && !v.name_en.trim() && !recognized) {
-            void checkThenRecognize(next.find((p) => p.key === primary) ?? next[0], next);
+          const firstPhotos = photos.length === 0 && next.length > 0;
+          const added = next.filter((p) => !photos.some((o) => o.key === p.key));
+          if (firstPhotos && !v.name_local.trim() && !v.name_en.trim() && !recognized) {
+            void checkThenRecognize([...next.filter((p) => p.key === primary), ...next.filter((p) => p.key !== primary)]);
           } else {
             void photosAlreadyUsed(next);
+            // Every added photo is checked for a barcode (free); a filled form gets the FDA notes.
+            if (added.length) void scanNewPhotos(added, recognized || !!v.name_local.trim() || !!v.name_en.trim());
           }
           setPhotos(next);
           setPrimaryKey(primary);
@@ -480,7 +714,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
               <Button
                 variant="ghost"
                 className="-ml-4 text-sm"
-                onClick={() => void recognize(photos.find((p) => p.key === primaryKey) ?? photos[0])}
+                onClick={() => void recognize(photos)}
                 disabled={aiOff}
                 title={limitText}
               >
@@ -532,6 +766,12 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           }
         />
       )}
+
+      <FoundValuesCard
+        items={found}
+        onDone={(key) => setFound((cur) => cur.filter((f) => f.key !== key))}
+        onDismiss={() => setFound([])}
+      />
 
       {error && <Alert>{errorText(error)}</Alert>}
 
@@ -588,6 +828,9 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
             setCategoryId(next);
             const c = categories.find((x) => x.id === next);
             if (c && (isBooksCategoryName(c.name_local) || isBooksCategoryName(c.name_en))) setShowBook(true);
+            const med = !!c && (isMedicinesCategoryName(c.name_local) || isMedicinesCategoryName(c.name_en));
+            const sup = !!c && (isSupplementsCategoryName(c.name_local) || isSupplementsCategoryName(c.name_en));
+            if ((med || sup) && !medRef.current) setMedicine(emptyMedicineInput(sup ? "supplement" : "medicine"));
           }}
           className={`${fieldClass} min-h-12 appearance-none`}
         >
@@ -628,10 +871,57 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           aiOff={aiOff}
         />
       ) : (
-        <Button variant="ghost" className="-mt-3 -ml-4 self-start text-sm" onClick={() => setShowBook(true)}>
-          <BookOpen className="size-4" aria-hidden />
-          {tBooks("addBookData")}
-        </Button>
+        !medicine && (
+          <Button variant="ghost" className="-mt-3 -ml-4 self-start text-sm" onClick={() => setShowBook(true)}>
+            <BookOpen className="size-4" aria-hidden />
+            {tBooks("addBookData")}
+          </Button>
+        )
+      )}
+
+      {askMedicineCategory && !medicineCategoryId(categories, askMedicineCategory) && (
+        <MedicineCategoryCard
+          subtype={askMedicineCategory}
+          pending={books.pending}
+          failed={books.failed}
+          onDismiss={() => setAskMedicineCategory(null)}
+          onCreate={async () => {
+            const supplement = askMedicineCategory === "supplement";
+            const created = await books.create(
+              supplement
+                ? { local: tMed("categorySupplements"), en: "Vitamins & supplements" }
+                : { local: tMed("categoryMedicines"), en: "Medicines" },
+            );
+            if (created) {
+              setCategoryId(created);
+              setAskMedicineCategory(null);
+            }
+          }}
+        />
+      )}
+
+      {medicine ? (
+        <MedicineFields
+          value={medicine}
+          onChange={setMedicine}
+          slots={editLangs}
+          myLang={myLang}
+          onRemove={() => {
+            setMedicine(null);
+            setFound((cur) => cur.filter((f) => !f.key.startsWith("med_")));
+          }}
+          onScan={(file) => void scanMedicineBarcode(file)}
+          scanning={medScanning}
+          note={medNote}
+          disabled={offline}
+        />
+      ) : (
+        !showBook && (
+          <Button variant="ghost" className="-mt-3 -ml-4 self-start text-sm" onClick={() => setMedicine(emptyMedicineInput())}>
+            <Pill className="size-4" aria-hidden />
+            {tMed("addMedicineData")}
+          </Button>
+        )
       )}
 
       <div className="flex flex-col gap-1.5">

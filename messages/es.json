@@ -267,7 +267,10 @@
     "yearInvalid": "Año: cuatro dígitos, de 1400 a 2100.",
     "isbnInvalid": "Este ISBN no es válido: 10 o 13 dígitos con un dígito de control correcto.",
     "badRequest": "Solicitud no válida.",
-    "invalid": "Datos no válidos. Recarga la página."
+    "invalid": "Datos no válidos. Recarga la página.",
+    "medicineTooLong": "Un texto del bloque Medicamento es demasiado largo",
+    "expiryInvalid": "No entendí la fecha de vencimiento. Por ejemplo: 05/2027",
+    "ndcInvalid": "NDC no válido: se necesitan 10 dígitos"
   },
   "here": {
     "label": "Estoy aquí",
@@ -376,8 +379,8 @@
         "title": "Añadir un objeto",
         "points": [
           "Toca la cámara abajo y elige \"Un objeto\": haz una foto o elige una de la galería. La IA rellena el nombre, la descripción, la categoría y las etiquetas; revísalos y toca \"Guardar\". El botón \"Guardar\" está siempre abajo en la pantalla: sobre el menú o, con el teclado abierto, justo encima de él. Mientras la IA reconoce o se procesan las fotos, espera con un indicador de carga.",
-          "Un objeto puede tener hasta 10 fotos; la principal lleva una estrella y puedes cambiarla. \"Reconocer de nuevo\" vuelve a preguntar a la IA por la foto principal.",
-          "Si la misma foto ya se añadió antes, la app muestra esos objetos antes de cualquier solicitud a la IA; tú decides si añadirla otra vez.",
+          "Un objeto puede tener hasta 10 fotos; la principal lleva una estrella. Fotografía varios lados de un empaque: la IA recibe hasta 4 fotos en una sola solicitud y junta lo que ve en todas. La segunda foto y las siguientes tienen \"Leer más\" (1 solicitud): solo llena los campos vacíos y muestra \"Reemplazar\" si la foto tiene otro valor. \"Reconocer de nuevo\" vuelve a preguntar a la IA.",
+          "Cada foto se revisa al momento en el teléfono, sin IA, por si tiene código de barras: un libro por su ISBN y un medicamento de EE. UU. por su NDC se llenan desde catálogos. Si la misma foto ya se agregó antes, la app muestra esos objetos antes de cualquier solicitud a la IA.",
           "Las fotos se comprimen en el teléfono; la ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro."
         ]
       },
@@ -422,6 +425,15 @@
           "El ISBN suele estar dentro del libro: en el bloque Libro toca \"Escanear ISBN\" y fotografía la página de créditos. Primero se busca un código de barras; si no hay, la IA lee el número (una solicitud). Esta foto no se guarda. También puedes escribir el ISBN.",
           "Cuando se conoce el ISBN, la app ofrece una portada del catálogo: \"Hacerla foto principal\", \"Añadir como segunda foto\" o \"No hace falta\". Para un libro ya guardado: \"Buscar portada\".",
           "Fotografía un estante de libros como \"Varios objetos\": cada libro se convierte en una tarjeta. Los libros van a la categoría \"Libros\" (si no la tienes, la app ofrece crearla); la búsqueda encuentra autores e ISBN."
+        ]
+      },
+      "medicines": {
+        "title": "Medicamentos y suplementos",
+        "points": [
+          "Los medicamentos y vitaminas se reconocen por foto — un objeto o \"Varios objetos\": nombre comercial, principio activo (en los suplementos, los ingredientes de Supplement Facts), dosis, forma, si es con receta, fecha de vencimiento (si se ve), para qué sirve y advertencias importantes. \"Para quién\" lo escribes tú si quieres.",
+          "Empaques de EE. UU.: el código de barras (UPC o DataMatrix) da el número NDC y los datos vienen de la etiqueta oficial de la FDA — la IA solo la resume, con la nota \"según la etiqueta de la FDA\". Sin código, en otros empaques y en los suplementos es \"según la IA\". A la FDA solo se envía el NDC.",
+          "\"EXP 05/2027\" se guarda como 05/2027. En Objetos aparece \"Vencimiento: N vencidos, M vencen en 30 días\": tócalo para ver esos objetos; también hay un filtro por vencimiento. Las tarjetas llevan una marca roja o amarilla.",
+          "Es información de referencia, no consejo médico: consulta la etiqueta, a tu médico o farmacéutico. La FDA no evalúa la eficacia de los suplementos."
         ]
       },
       "bulk": {
@@ -770,5 +782,65 @@
     "newMark": "nueva",
     "unsure": "IA no segura",
     "apply": "Aplicar ({count})"
+  },
+  "medicine": {
+    "titleMedicine": "Medicamento",
+    "titleSupplement": "Suplemento",
+    "subtype": "Qué es",
+    "subtypeMedicine": "Medicamento",
+    "subtypeSupplement": "Suplemento",
+    "notMedicine": "No es un medicamento ni un suplemento",
+    "addMedicineData": "Es un medicamento o suplemento",
+    "active": "Principio activo",
+    "strength": "Dosis",
+    "form": "Forma",
+    "rx": "Venta",
+    "rxUnknown": "Sin indicar",
+    "rxOtc": "Sin receta",
+    "rxRx": "Con receta",
+    "components": "Ingredientes (Supplement Facts)",
+    "componentsEmpty": "Todavía no hay ingredientes.",
+    "componentName": "Ingrediente",
+    "componentAmount": "Cantidad",
+    "addComponent": "Agregar ingrediente",
+    "removeComponent": "Quitar ingrediente",
+    "expires": "Fecha de vencimiento",
+    "expiresPlaceholder": "05/2027",
+    "expiresHint": "Si el empaque solo muestra mes y año, escribe \"05/2027\".",
+    "expiresInvalid": "No entendí la fecha. Por ejemplo: 05/2027 o 14/05/2027.",
+    "expiresOn": "Vence {date}",
+    "expiredOn": "Vencido · {date}",
+    "forWhom": "Para quién",
+    "forWhomPlaceholder": "Opcional: por ejemplo, \"papá\" o \"los niños\"",
+    "aboutTitle": "Referencia",
+    "uses": "Para qué sirve",
+    "warnings": "Advertencias importantes",
+    "sourceFda": "según la etiqueta de la FDA",
+    "sourceAi": "según la IA",
+    "disclaimerMedicine": "Información de referencia, no es consejo médico. Consulta la etiqueta, a tu médico o farmacéutico.",
+    "disclaimerSupplement": "La FDA no evalúa la eficacia de los suplementos. Información de referencia, no es consejo médico.",
+    "scanBarcode": "Escanear código de barras",
+    "scanning": "Leyendo el código…",
+    "scanNoCode": "No se encontró en la foto un código de medicamento (UPC o DataMatrix con NDC).",
+    "fdaNotFound": "La base de la FDA no tiene ese NDC: se guardan el número y el vencimiento del código.",
+    "foundByBarcode": "Encontrado por código de barras: NDC {ndc}, datos de la FDA.",
+    "categoryMedicines": "Medicamentos",
+    "categorySupplements": "Vitaminas y suplementos",
+    "createCategoryQuestion": "¿Crear la categoría \"{name}\"?",
+    "createCategory": "Crear",
+    "readMore": "Leer más",
+    "readMoreHint": "Leer más de esta foto (1 solicitud a la IA): solo llena los campos vacíos",
+    "filterExpiry": "Vencimiento",
+    "filterExpiryAll": "Cualquier fecha",
+    "filterExpirySoon": "Vence en 30 días",
+    "filterExpired": "Vencidos",
+    "bannerTitle": "Vencimiento:",
+    "bannerExpired": "{count, plural, one {# vencido} other {# vencidos}}",
+    "bannerSoon": "{count, plural, one {# vence} other {# vencen}} en 30 días"
+  },
+  "found": {
+    "title": "La foto muestra otro valor:",
+    "replace": "Reemplazar",
+    "keep": "Dejar como está"
   }
 }

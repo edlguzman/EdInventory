@@ -7,6 +7,7 @@ export const HELP_TOPICS = [
   "places",
   "items",
   "books",
+  "medicines",
   "bulk",
   "languages",
   "plan",

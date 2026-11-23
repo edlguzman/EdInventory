@@ -19,6 +19,7 @@ export function PhotoPicker({
   onChange,
   onError,
   onProcessing,
+  tileAction,
 }: {
   photos: PhotoDraft[];
   primaryKey: string | null;
@@ -26,6 +27,8 @@ export function PhotoPicker({
   onError: (key: string) => void;
   /** True while new photos are being compressed (the form waits before saving). */
   onProcessing?: (busy: boolean) => void;
+  /** An extra button at the bottom of a photo tile ("Read more from this photo"). */
+  tileAction?: (photo: PhotoDraft, index: number) => React.ReactNode;
 }) {
   const t = useTranslations("items");
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -114,6 +117,7 @@ export function PhotoPicker({
                     <Trash2 className="size-4" aria-hidden />
                   </span>
                 </button>
+                {tileAction?.(p, i)}
               </li>
             );
           })}

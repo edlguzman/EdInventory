@@ -9,6 +9,7 @@ import type { CategoryOption } from "@/lib/items/data";
 import { pickText, type ItemSummary } from "@/lib/items/types";
 import { createLocalStore } from "@/lib/local-store";
 import { SelectableLink, SelectMark, type ItemSelection } from "./selection";
+import { ExpiryBadge } from "./medicine";
 
 export type ItemsView = "gallery" | "table";
 
@@ -85,6 +86,11 @@ export function ItemGallery({
                   className={`aspect-square w-full rounded-xl ${selection?.active && selection.selected.has(item.id) ? "ring-3 ring-accent" : ""}`}
                 />
                 {selection?.active && <SelectMark selected={selection.selected.has(item.id)} className="absolute top-2 right-2" />}
+                {item.expiresOn && (
+                  <span className="absolute bottom-1.5 left-1.5">
+                    <ExpiryBadge date={item.expiresOn} precision={item.expiryPrecision} />
+                  </span>
+                )}
               </span>
               <span className="line-clamp-2 text-sm font-medium leading-snug">{name}</span>
               {labels.book(item) && <span className="-mt-1 truncate text-xs">{labels.book(item)}</span>}
@@ -148,6 +154,11 @@ export function ItemTable({
                   {name}
                 </SelectableLink>
                 {labels.book(item) && <span className="block truncate text-xs">{labels.book(item)}</span>}
+                {item.expiresOn && (
+                  <span className="relative z-10 block">
+                    <ExpiryBadge date={item.expiresOn} precision={item.expiryPrecision} />
+                  </span>
+                )}
                 <span className={`block text-xs text-muted sm:hidden ${fullPath ? "" : "truncate"}`}>
                   {[place, category].filter(Boolean).join(" · ")}
                 </span>

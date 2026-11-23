@@ -1,4 +1,5 @@
 import "server-only";
+import { isMedicinesCategoryName, isSupplementsCategoryName } from "@/lib/medicines/attrs";
 import { isBooksCategoryName } from "@/lib/books/isbn";
 import { ownLocal, type DataLang } from "@/lib/data-lang";
 import { englishName, type Lang } from "@/lib/languages";
@@ -38,6 +39,9 @@ export async function aiCategories(supabase: Supabase, lang: Lang) {
     names: rows.map((c) => ({ id: c.id, local: c.local, en: c.en })),
     /** The user's "Books" category (by name, any language), where recognized books go. */
     booksId: rows.find((c) => isBooksCategoryName(c.raw) || isBooksCategoryName(c.en))?.id ?? null,
+    /** The user's "Medicines" / "Vitamins & supplements" categories (by name, any language). */
+    medicinesId: rows.find((c) => isMedicinesCategoryName(c.raw) || isMedicinesCategoryName(c.en))?.id ?? null,
+    supplementsId: rows.find((c) => isSupplementsCategoryName(c.raw) || isSupplementsCategoryName(c.en))?.id ?? null,
     header: `Categories (${header(lang, "")}):`,
     prompt:
       rows

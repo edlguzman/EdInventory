@@ -18,6 +18,7 @@ import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
 import type { CategoryOption } from "@/lib/items/data";
 import { formatIsbn } from "@/lib/books/isbn";
+import { MedicineView } from "./medicine";
 import { pickText, type ItemDetail, type ItemPhoto } from "@/lib/items/types";
 import { useErrorText } from "@/lib/use-error-text";
 
@@ -100,6 +101,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
   const t = useTranslations("items");
   // A book's card: "?" opens the Books section.
   useHelpTopic("books", !!(item.bookAuthor || item.bookYear || item.bookIsbn));
+  useHelpTopic("medicines", item.medicine !== null);
   const tCommon = useTranslations("common");
   const errorText = useErrorText();
   const tBooks = useTranslations("books");
@@ -148,6 +150,8 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
         )}
         {category && <p className="mt-1 text-muted">{pickText(category.name_local, category.name_en, locale)}</p>}
       </div>
+
+      {item.medicine && <MedicineView m={item.medicine} expiresOn={item.expiresOn} slot={locale} />}
 
       <TranslateRecordButton
         type="item"
