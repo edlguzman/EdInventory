@@ -827,6 +827,7 @@
     "categoryMedicines": "Лекарства",
     "categorySupplements": "Витамины и добавки",
     "createCategoryQuestion": "Создать категорию «{name}»?",
+    "createCategory": "Создать",
     "readMore": "Дочитать",
     "readMoreHint": "Дочитать с этого фото (1 запрос ИИ): заполнит только пустые поля",
     "filterExpiry": "Срок годности",

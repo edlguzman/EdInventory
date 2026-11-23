@@ -827,6 +827,7 @@
     "categoryMedicines": "Medicamentos",
     "categorySupplements": "Vitaminas y suplementos",
     "createCategoryQuestion": "¿Crear la categoría \"{name}\"?",
+    "createCategory": "Crear",
     "readMore": "Leer más",
     "readMoreHint": "Leer más de esta foto (1 solicitud a la IA): solo llena los campos vacíos",
     "filterExpiry": "Vencimiento",

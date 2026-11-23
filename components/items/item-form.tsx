@@ -507,7 +507,11 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     try {
       const own = list.filter((p) => p.key !== COVER_KEY);
       const ordered = [...own.filter((p) => p.key === primaryKey), ...own.filter((p) => p.key !== primaryKey)].slice(0, 4);
-      const images = (await Promise.all(ordered.map(photoBlob))).filter((b): b is Blob => !!b);
+      // Up to 4 MB together (Vercel's request body limit is 4.5 MB); the primary photo always goes.
+      let bytes = 0;
+      const images = (await Promise.all(ordered.map(photoBlob)))
+        .filter((b): b is Blob => !!b)
+        .filter((b, i) => (bytes += b.size) <= 4_000_000 || i === 0);
       if (images.length === 0) return setAiError("aiFailed");
       const r = await recognizeItem(images, { ndc: ndc ?? foundNdc?.ndc ?? (medRef.current?.ndc || null) });
       if ("error" in r) return setAiError(r.error);

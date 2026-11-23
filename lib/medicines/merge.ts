@@ -13,6 +13,11 @@ export type MedConflictField = "active" | "strength" | "rx" | "components" | "ex
 export type MedConflict = { field: MedConflictField; shown: string; patch: Partial<MedicineInput> };
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ").replace(/ё/g, "е");
+/** An active ingredient without its dose or notes: "Ibuprofen (200 mg)" = "ibuprofen". */
+const ingredient = (s: string) =>
+  norm(s.replace(/\([^)]*\)/g, " ").replace(/\d+([.,]\d+)?\s*(mg|mcg|µg|g|ml|iu|ме|мг|мкг|г|мл|%)(?=$|[^a-zа-яё])/gi, " "))
+    .replace(/[,;.\s]+$/g, "")
+    .trim();
 const componentsText = (c: MedicineInput["components"], slot: "local" | "en") =>
   c.map((x) => [slot === "local" ? x.name_local || x.name_en : x.name_en || x.name_local, x.amount].filter(Boolean).join(" ")).join(", ");
 
@@ -84,7 +89,7 @@ export function mergeMedicine(
   } else {
     fill("active_local", s.active_local);
     fill("active_en", s.active_en);
-    if (offer && newActive && curActive && norm(newActive) !== norm(curActive)) {
+    if (offer && newActive && curActive && ingredient(newActive) !== ingredient(curActive)) {
       conflicts.push({ field: "active", shown: newActive, patch: { active_local: s.active_local, active_en: s.active_en } });
     }
   }

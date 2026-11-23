@@ -827,6 +827,7 @@
     "categoryMedicines": "Medicines",
     "categorySupplements": "Vitamins & supplements",
     "createCategoryQuestion": "Create the \"{name}\" category?",
+    "createCategory": "Create",
     "readMore": "Read more",
     "readMoreHint": "Read more from this photo (1 AI request): fills only empty fields",
     "filterExpiry": "Expiry",

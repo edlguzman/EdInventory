@@ -92,7 +92,7 @@ export function MedicineCategoryCard({
           {tBooks("notNow")}
         </Button>
         <Button variant="primary" onClick={onCreate} pending={pending} className="flex-1">
-          {tBooks("createCategory")}
+          {t("createCategory")}
         </Button>
       </div>
     </div>
