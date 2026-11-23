@@ -11,7 +11,16 @@ import { Photo } from "@/components/ui/photo";
 /** A photo in the form: either already stored (existing) or processed and waiting for upload (new). */
 export type PhotoDraft =
   | { key: string; kind: "existing"; path: string; preview: string | null; url: string | null }
-  | { key: string; kind: "new"; main: Blob; thumb: Blob; preview: string; hash: string | null };
+  | {
+      key: string;
+      kind: "new";
+      main: Blob;
+      thumb: Blob;
+      preview: string;
+      hash: string | null;
+      /** The file as picked (in memory until saving, never uploaded): barcodes are read from it, not from the reduced copy. */
+      original?: Blob;
+    };
 
 export function PhotoPicker({
   photos,
@@ -55,7 +64,7 @@ export function PhotoPicker({
     for (const file of files) {
       try {
         const [{ main, thumb }, hash] = await Promise.all([processPhoto(file), fileHash(file)]);
-        added.push({ key: crypto.randomUUID(), kind: "new", main, thumb, preview: URL.createObjectURL(thumb), hash });
+        added.push({ key: crypto.randomUUID(), kind: "new", main, thumb, preview: URL.createObjectURL(thumb), hash, original: file });
       } catch (error) {
         onError(error instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
       }

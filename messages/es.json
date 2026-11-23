@@ -381,7 +381,7 @@
           "Toca la cámara abajo y elige \"Un objeto\": haz una foto o elige una de la galería. La IA rellena el nombre, la descripción, la categoría y las etiquetas; revísalos y toca \"Guardar\". El botón \"Guardar\" está siempre abajo en la pantalla: sobre el menú o, con el teclado abierto, justo encima de él. Mientras la IA reconoce o se procesan las fotos, espera con un indicador de carga.",
           "Un objeto puede tener hasta 10 fotos; la principal lleva una estrella. Fotografía varios lados de un empaque: la IA recibe hasta 4 fotos en una sola solicitud y junta lo que ve en todas. La segunda foto y las siguientes tienen \"Leer más\" (1 solicitud): solo llena los campos vacíos y muestra \"Reemplazar\" si la foto tiene otro valor. \"Reconocer de nuevo\" vuelve a preguntar a la IA.",
           "Cada foto se revisa al momento en el teléfono, sin IA, por si tiene código de barras: un libro por su ISBN y un medicamento de EE. UU. por su NDC se llenan desde catálogos. Si la misma foto ya se agregó antes, la app muestra esos objetos antes de cualquier solicitud a la IA.",
-          "Las fotos se comprimen en el teléfono; la ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro."
+          "Las fotos se comprimen en el teléfono — a unos 150 KB, 1280px en el lado largo: sin diferencia visible en pantalla y ocupan de 2 a 3 veces menos espacio. La ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro."
         ]
       },
       "multi": {

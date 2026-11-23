@@ -147,7 +147,8 @@ export function BookFields({
     setScanning("barcode");
     try {
       const { main } = await processPhoto(file);
-      let isbn = await findIsbnBarcode(main);
+      // The picked file first (full resolution), then the reduced copy.
+      let isbn = (await findIsbnBarcode(file)) ?? (await findIsbnBarcode(main));
       if (!isbn) {
         if (aiOff) return setNote(t("scanNoBarcodeAiOff"));
         setScanning("ai");

@@ -2,7 +2,12 @@
 
 /**
  * Client-side photo processing before upload (CLAUDE.md):
- * main: long side up to 1600px, JPEG ~80%; thumbnail: long side 480px, JPEG ~75%.
+ * main: long side up to 1280px, JPEG, at most ~180 KB; thumbnail: long side 480px, at most ~35 KB.
+ * The JPEG quality is chosen per photo (a fixed quality gives very different sizes: Safari's
+ * encoder makes files about twice as big as Chrome's at the same setting): the first step of the
+ * ladder that fits the target wins, the last step is kept even if it is a bit bigger.
+ * JPEG, not WebP: Safari cannot encode WebP through canvas, and storage, paths and the AI routes
+ * take JPEG only.
  *
  * Orientation: browsers apply EXIF orientation when decoding into <img> / ImageBitmap
  * (image-orientation: from-image is the default), so the canvas gets an upright image.
@@ -13,10 +18,12 @@
  * WebAssembly decoder (heic-to, ~3 MB) loaded.
  */
 
-export const MAIN_MAX_SIDE = 1600;
-export const MAIN_QUALITY = 0.8;
+export const MAIN_MAX_SIDE = 1280;
+export const MAIN_MAX_BYTES = 180 * 1024;
+export const MAIN_QUALITIES = [0.82, 0.72, 0.62, 0.52];
 export const THUMB_MAX_SIDE = 480;
-export const THUMB_QUALITY = 0.75;
+export const THUMB_MAX_BYTES = 35 * 1024;
+export const THUMB_QUALITIES = [0.72, 0.62, 0.52];
 
 export class UnsupportedImageError extends Error {}
 
@@ -64,7 +71,14 @@ async function decode(file: File): Promise<Source> {
   }
 }
 
-function render(source: Source, maxSide: number, quality: number): Promise<Blob> {
+function encode(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new UnsupportedImageError("encode failed"))), "image/jpeg", quality),
+  );
+}
+
+/** Draws once, then encodes down the quality ladder until the file fits `maxBytes`. */
+async function render(source: Source, maxSide: number, qualities: number[], maxBytes: number): Promise<Blob> {
   const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
   const width = Math.max(1, Math.round(source.width * scale));
   const height = Math.max(1, Math.round(source.height * scale));
@@ -79,14 +93,17 @@ function render(source: Source, maxSide: number, quality: number): Promise<Blob>
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(source.image, 0, 0, width, height);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new UnsupportedImageError("encode failed"))), "image/jpeg", quality),
-  );
+  let blob: Blob | null = null;
+  for (const q of qualities) {
+    blob = await encode(canvas, q);
+    if (blob.size <= maxBytes) break;
+  }
+  return blob!;
 }
 
 async function processSource(source: Source): Promise<ProcessedPhoto> {
-  const main = await render(source, MAIN_MAX_SIDE, MAIN_QUALITY);
-  const thumb = await render(source, THUMB_MAX_SIDE, THUMB_QUALITY);
+  const main = await render(source, MAIN_MAX_SIDE, MAIN_QUALITIES, MAIN_MAX_BYTES);
+  const thumb = await render(source, THUMB_MAX_SIDE, THUMB_QUALITIES, THUMB_MAX_BYTES);
   const scale = Math.min(1, MAIN_MAX_SIDE / Math.max(source.width, source.height));
   return { main, thumb, width: Math.round(source.width * scale), height: Math.round(source.height * scale) };
 }

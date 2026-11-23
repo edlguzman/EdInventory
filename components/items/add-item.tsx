@@ -51,7 +51,7 @@ export function AddItem({ userId, categories }: { userId: string; categories: Ca
     for (const file of files.slice(0, MAX_PHOTOS)) {
       try {
         const [photo, hash] = await Promise.all([processPhoto(file), fileHash(file)]);
-        photos.push({ ...photo, hash });
+        photos.push({ ...photo, hash, original: file });
       } catch (e) {
         setError(e instanceof UnsupportedImageError ? "photoUnsupported" : "unknown");
       }
