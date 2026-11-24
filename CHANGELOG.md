@@ -7,6 +7,15 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.3.0 — 2026-11-24
+
+- **Type filter in Items:** All types / Books / Medicines, together with place, category and expiry; counted in "Found" and "Select all found".
+- **Complete book data:** for selected books, author, year, ISBN and English title are looked up in Open Library and Google Books, without AI — by ISBN, or by title and author when there is none. Progress "N of M"; the screen can be closed and continued later.
+- Review per field before anything is written: only empty fields are filled. Found by ISBN — ticked; found by title and author — only the author and English title are ticked, the year, ISBN and cover are left to you ("the edition may differ").
+- A catalogue cover is added only to a book without any photo. "Changed N books · Undo" for 10 seconds.
+- For a book without an ISBN its title and author are sent to Google Books (before: only ISBNs).
+- Help updated (RU, EN, ES): "Books".
+
 ## v2.2.0 — 2026-11-24
 
 - **Smaller photos:** new photos are 1280px on the long side and about 150 KB (at most ~180 KB) instead of 300–600 KB; thumbnails stay 480px at about 30 KB. The JPEG quality is picked per photo to fit (iPhone Safari encodes much bigger files than Chrome at the same setting). No visible difference on a phone screen.
