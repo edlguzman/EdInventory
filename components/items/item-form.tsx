@@ -57,7 +57,10 @@ import { TagsInput } from "./tags-input";
  * A new item handed over with ready photos (the first is primary) and, optionally, what the AI
  * already recognized. Without a recognition the first photo is recognized right away.
  */
-export type ItemSeed = { photos: { main: Blob; thumb: Blob; hash?: string | null }[]; recognition: RecognizeResult | null };
+export type ItemSeed = {
+  photos: { main: Blob; thumb: Blob; hash?: string | null; original?: Blob }[];
+  recognition: RecognizeResult | null;
+};
 
 type Props = { userId: string; categories: CategoryOption[] } & (
   | { mode: "create"; item?: undefined; seed?: ItemSeed; onCancel?: () => void }
@@ -95,6 +98,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
           thumb: p.thumb,
           preview: URL.createObjectURL(p.thumb),
           hash: p.hash ?? null,
+          original: p.original,
         }))
       : (item?.photos.map((p) => ({ key: p.id, kind: "existing" as const, path: p.path, preview: p.thumbUrl, url: p.url })) ?? []),
   );
@@ -340,8 +344,9 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     setMedNote(undefined);
     setMedScanning(true);
     try {
-      const { main } = await processPhoto(file);
-      const r = await scanBarcodes(main);
+      // The picked file first (full resolution); the reduced copy if the browser cannot read it.
+      let r = await scanBarcodes(file);
+      if (!r.ndc) r = await scanBarcodes((await processPhoto(file)).main);
       if (!r.ndc) return setMedNote(tMed("scanNoCode"));
       setMedScanning(false);
       await takeNdc(r.ndc, true);
@@ -422,7 +427,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
       const r = await fetchCoverImage(isbn);
       if ("notFound" in r) return setCoverNote(tBooks("coverNotFound"));
       if ("error" in r) return setCoverNote(r.error === "rateLimited" ? tBooks("lookupRateLimited") : errorText(r.error));
-      // Compressed on the phone exactly like a photo (1600px JPEG, 480px thumbnail, no metadata).
+      // Compressed on the phone exactly like a photo (1280px JPEG up to ~180 KB, 480px thumbnail, no metadata).
       const { main, thumb } = await processPhoto(new File([r.blob], "cover", { type: r.blob.type }));
       const draft = { key: COVER_KEY, kind: "new" as const, main, thumb, preview: URL.createObjectURL(thumb), hash: null };
       setCover((old) => {
@@ -463,7 +468,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
       let isbn: string | null = null;
       let ndc: NdcScan | null = null;
       for (const p of fresh) {
-        const r = await scanBarcodes(p.main);
+        const r = await scanPhoto(p);
         isbn ??= r.isbn;
         if (r.ndc && (!ndc || (!ndc.expiry && r.ndc.expiry))) ndc = r.ndc;
       }
@@ -491,6 +496,18 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     const r = await scanNewPhotos(list, false);
     if (r.book) return;
     void recognize(list, r.ndc?.ndc ?? null);
+  }
+
+  /**
+   * Barcodes of a photo: from the original file (full resolution: small DataMatrix codes survive),
+   * else from the reduced copy (an original the browser cannot decode, a stored photo).
+   */
+  async function scanPhoto(photo: PhotoDraft, fallback?: Blob) {
+    if (photo.kind === "new" && photo.original) {
+      const r = await scanBarcodes(photo.original);
+      if (r.isbn || r.ndc) return r;
+    }
+    return scanBarcodes(fallback ?? (photo.kind === "new" ? photo.main : (await photoBlob(photo)) ?? new Blob()));
   }
 
   /** Photo for the AI: the processed JPEG of a new photo, else the stored one through its signed URL. */
@@ -532,7 +549,7 @@ export function ItemForm({ mode, item, userId, categories: initialCategories, se
     try {
       const image = await photoBlob(photo);
       if (!image) return setAiError("aiFailed");
-      const codes = await scanBarcodes(image);
+      const codes = await scanPhoto(photo, image);
       if (codes.ndc && codes.ndc.ndc !== foundNdc?.ndc) await takeNdc(codes.ndc, false);
       const r = await recognizeItem([image], { ndc: codes.ndc?.ndc ?? null });
       if ("error" in r) return setAiError(r.error);

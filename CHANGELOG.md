@@ -7,6 +7,13 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.2.0 — 2026-11-24
+
+- **Smaller photos:** new photos are 1280px on the long side and about 150 KB (at most ~180 KB) instead of 300–600 KB; thumbnails stay 480px at about 30 KB. The JPEG quality is picked per photo to fit (iPhone Safari encodes much bigger files than Chrome at the same setting). No visible difference on a phone screen.
+- Barcodes (ISBN, NDC) are read from the original photo before compression, so small codes still work.
+- Photos already stored were recompressed once (446 MB -> 156 MB in Storage); duplicate-photo detection is unchanged.
+- Help updated (RU, EN, ES): "Add an item" mentions the photo size.
+
 ## v2.1.0 — 2026-11-23
 
 - **Medicines and supplements:** recognized from a photo (one item or "Several items"): brand name, active ingredient (supplements: ingredients from Supplement Facts with amounts), strength, form, prescription or OTC, expiry date if visible, what it is for and important warnings, in your language and English. "For whom" is your own note. The AI decides between medicine and supplement; you can switch.
