@@ -85,7 +85,11 @@
     "loadingMore": "Cargando más…",
     "descriptionLocal": "Descripción ({lang})",
     "tagsLocal": "Etiquetas ({lang})",
-    "tagsEn": "Etiquetas (EN)"
+    "tagsEn": "Etiquetas (EN)",
+    "filterKind": "Tipo",
+    "kindAll": "Todos los tipos",
+    "kindBook": "Libros",
+    "kindMedicine": "Medicamentos"
   },
   "search": {
     "title": "Buscar",
@@ -424,7 +428,8 @@
           "Fotografía la portada: la IA rellena el título (tal como está impreso), el autor y, si se ven, el año y el ISBN. Fotografía la contraportada con el código de barras: el libro se busca en catálogos abiertos sin IA.",
           "El ISBN suele estar dentro del libro: en el bloque Libro toca \"Escanear ISBN\" y fotografía la página de créditos. Primero se busca un código de barras; si no hay, la IA lee el número (una solicitud). Esta foto no se guarda. También puedes escribir el ISBN.",
           "Cuando se conoce el ISBN, la app ofrece una portada del catálogo: \"Hacerla foto principal\", \"Añadir como segunda foto\" o \"No hace falta\". Para un libro ya guardado: \"Buscar portada\".",
-          "Fotografía un estante de libros como \"Varios objetos\": cada libro se convierte en una tarjeta. Los libros van a la categoría \"Libros\" (si no la tienes, la app ofrece crearla); la búsqueda encuentra autores e ISBN."
+          "Fotografía un estante de libros como \"Varios objetos\": cada libro se convierte en una tarjeta. Los libros van a la categoría \"Libros\" (si no la tienes, la app ofrece crearla); la búsqueda encuentra autores e ISBN.",
+          "Muchos libros a la vez: en Objetos elige el tipo \"Libros\", toca \"Seleccionar\" → \"Seleccionar todos los encontrados\" → \"Completar datos de libros\". El autor, el año, el ISBN y el título en inglés se buscan en catálogos abiertos, sin IA; puedes cerrar la pantalla y continuar después. Solo se llenan los campos vacíos, tras tu revisión. Los libros sin ISBN se buscan por título y la edición puede ser otra: marca tú el año y el ISBN. La portada se agrega solo a un libro sin fotos. Después de \"Aplicar\" hay \"Deshacer\" durante 10 segundos."
         ]
       },
       "medicines": {
@@ -842,5 +847,44 @@
     "title": "La foto muestra otro valor:",
     "replace": "Reemplazar",
     "keep": "Dejar como está"
+  },
+  "bookFill": {
+    "title": "Datos de libros",
+    "action": "Completar datos de libros",
+    "intro": "Se busca en catálogos abiertos (Open Library, Google Books), sin IA: solo se envía el ISBN o, si no hay, el título y el autor.",
+    "progress": "Revisados {done} de {total}",
+    "foundSoFar": "Libros con algo que agregar: {count}",
+    "waiting": "El catálogo está ocupado: esperamos y preguntamos otra vez.",
+    "canClose": "Puedes cerrar esta pantalla: en Objetos aparecerá \"Continuar\".",
+    "closeForNow": "Cerrar",
+    "reviewFound": "Revisar ({count})",
+    "cardProgress": "Completando libros: {done} de {total}",
+    "cardReview": "{count, plural, one {Hay datos para # libro} other {Hay datos para # libros}}: revísalos",
+    "continue": "Continuar",
+    "review": "Revisar",
+    "discard": "Cancelar",
+    "nothingFound": "Los catálogos no tienen nada que agregar a estos libros.",
+    "leftUnanswered": "{count, plural, one {Sin respuesta para # libro} other {Sin respuesta para # libros}}: continúa más tarde.",
+    "leftToLookUp": "Libros sin revisar todavía: {count}. Puedes revisarlos ahora o después.",
+    "reviewIntro": "Solo se llenan los campos vacíos. Desmarca lo que no quieras y toca \"Aplicar\".",
+    "byIsbn": "Encontrado por ISBN",
+    "byTitle": "Encontrado por título y autor; la edición puede ser otra",
+    "byTitleUnsure": "Coincidencia no exacta; la edición puede ser otra",
+    "foundAs": "En el catálogo: {title}",
+    "tickAll": "Marcar todo",
+    "untickAll": "Desmarcar todo",
+    "author": "Autor",
+    "year": "Año",
+    "nameEn": "Título en inglés",
+    "cover": "Portada",
+    "coverValue": "de un catálogo, si hay",
+    "continueLookup": "Seguir buscando",
+    "later": "Después",
+    "close": "Cerrar",
+    "apply": "{count, plural, =0 {Nada marcado} one {Aplicar: # libro} other {Aplicar: # libros}}",
+    "covers": "Portadas: {done} de {total}",
+    "changed": "{count, plural, one {# libro modificado} other {# libros modificados}}",
+    "allComplete": "Los libros elegidos ya están completos.",
+    "noBooks": "No hay libros entre los objetos elegidos."
   }
 }

@@ -6,6 +6,7 @@ import { PHOTO_BUCKET, thumbPath } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
 import { maskMedicineAttrs, readMedicineAttrs } from "@/lib/medicines/attrs";
 import { withExpiry, type ExpiryFilter } from "./expiry-filter";
+import { kindCategoryIds, kindCondition, type KindFilter } from "./kind-filter";
 import type { ItemDetail, ItemKind, ItemSummary } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -111,10 +112,18 @@ export type ItemFilters = {
   directLocation?: string;
   /** Expiry: expires within 30 days / already expired. */
   expiry?: ExpiryFilter;
+  /** Books / medicines: by type, or by a category of that name. */
+  kind?: KindFilter;
   limit: number;
   /** Skip this many (the next pages of infinite scroll). */
   offset?: number;
 };
+
+/** "or" condition of the type filter (RLS: the caller's own categories only). */
+export async function kindOr(supabase: Supabase, kind: KindFilter) {
+  const { data } = await supabase.from("categories").select("id, name_local, name_en");
+  return kindCondition(kind, kindCategoryIds(data ?? [], kind));
+}
 
 /**
  * Latest items first. Fetches limit + 1 rows to know whether there are more.
@@ -135,6 +144,7 @@ export async function listItems(
   if (filters.category === "none") query = query.is("category_id", null);
   else if (filters.category) query = query.eq("category_id", filters.category);
   query = withExpiry(query, filters.expiry);
+  if (filters.kind) query = query.or(await kindOr(supabase, filters.kind));
 
   if (filters.directLocation) {
     query = query.eq("location_id", filters.directLocation);

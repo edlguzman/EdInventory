@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { CheckSquare, LoaderCircle, MapPin, Search, Sparkles, Tag, X } from "lucide-react";
 import { useHelpTopic } from "@/components/help/help-sheet";
 import { useTranslations } from "next-intl";
+import { BookFillHost } from "@/components/items/book-fill";
 import { BulkBar, UndoToast } from "@/components/items/bulk-bar";
 import { ItemTable } from "@/components/items/item-list";
 import { SelectionHeader, useItemSelection } from "@/components/items/selection";
@@ -244,9 +245,10 @@ export function SearchView({
                 {tItems("showMore")}
               </Button>
             )}
-            {selection.active && <BulkBar ids={[...selection.selected]} categories={categories} onDone={selection.exit} />}
+            {selection.active && <BulkBar ids={[...selection.selected]} loaded={results} categories={categories} onDone={selection.exit} />}
           </div>
         ))}
+      <BookFillHost />
       <UndoToast />
     </div>
   );

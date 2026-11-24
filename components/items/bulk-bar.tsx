@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowRightLeft, Check, FolderInput, LoaderCircle, MapPin, Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
+import { ArrowRightLeft, BookOpen, Check, FolderInput, LoaderCircle, MapPin, Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   aiRequestsLeft,
@@ -13,6 +13,7 @@ import {
   type BulkResult,
   type ChangeResult,
 } from "@/app/(app)/items/bulk-actions";
+import { bookFillTargets, undoBookFill } from "@/app/(app)/items/book-fill-actions";
 import { createCategory } from "@/app/(app)/settings/category-actions";
 import { useDataLang } from "@/components/data-lang/context";
 import { LocationPicker } from "@/components/locations/location-picker";
@@ -24,9 +25,12 @@ import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
 import { categorizeItems } from "@/lib/ai/client";
 import type { CategorizedItem } from "@/lib/ai/types";
+import type { FilledItem } from "@/lib/books/fill-types";
 import type { CategoryOption } from "@/lib/items/data";
-import { pickText } from "@/lib/items/types";
+import { kindCategoryIds } from "@/lib/items/kind-filter";
+import { pickText, type ItemSummary } from "@/lib/items/types";
 import { useErrorText } from "@/lib/use-error-text";
+import { startBookFill } from "./book-fill";
 import { forgetLoadedItems } from "./use-more-items";
 
 /** Items per AI request of "Sort into categories" (the route's limit). */
@@ -39,6 +43,7 @@ const UNDO_MS = 10_000;
 
 type UndoState =
   | { kind: "offer"; n: number; result: ChangeResult }
+  | { kind: "books"; n: number; items: FilledItem[] }
   | { kind: "done"; n: number; restored: number }
   | null;
 let undoState: UndoState = null;
@@ -56,7 +61,7 @@ const subscribeUndo = (l: () => void) => {
 // --- List version: bumped after every bulk change, so the list remounts with fresh pages. -------
 let version = 0;
 const versionListeners = new Set<() => void>();
-function bumpVersion() {
+export function bumpVersion() {
   forgetLoadedItems();
   version++;
   versionListeners.forEach((l) => l());
@@ -77,9 +82,15 @@ function offerUndo(result: ChangeResult) {
   if (result.changed > 0) setUndo({ kind: "offer", n: ++undoSeq, result });
 }
 
+/** "Changed N books · Undo" after "Complete book data". */
+export function offerBookUndo(items: FilledItem[]) {
+  setUndo({ kind: "books", n: ++undoSeq, items });
+}
+
 /** The undo bar above the bottom navigation; render it once next to a selectable list. */
 export function UndoToast() {
   const t = useTranslations("bulk");
+  const tFill = useTranslations("bookFill");
   const errorText = useErrorText();
   const state = useSyncExternalStore(subscribeUndo, () => undoState, () => null);
   const [busy, setBusy] = useState(false);
@@ -88,16 +99,19 @@ export function UndoToast() {
   useEffect(() => {
     if (!state) return;
     const n = state.n;
-    const timer = window.setTimeout(() => undoState?.n === n && setUndo(null), state.kind === "offer" ? UNDO_MS : 3000);
+    const timer = window.setTimeout(() => undoState?.n === n && setUndo(null), state.kind === "done" ? 3000 : UNDO_MS);
     return () => window.clearTimeout(timer);
   }, [state]);
 
   if (!state) return null;
   const undo = async () => {
-    if (state.kind !== "offer") return;
+    if (state.kind === "done") return;
     setBusy(true);
     setError(undefined);
-    const r = await bulkRestore({ field: state.result.field, values: state.result.previous });
+    const r =
+      state.kind === "books"
+        ? await undoBookFill(state.items)
+        : await bulkRestore({ field: state.result.field, values: state.result.previous });
     setBusy(false);
     if (!r.ok) return setError(errorText(r.error));
     bumpVersion();
@@ -110,9 +124,14 @@ export function UndoToast() {
       className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl bg-foreground px-4 py-2 text-sm text-background shadow-lg"
     >
       <span className="min-w-0 flex-1">
-        {error ?? (state.kind === "offer" ? t("changed", { count: state.result.changed }) : t("undone", { count: state.restored }))}
+        {error ??
+          (state.kind === "offer"
+            ? t("changed", { count: state.result.changed })
+            : state.kind === "books"
+              ? tFill("changed", { count: state.items.length })
+              : t("undone", { count: state.restored }))}
       </span>
-      {state.kind === "offer" && (
+      {state.kind !== "done" && (
         <button
           type="button"
           onClick={() => void undo()}
@@ -133,10 +152,23 @@ type Dialog = "category" | "move" | "delete" | "categorize" | null;
 
 /**
  * Bottom action bar of selection mode, above the app's bottom navigation: Category, Move,
- * Sort into categories (AI), Delete. `onDone` ends selection mode after a successful action.
+ * Sort into categories (AI), Delete, and "Complete book data" when there may be books among the
+ * selected. `loaded`: the items on screen. `onDone` ends selection mode after a successful action.
  */
-export function BulkBar({ ids, categories, onDone }: { ids: string[]; categories: CategoryOption[]; onDone: () => void }) {
+export function BulkBar({
+  ids,
+  loaded,
+  categories,
+  onDone,
+}: {
+  ids: string[];
+  loaded: ItemSummary[];
+  categories: CategoryOption[];
+  onDone: () => void;
+}) {
   const t = useTranslations("bulk");
+  const tFill = useTranslations("bookFill");
+  const { userId } = useLocations();
   const errorText = useErrorText();
   const offline = useOffline();
   const aiOff = useAiOff();
@@ -147,6 +179,25 @@ export function BulkBar({ ids, categories, onDone }: { ids: string[]; categories
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const count = ids.length;
+  // Books among the selected ("Select all found" may include items that are not loaded: the server knows).
+  const bookCategories = new Set(kindCategoryIds(categories, "book"));
+  const loadedById = new Map(loaded.map((i) => [i.id, i]));
+  const mayHaveBooks = ids.some((id) => {
+    const i = loadedById.get(id);
+    return !i || i.kind === "book" || (i.kind === "item" && i.categoryId !== null && bookCategories.has(i.categoryId));
+  });
+
+  /** "Complete book data": the books that lack something go to the lookup screen. */
+  async function fillBooks() {
+    setPending(true);
+    setError(undefined);
+    const r = await bookFillTargets({ ids }).catch(() => ({ ok: false, error: "network" }) as const);
+    setPending(false);
+    if (!r.ok) return setError(errorText(r.error));
+    if (r.data.ids.length === 0) return setError(r.data.complete > 0 ? tFill("allComplete") : tFill("noBooks"));
+    startBookFill(userId, r.data.ids);
+    onDone();
+  }
 
   /** Runs a bulk action; success: lists start over, Undo is offered, selection ends. */
   async function run<T>(action: () => Promise<BulkResult<T>>, after?: (data: T) => void) {
@@ -167,11 +218,19 @@ export function BulkBar({ ids, categories, onDone }: { ids: string[]; categories
   return (
     <>
       {/* Space for the bar, so the last cards can scroll above it. */}
-      <div aria-hidden className="h-20" />
+      <div aria-hidden className={mayHaveBooks ? "h-32" : "h-20"} />
       <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-border bg-background/95 backdrop-blur">
         {error && !dialog && (
           <div className="mx-auto max-w-2xl px-3 pt-2">
             <Alert>{error}</Alert>
+          </div>
+        )}
+        {mayHaveBooks && (
+          <div className="mx-auto max-w-2xl px-3 pt-2">
+            <Button className="w-full text-sm text-accent" pending={pending && !dialog} disabled={offline} onClick={() => void fillBooks()}>
+              <BookOpen className="size-5" aria-hidden />
+              {tFill("action")}
+            </Button>
           </div>
         )}
         <div className="mx-auto grid max-w-2xl grid-cols-4 gap-1 px-2 py-1.5">

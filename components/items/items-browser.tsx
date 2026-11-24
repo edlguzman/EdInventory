@@ -1,6 +1,7 @@
 "use client";
 
 import { isExpiryFilter, type ExpiryFilter } from "@/lib/items/expiry-filter";
+import { isKindFilter, type KindFilter } from "@/lib/items/kind-filter";
 import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -8,6 +9,7 @@ import { CalendarClock, CheckSquare, ChevronDown, LayoutGrid, List, LoaderCircle
 import { selectAllItemIds } from "@/app/(app)/items/bulk-actions";
 import { useErrorText } from "@/lib/use-error-text";
 import { BulkBar, UndoToast, useBulkVersion } from "./bulk-bar";
+import { BookFillHost } from "./book-fill";
 import { SelectionHeader, useItemSelection } from "./selection";
 import { useHelpTopic } from "@/components/help/help-sheet";
 import { useTranslations } from "next-intl";
@@ -18,7 +20,7 @@ import { pickText, type ItemSummary } from "@/lib/items/types";
 import { ItemGallery, ItemTable, viewStore } from "./item-list";
 import { useMoreItems } from "./use-more-items";
 
-export type BrowserFilters = { category: string | null; location: string | null; expiry: ExpiryFilter | null; limit: number };
+export type BrowserFilters = { category: string | null; location: string | null; expiry: ExpiryFilter | null; kind: KindFilter | null; limit: number };
 
 const chip =
   "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-xl border px-3 text-sm font-medium";
@@ -43,6 +45,7 @@ export function ItemsBrowser(props: BrowserProps) {
   const version = useBulkVersion();
   return (
     <>
+      <BookFillHost card />
       <ItemsBrowserList key={version} {...props} />
       <UndoToast />
     </>
@@ -81,6 +84,7 @@ function ItemsBrowserList({
     const params = new URLSearchParams();
     if (merged.category) params.set("category", merged.category);
     if (merged.expiry) params.set("expiry", merged.expiry);
+    if (merged.kind) params.set("kind", merged.kind);
     // Always explicit: a place id or "all". Only a bare URL follows "I'm here".
     params.set("location", merged.location ?? "all");
     if (merged.limit > pageSize) params.set("n", String(merged.limit));
@@ -124,29 +128,30 @@ function ItemsBrowserList({
     loadMore,
     setSentinel,
   } = useMoreItems({
-    filterKey: `${filters.category}|${filters.location}|${filters.expiry}`,
+    filterKey: `${filters.category}|${filters.location}|${filters.expiry}|${filters.kind}`,
     category: filters.category,
     location: filters.location,
     expiry: filters.expiry,
+    kind: filters.kind,
     initial: items,
     initialHasMore: hasMore,
   });
 
   const place = filters.location ? byId.get(filters.location) : undefined;
-  const hasFilters = Boolean(filters.category || filters.location || filters.expiry);
+  const hasFilters = Boolean(filters.category || filters.location || filters.expiry || filters.kind);
 
   /**
    * The banner counts every place: its numbers open "All places" with the expiry filter. "I'm
    * here" is reset by the URL sync below ("all" in the URL), not here: resetting it first would
    * make the sync rewrite the URL without the filter.
    */
-  const showExpiring = (expiry: ExpiryFilter) => apply({ category: null, location: null, expiry });
+  const showExpiring = (expiry: ExpiryFilter) => apply({ category: null, location: null, kind: null, expiry });
 
   /** Every item of these filters, not only the loaded pages (the first 500). */
   async function selectAllFound() {
     setSelectingAll(true);
     setSelectError(undefined);
-    const r = await selectAllItemIds({ category: filters.category, location: filters.location, expiry: filters.expiry }).catch(() => null);
+    const r = await selectAllItemIds({ category: filters.category, location: filters.location, expiry: filters.expiry, kind: filters.kind }).catch(() => null);
     setSelectingAll(false);
     if (!r?.ok) return setSelectError(errorText(r?.error ?? "network"));
     selection.selectAll(r.data.ids, r.data.total);
@@ -218,6 +223,20 @@ function ItemsBrowserList({
           <span className="truncate">{place ? path(place) : t("allPlaces")}</span>
         </button>
 
+        <label className={`${chip} relative ${filters.kind ? "border-accent text-accent" : "border-border"}`}>
+          <span className="sr-only">{t("filterKind")}</span>
+          <select
+            value={filters.kind ?? ""}
+            onChange={(e) => apply({ kind: isKindFilter(e.target.value) ? e.target.value : null })}
+            className="max-w-40 appearance-none truncate bg-transparent pr-5 outline-none"
+          >
+            <option value="">{t("kindAll")}</option>
+            <option value="book">{t("kindBook")}</option>
+            <option value="medicine">{t("kindMedicine")}</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 size-4" aria-hidden />
+        </label>
+
         {(filters.expiry || expiring.expired + expiring.soon > 0) && (
           <label className={`${chip} relative ${filters.expiry ? "border-accent text-accent" : "border-border"}`}>
             <span className="sr-only">{tMed("filterExpiry")}</span>
@@ -238,7 +257,7 @@ function ItemsBrowserList({
         {hasFilters && (
           <button type="button" onClick={() => {
               setHere(null);
-              apply({ category: null, location: null, expiry: null });
+              apply({ category: null, location: null, expiry: null, kind: null });
             }} className={`${chip} border-transparent text-muted`}>
             <X className="size-4" aria-hidden />
             {t("resetFilters")}
@@ -306,7 +325,7 @@ function ItemsBrowserList({
         </div>
       )}
 
-      {selection.active && <BulkBar ids={[...selection.selected]} categories={categories} onDone={selection.exit} />}
+      {selection.active && <BulkBar ids={[...selection.selected]} loaded={listed} categories={categories} onDone={selection.exit} />}
 
       <LocationPicker
         open={picking}

@@ -19,6 +19,8 @@ type LocationsValue = {
   subtreeIds: (id: string) => Set<string>;
   name: (loc: LocationNode) => string;
   path: (loc: LocationNode) => string;
+  /** The signed-in user (keys of per-user device state, photo folders). */
+  userId: string;
   /** "I'm here" of the signed-in user on this device. */
   here: HereStore;
 };
@@ -50,6 +52,7 @@ export function LocationsProvider({
 
     return {
       all: locations,
+      userId,
       locale,
       byId,
       childrenOf: (parentId) => children.get(parentId) ?? [],
@@ -68,7 +71,7 @@ export function LocationsProvider({
       path: (loc) => pathOf(loc, locale),
       here,
     };
-  }, [locations, locale, lang, here]);
+  }, [locations, userId, locale, lang, here]);
 
   return <LocationsContext value={value}>{children}</LocationsContext>;
 }
