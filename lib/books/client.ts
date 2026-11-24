@@ -1,5 +1,6 @@
 "use client";
 
+import type { FillAnswer } from "./fill-types";
 import type { BookLookup } from "./isbn";
 
 export type BookLookupError = "badRequest" | "unauthorized" | "accountInactive" | "rateLimited" | "network";
@@ -37,6 +38,22 @@ export async function fetchCoverImage(
     }
     const source = res.headers.get("X-Cover-Source") === "google" ? "google" : "openlibrary";
     return { blob: await res.blob(), source };
+  } catch {
+    return { error: "network" };
+  }
+}
+
+/** "Complete book data" for one item (the server reads it itself). Not AI. "busy": ask again later. */
+export async function fillLookup(id: string): Promise<FillAnswer | { error: BookLookupError }> {
+  try {
+    const res = await fetch("/api/books/fill", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = (await res.json().catch(() => null)) as (FillAnswer & { error?: BookLookupError }) | null;
+    if (!res.ok || !data?.status) return { error: data?.error ?? "network" };
+    return data;
   } catch {
     return { error: "network" };
   }

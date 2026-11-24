@@ -1,5 +1,6 @@
 import "server-only";
-import { parseYear, toIsbn13, type BookLookup } from "./isbn";
+import { normalizeIsbn, parseYear, toIsbn13, type BookLookup } from "./isbn";
+import type { BookCandidate } from "./match";
 
 /**
  * Book data by ISBN from public catalogues: Open Library first (good for English books), then
@@ -141,9 +142,14 @@ export function catalogueOrder(isbn13: string): Source["name"][] {
 
 /** Book by a valid ISBN (normalizeIsbn), or null if neither catalogue knows it (or both fail). */
 export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
+  return (await lookupIsbnStatus(isbn)).book;
+}
+
+/** The same, telling "not known" from "a catalogue did not answer" (busy: worth asking again later). */
+export async function lookupIsbnStatus(isbn: string): Promise<{ book: BookLookup | null; busy: boolean }> {
   const key = toIsbn13(isbn);
   const hit = cache.get(key);
-  if (hit && hit.expires > Date.now()) return hit.value;
+  if (hit && hit.expires > Date.now()) return { book: hit.value, busy: false };
 
   let result: Partial = { ...EMPTY };
   let found = false;
@@ -174,7 +180,60 @@ export async function lookupIsbn(isbn: string): Promise<BookLookup | null> {
     if (cache.size >= CACHE_MAX) cache.clear();
     cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
   }
-  return value;
+  return { book: value, busy: failures > 0 && !(value?.author && value.year) };
+}
+
+/**
+ * Google Books by title and author (a book without an ISBN): up to 5 candidates. First exactly
+ * (intitle / inauthor), then, if that finds nothing, as plain words. Only the title and the
+ * author leave the server. busy: the catalogue did not answer (limit, error, timeout).
+ */
+export async function searchByTitle(title: string, author: string | null): Promise<{ candidates: BookCandidate[]; busy: boolean }> {
+  const clean = (s: string) => s.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+  const t = clean(title);
+  const a = author ? clean(author.split(/[,;]/)[0]) : "";
+  const queries = [`intitle:"${t}"${a ? ` inauthor:"${a}"` : ""}`, [t, a].filter(Boolean).join(" ")];
+  const key = process.env.GOOGLE_BOOKS_API_KEY;
+  try {
+    for (const q of queries) {
+      const data = (await getJson(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5&printType=books${key ? `&key=${encodeURIComponent(key)}` : ""}`,
+      )) as { items?: { volumeInfo?: GoogleVolume }[] };
+      const candidates = (data.items ?? []).flatMap((i) => toCandidate(i.volumeInfo));
+      if (candidates.length) return { candidates, busy: false };
+    }
+    return { candidates: [], busy: false };
+  } catch (error) {
+    console.error("google books title search failed", { ...failure(error), keyed: !!key });
+    // A refused query (4xx other than the limit) will not get better by asking again.
+    const refused = error instanceof CatalogueError && error.status >= 400 && error.status < 500 && ![403, 408, 429].includes(error.status);
+    return { candidates: [], busy: !refused };
+  }
+}
+
+type GoogleVolume = {
+  title?: string;
+  subtitle?: string;
+  authors?: string[];
+  publishedDate?: string;
+  language?: string;
+  industryIdentifiers?: { type?: string; identifier?: string }[];
+};
+
+function toCandidate(v: GoogleVolume | undefined): BookCandidate[] {
+  const title = text(v?.title, 200);
+  if (!v || !title) return [];
+  const id = (type: string) => v.industryIdentifiers?.find((x) => x.type === type)?.identifier;
+  return [
+    {
+      title,
+      subtitle: text(v.subtitle, 200),
+      authors: (v.authors ?? []).flatMap((x) => text(x, 120) ?? []),
+      year: parseYear(v.publishedDate),
+      isbn: normalizeIsbn(id("ISBN_13") ?? id("ISBN_10")),
+      language: typeof v.language === "string" ? v.language : null,
+    },
+  ];
 }
 
 /** Google Books cover addresses for an ISBN-13 (from the lookup's answer, or one more request). */

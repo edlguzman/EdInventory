@@ -7,6 +7,7 @@ import { dailyLimit } from "@/lib/ai/route";
 import { getMyPlan } from "@/lib/plans";
 import { photoFiles, PHOTO_BUCKET } from "@/lib/photos/paths";
 import { createClient } from "@/lib/supabase/server";
+import { kindOr } from "@/lib/items/data";
 import { withExpiry } from "@/lib/items/expiry-filter";
 
 /**
@@ -186,6 +187,7 @@ const filtersSchema = z.object({
   category: z.union([z.literal("none"), z.uuid()]).nullable(),
   location: z.uuid().nullable(),
   expiry: z.enum(["soon", "expired"]).nullable().optional(),
+  kind: z.enum(["book", "medicine"]).nullable().optional(),
 });
 
 /**
@@ -208,6 +210,7 @@ export async function selectAllItemIds(input: z.input<typeof filtersSchema>): Pr
   if (f.data.category === "none") query = query.is("category_id", null);
   else if (f.data.category) query = query.eq("category_id", f.data.category);
   query = withExpiry(query, f.data.expiry);
+  if (f.data.kind) query = query.or(await kindOr(s.supabase, f.data.kind));
   if (f.data.location) {
     const { data: places, error } = await s.supabase.rpc("location_descendants", { loc_id: f.data.location });
     if (error) return fail("unknown");

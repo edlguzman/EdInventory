@@ -85,7 +85,11 @@
     "loadingMore": "Loading more…",
     "descriptionLocal": "Description ({lang})",
     "tagsLocal": "Tags ({lang})",
-    "tagsEn": "Tags (EN)"
+    "tagsEn": "Tags (EN)",
+    "filterKind": "Type",
+    "kindAll": "All types",
+    "kindBook": "Books",
+    "kindMedicine": "Medicines"
   },
   "search": {
     "title": "Search",
@@ -424,7 +428,8 @@
           "Photograph the cover — the AI fills in the title (as printed), the author, and the year and ISBN if visible. Photograph the back cover with the barcode — the book is found in open catalogues without AI.",
           "The ISBN is often inside the book: in the Book block tap \"Scan ISBN\" and photograph the copyright page. A barcode is looked for first; without one the AI reads the number (one request). This photo is not saved. You can also type the ISBN.",
           "Once the ISBN is known, the app offers a catalogue cover: \"Make it the main photo\", \"Add as the second photo\" or \"Not needed\". For a saved book — \"Find cover\".",
-          "Photograph a shelf of books as \"Several items\": every book becomes a card. Books go to a \"Books\" category (if you have none, the app offers to create it); search finds authors and ISBNs."
+          "Photograph a shelf of books as \"Several items\": every book becomes a card. Books go to a \"Books\" category (if you have none, the app offers to create it); search finds authors and ISBNs.",
+          "Many books at once: in Items choose the type \"Books\", tap \"Select\" → \"Select all found\" → \"Complete book data\". Author, year, ISBN and English title are looked up in open catalogues, without AI; you can close the screen and continue later. Only empty fields are filled, after your review. Books without an ISBN are searched by title and the edition may differ — tick the year and ISBN yourself. A cover is added only to a book without photos. After \"Apply\" there is \"Undo\" for 10 seconds."
         ]
       },
       "medicines": {
@@ -842,5 +847,44 @@
     "title": "The photo shows a different value:",
     "replace": "Replace",
     "keep": "Keep mine"
+  },
+  "bookFill": {
+    "title": "Book data",
+    "action": "Complete book data",
+    "intro": "Looking in open catalogues (Open Library, Google Books), no AI: only the ISBN is sent, or the title and author when there is none.",
+    "progress": "Checked {done} of {total}",
+    "foundSoFar": "Books with something to add: {count}",
+    "waiting": "The catalogue is busy: waiting, then asking again.",
+    "canClose": "You can close this screen: Items will show \"Continue\".",
+    "closeForNow": "Close",
+    "reviewFound": "Review ({count})",
+    "cardProgress": "Completing books: {done} of {total}",
+    "cardReview": "{count, plural, one {Data found for # book} other {Data found for # books}} — please review",
+    "continue": "Continue",
+    "review": "Review",
+    "discard": "Cancel",
+    "nothingFound": "The catalogues have nothing to add to these books.",
+    "leftUnanswered": "{count, plural, one {No answer for # book} other {No answer for # books}} — continue later.",
+    "leftToLookUp": "Books not checked yet: {count}. Check them now or later.",
+    "reviewIntro": "Only empty fields are filled. Untick what you don't want and tap \"Apply\".",
+    "byIsbn": "Found by ISBN",
+    "byTitle": "Found by title and author, the edition may differ",
+    "byTitleUnsure": "Not an exact match, the edition may differ",
+    "foundAs": "In the catalogue: {title}",
+    "tickAll": "Tick all",
+    "untickAll": "Untick all",
+    "author": "Author",
+    "year": "Year",
+    "nameEn": "English title",
+    "cover": "Cover",
+    "coverValue": "from a catalogue, if there is one",
+    "continueLookup": "Keep looking",
+    "later": "Later",
+    "close": "Close",
+    "apply": "{count, plural, =0 {Nothing ticked} one {Apply: # book} other {Apply: # books}}",
+    "covers": "Covers: {done} of {total}",
+    "changed": "{count, plural, one {Changed # book} other {Changed # books}}",
+    "allComplete": "The selected books are already complete.",
+    "noBooks": "There are no books among the selected items."
   }
 }
