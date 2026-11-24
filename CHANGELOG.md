@@ -7,6 +7,11 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.3.2 — 2026-11-24
+
+- **Fix:** the "Expiry" line in Items shows only for the type "Medicines" (not for "All types") and counts only medicines and supplements; tapping it keeps the type. The expiry filter and the marks on cards stay for "All types".
+- Help updated (RU, EN, ES): "Medicines and supplements".
+
 ## v2.3.1 — 2026-11-24
 
 - **Fix:** in Items the "Expiry" line, the expiry filter and the expiry marks on cards show only for "All types" and "Medicines"; choosing "Books" hides them and resets the expiry filter. Help unchanged.

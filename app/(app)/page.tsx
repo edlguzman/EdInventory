@@ -34,7 +34,7 @@ export default async function ItemsPage({ searchParams }: PageProps<"/">) {
     listItems({ category: category ?? undefined, location: location ?? undefined, expiry: expiry ?? undefined, kind: kind ?? undefined, limit }),
     getCategories(),
     // All places and categories: an expiring medicine anywhere is worth knowing about.
-    showsExpiry(kind) ? expiryCounts({}) : { expired: 0, soon: 0 },
+    showsExpiry(kind) ? expiryCounts({ kind: kind ?? undefined }) : { expired: 0, soon: 0 },
   ]);
 
   return (

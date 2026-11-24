@@ -1,6 +1,6 @@
 {
   "name": "inventory",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "private": true,
   "scripts": {
     "predev": "node scripts/copy-zxing.mjs",

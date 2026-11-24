@@ -437,7 +437,7 @@
         "points": [
           "Medicines and vitamins are recognized from a photo — one item or \"Several items\": brand name, active ingredient (for supplements, the ingredients from Supplement Facts), strength, form, prescription or not, expiry date (if visible), what it is for and important warnings. Fill in \"For whom\" yourself if you like.",
           "US packages: the barcode (UPC or DataMatrix) gives the NDC, and the data comes from the official FDA label — the AI only shortens it, marked \"from the FDA label\". Without a barcode, on other packages and for supplements it is \"from the AI\". Only the NDC is sent to the FDA.",
-          "\"EXP 05/2027\" is kept as 05/2027. Items shows \"Expiry: N expired, M expire within 30 days\" — tap to see those items; there is also an expiry filter. Cards get a red or yellow mark.",
+          "\"EXP 05/2027\" is kept as 05/2027. In Items, with the type \"Medicines\", there is a line \"Expiry: N expired, M expire within 30 days\" — tap to see those items; there is also an expiry filter. Cards get a red or yellow mark.",
           "This is reference information, not medical advice: check the label, your doctor or pharmacist. Supplements are not evaluated by the FDA for effectiveness."
         ]
       },

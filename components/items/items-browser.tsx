@@ -145,7 +145,7 @@ function ItemsBrowserList({
    * here" is reset by the URL sync below ("all" in the URL), not here: resetting it first would
    * make the sync rewrite the URL without the filter.
    */
-  const showExpiring = (expiry: ExpiryFilter) => apply({ category: null, location: null, kind: null, expiry });
+  const showExpiring = (expiry: ExpiryFilter) => apply({ category: null, location: null, expiry });
 
   /** Every item of these filters, not only the loaded pages (the first 500). */
   async function selectAllFound() {
@@ -269,7 +269,7 @@ function ItemsBrowserList({
         )}
 
       </div>
-      {!openingHere && !filters.expiry && expiring.expired + expiring.soon > 0 && (
+      {!openingHere && filters.kind === "medicine" && !filters.expiry && expiring.expired + expiring.soon > 0 && (
         <p className="flex flex-wrap items-center gap-x-1.5 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <CalendarClock className="size-4 shrink-0" aria-hidden />
           <span>{tMed("bannerTitle")}</span>

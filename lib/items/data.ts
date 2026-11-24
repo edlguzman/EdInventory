@@ -289,7 +289,7 @@ export async function searchItemIds(input: {
  * Items with an expiry date that has passed / comes within 30 days (the "Expiry: N expired,
  * M within 30 days" line counts all places and categories; filters optional).
  */
-export async function expiryCounts(filters: { category?: string; location?: string }): Promise<{ expired: number; soon: number }> {
+export async function expiryCounts(filters: { category?: string; location?: string; kind?: KindFilter }): Promise<{ expired: number; soon: number }> {
   const supabase = await createClient();
   let places: string[] | null = null;
   if (filters.location) {
@@ -297,11 +297,13 @@ export async function expiryCounts(filters: { category?: string; location?: stri
     places = data ?? [];
     if (places.length === 0) return { expired: 0, soon: 0 };
   }
+  const kind = filters.kind ? await kindOr(supabase, filters.kind) : null;
   const count = async (f: ExpiryFilter) => {
     let q = supabase.from("items").select("id", { count: "exact", head: true }).not("expires_on", "is", null);
     if (filters.category === "none") q = q.is("category_id", null);
     else if (filters.category) q = q.eq("category_id", filters.category);
     if (places) q = q.in("location_id", places);
+    if (kind) q = q.or(kind);
     const { count: n } = await withExpiry(q, f);
     return n ?? 0;
   };
