@@ -437,7 +437,7 @@
         "points": [
           "Los medicamentos y vitaminas se reconocen por foto — un objeto o \"Varios objetos\": nombre comercial, principio activo (en los suplementos, los ingredientes de Supplement Facts), dosis, forma, si es con receta, fecha de vencimiento (si se ve), para qué sirve y advertencias importantes. \"Para quién\" lo escribes tú si quieres.",
           "Empaques de EE. UU.: el código de barras (UPC o DataMatrix) da el número NDC y los datos vienen de la etiqueta oficial de la FDA — la IA solo la resume, con la nota \"según la etiqueta de la FDA\". Sin código, en otros empaques y en los suplementos es \"según la IA\". A la FDA solo se envía el NDC.",
-          "\"EXP 05/2027\" se guarda como 05/2027. En Objetos aparece \"Vencimiento: N vencidos, M vencen en 30 días\": tócalo para ver esos objetos; también hay un filtro por vencimiento. Las tarjetas llevan una marca roja o amarilla.",
+          "\"EXP 05/2027\" se guarda como 05/2027. En Objetos, con el tipo \"Medicamentos\", aparece \"Vencimiento: N vencidos, M vencen en 30 días\": tócalo para ver esos objetos; también hay un filtro por vencimiento. Las tarjetas llevan una marca roja o amarilla.",
           "Es información de referencia, no consejo médico: consulta la etiqueta, a tu médico o farmacéutico. La FDA no evalúa la eficacia de los suplementos."
         ]
       },
