@@ -7,6 +7,15 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.4.0 — 2026-11-24
+
+- **Admin, storage:** the admin home shows the storage used of a limit (set in the admin settings) and the database size; every user's storage in the list, with sorting.
+- **Admin, AI cost:** tokens and the model of every Gemini answer are recorded; requests over 24 hours / 30 days / all time, estimated cost over 30 days per user with a breakdown by kind, total and average per active user (at least one AI request in 30 days). Older requests without tokens are counted but not priced.
+- **Admin → Usage and prices:** AI prices per million tokens per model, valid from a date: every request is counted at the price of its day.
+- Numbers only: no items, places, photos or request texts.
+- Database: token columns, prices, settings, new admin functions (additive).
+- Help unchanged (the admin section is not described there).
+
 ## v2.3.2 — 2026-11-24
 
 - **Fix:** the "Expiry" line in Items shows only for the type "Medicines" (not for "All types") and counts only medicines and supplements; tapping it keeps the type. The expiry filter and the marks on cards stay for "All types".
