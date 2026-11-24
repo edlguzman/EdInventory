@@ -6,6 +6,9 @@ export type KindFilter = "book" | "medicine";
 
 export const isKindFilter = (v: unknown): v is KindFilter => v === "book" || v === "medicine";
 
+/** Expiry dates (line, filter, marks) belong to medicines: shown for "Medicines" and "All types" only. */
+export const showsExpiry = (kind: KindFilter | null) => kind === null || kind === "medicine";
+
 type CategoryNames = { id: string; name_local: string | null; name_en: string | null };
 
 /**

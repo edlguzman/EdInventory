@@ -1,7 +1,7 @@
 "use client";
 
 import { isExpiryFilter, type ExpiryFilter } from "@/lib/items/expiry-filter";
-import { isKindFilter, type KindFilter } from "@/lib/items/kind-filter";
+import { isKindFilter, showsExpiry, type KindFilter } from "@/lib/items/kind-filter";
 import { useDataLang } from "@/components/data-lang/context";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -227,7 +227,11 @@ function ItemsBrowserList({
           <span className="sr-only">{t("filterKind")}</span>
           <select
             value={filters.kind ?? ""}
-            onChange={(e) => apply({ kind: isKindFilter(e.target.value) ? e.target.value : null })}
+            onChange={(e) => {
+              const kind = isKindFilter(e.target.value) ? e.target.value : null;
+              // A type without expiry dates also drops the expiry filter.
+              apply(showsExpiry(kind) ? { kind } : { kind, expiry: null });
+            }}
             className="max-w-40 appearance-none truncate bg-transparent pr-5 outline-none"
           >
             <option value="">{t("kindAll")}</option>
@@ -303,9 +307,9 @@ function ItemsBrowserList({
           {hasFilters ? t("emptyFiltered") : t("empty")}
         </p>
       ) : view === "table" ? (
-        <ItemTable items={listed} categories={categories} selection={selection} />
+        <ItemTable items={listed} categories={categories} selection={selection} expiry={showsExpiry(filters.kind)} />
       ) : (
-        <ItemGallery items={listed} categories={categories} selection={selection} />
+        <ItemGallery items={listed} categories={categories} selection={selection} expiry={showsExpiry(filters.kind)} />
       )}
 
       {moreToLoad && !openingHere && (
