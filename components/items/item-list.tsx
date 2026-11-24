@@ -58,11 +58,14 @@ export function ItemGallery({
   items,
   categories,
   selection,
+  expiry = true,
 }: {
   items: ItemSummary[];
   categories: CategoryOption[];
   /** Bulk edit: long press / tap to select (Items list). */
   selection?: ItemSelection;
+  /** Expiry marks on the cards. */
+  expiry?: boolean;
 }) {
   const labels = useItemLabels(categories);
   return (
@@ -86,7 +89,7 @@ export function ItemGallery({
                   className={`aspect-square w-full rounded-xl ${selection?.active && selection.selected.has(item.id) ? "ring-3 ring-accent" : ""}`}
                 />
                 {selection?.active && <SelectMark selected={selection.selected.has(item.id)} className="absolute top-2 right-2" />}
-                {item.expiresOn && (
+                {expiry && item.expiresOn && (
                   <span className="absolute bottom-1.5 left-1.5">
                     <ExpiryBadge date={item.expiresOn} precision={item.expiryPrecision} />
                   </span>
@@ -108,6 +111,7 @@ export function ItemTable({
   categories,
   fullPath = false,
   selection,
+  expiry = true,
 }: {
   items: ItemSummary[];
   categories: CategoryOption[];
@@ -115,6 +119,8 @@ export function ItemTable({
   fullPath?: boolean;
   /** Bulk edit: long press / tap to select. */
   selection?: ItemSelection;
+  /** Expiry marks in the rows. */
+  expiry?: boolean;
 }) {
   const t = useTranslations("items");
   const labels = useItemLabels(categories, fullPath);
@@ -154,7 +160,7 @@ export function ItemTable({
                   {name}
                 </SelectableLink>
                 {labels.book(item) && <span className="block truncate text-xs">{labels.book(item)}</span>}
-                {item.expiresOn && (
+                {expiry && item.expiresOn && (
                   <span className="relative z-10 block">
                     <ExpiryBadge date={item.expiresOn} precision={item.expiryPrecision} />
                   </span>
