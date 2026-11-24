@@ -106,7 +106,7 @@ export function UsageCards({ usage }: { usage: UsageOverview }) {
   );
 }
 
-const KINDS = ["recognize", "voice_place", "search", "translate", "transcribe", "categorize"] as const;
+const KINDS = ["recognize", "voice_place", "search", "translate", "transcribe", "categorize", "voice_add"] as const;
 
 /** A user's AI requests over 30 days by kind. */
 export function AiKinds({ kinds }: { kinds: AiKindUsage[] }) {

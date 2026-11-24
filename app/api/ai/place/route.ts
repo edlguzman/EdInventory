@@ -3,6 +3,7 @@ import { z } from "zod";
 import { aiLocations, languageRule, localTags, localText, ownId, speechRule } from "@/lib/ai/context";
 import { generateJson } from "@/lib/ai/gemini";
 import { MAX_TEXT, phraseParts, readAiForm } from "@/lib/ai/input";
+import { cleanPlace, PLACE_RULES } from "@/lib/ai/place";
 import { aiFailure, cleanTags } from "@/lib/ai/respond";
 import { aiError, guardAiRequest } from "@/lib/ai/route";
 import type { ItemSuggestion, PlaceResult } from "@/lib/ai/types";
@@ -49,12 +50,7 @@ The user says (or types) where they put an item, e.g. "put it on the top shelf o
 Places form a tree; the user's places are listed below as "${columns}".
 
 Find the destination place:
-- If it already exists: match_id = its id.
-- If only part of the path exists: create_parent_id = id of the deepest existing place on that path ("" for the top level),
-  create_names = the missing places from outer to inner, each a short label (name_local and name_en, see LANGUAGE).
-- If several existing places fit equally and the phrase does not tell them apart (e.g. "bedroom" exists in two houses):
-  ambiguous_ids = their ids, and match_id = "", create_names = [].
-- Relative phrases ("here", "on the top shelf" without a parent) are relative to the current place, if one is given.
+${PLACE_RULES}
 - If no place is mentioned, leave match_id "", create_names [], ambiguous_ids [].
 Never invent ids; use only ids from the list.
 
@@ -108,21 +104,7 @@ export async function POST(request: NextRequest) {
       attemptTimeoutsMs: [15_000, 20_000],
     });
 
-    // Server-side checks: only the user's ids; exactly one kind of answer.
-    const match = ownId(r.match_id, places.ids);
-    const ambiguous = match ? [] : [...new Set(r.ambiguous_ids.map((id) => ownId(id, places.ids)).filter((id): id is string => !!id))];
-    // English users: English names only; otherwise both (a missing one is copied from the other).
-    const createNames = r.create_names
-      .map((n) =>
-        lang === "en"
-          ? { name_local: "", name_en: n.name_en.trim() || n.name_local.trim() }
-          : { name_local: n.name_local.trim() || n.name_en.trim(), name_en: n.name_en.trim() || n.name_local.trim() },
-      )
-      .filter((n) => n.name_en);
-    const create =
-      !match && ambiguous.length < 2 && createNames.length > 0
-        ? { parent_id: ownId(r.create_parent_id, places.ids), names: createNames }
-        : null;
+    const place = cleanPlace(r, places, lang);
 
     let suggestion: ItemSuggestion | null = null;
     if (mode === "form") {
@@ -148,13 +130,9 @@ export async function POST(request: NextRequest) {
 
     const result: PlaceResult = {
       transcript: r.transcript.trim() || form.text,
-      match,
-      create,
-      ambiguous: ambiguous.length >= 2 ? ambiguous : [],
+      ...place,
       item: suggestion,
     };
-    // A single "ambiguous" candidate is simply the match.
-    if (!result.match && ambiguous.length === 1 && !create) result.match = ambiguous[0];
     return NextResponse.json(result);
   } catch (error) {
     return aiFailure("place", error);

@@ -274,7 +274,8 @@
     "invalid": "Invalid data. Reload the page.",
     "medicineTooLong": "A text in the Medicine block is too long",
     "expiryInvalid": "Could not read the expiry date. For example: 05/2027",
-    "ndcInvalid": "Invalid NDC: 10 digits needed"
+    "ndcInvalid": "Invalid NDC: 10 digits needed",
+    "voicePlaceOpen": "First decide where the ticked items go."
   },
   "here": {
     "label": "I'm here",
@@ -385,7 +386,8 @@
           "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\". The \"Save\" button is always at the bottom of the screen — above the menu, or above the keyboard while it is open. While the AI is recognizing or photos are being processed, it waits with a spinner.",
           "An item can have up to 10 photos; the main one has a star. Take several sides of a package — the AI gets up to 4 photos in one request and combines what it sees. The second and later photos have \"Read more\" (1 request): it fills only empty fields and shows \"Replace\" when the photo has a different value. \"Recognize again\" asks the AI again.",
           "Every photo is checked for a barcode right on the phone, without AI: a book by its ISBN and a US medicine by its NDC are filled in from catalogues. If the same photo was added before, the app shows those items before any AI request.",
-          "Photos are compressed on the phone — to about 150 KB, 1280px on the long side: no visible difference on screen, and they take 2–3 times less space. The location (GPS) and other data stored in the photo are removed. Take the item close up on a light background."
+          "Photos are compressed on the phone — to about 150 KB, 1280px on the long side: no visible difference on screen, and they take 2–3 times less space. The location (GPS) and other data stored in the photo are removed. Take the item close up on a light background.",
+          "Without a photo: the \"By voice\" card. Say (up to 40 seconds) or type what to add, one or several items: \"a hammer and two screwdrivers in the garage on the rack, a vase here\". It is one AI request. Check the list and tap \"Save\"; you can add photos later with \"Edit\", until then the item shows its category icon."
         ]
       },
       "multi": {
@@ -400,6 +402,7 @@
         "title": "Voice",
         "points": [
           "In the item form, say where you put it: \"in the garage on the rack at the cottage\". If the place doesn't exist, the app asks \"Create … inside …?\"; if several fit, it asks you to choose.",
+          "\"By voice\" on the Add screen: every item gets its own place from the phrase. If the place doesn't exist, the app asks \"Create …?\"; if several fit, it asks you to choose. Items without a place go to \"I'm here\"; a named place does not change \"I'm here\". Books and medicines get only the data you said.",
           "In the same phrase you can say something about the item (\"it's dad's old drill, broken\"): changes to the name and description come as an \"Accept / Decline\" card.",
           "Names and descriptions have a mic: speak, and the text appears under the field — \"Replace\", \"Append to the end\" or \"Cancel\". The text is always in the field's language.",
           "Every voice recording is one AI request. Everything can be typed instead."
@@ -594,7 +597,8 @@
       "search": "Smart search",
       "translate": "Translation",
       "transcribe": "Dictation",
-      "categorize": "Categorize"
+      "categorize": "Categorize",
+      "voice_add": "Add by voice"
     },
     "usageSettings": "Usage and prices",
     "usageSettingsHint": "Storage limit and AI prices",
@@ -926,5 +930,22 @@
     "changed": "{count, plural, one {Changed # book} other {Changed # books}}",
     "allComplete": "The selected books are already complete.",
     "noBooks": "There are no books among the selected items."
+  },
+  "voiceAdd": {
+    "title": "By voice",
+    "hint": "Say or type what to add: one item or several at once",
+    "label": "What to add?",
+    "placeholder": "For example: a hammer and two screwdrivers in the garage on the rack, a vase here",
+    "working": "The AI is working out the phrase…",
+    "nothing": "Could not hear what to add. Name the items again.",
+    "again": "Add more",
+    "placeFor": "For: {names}",
+    "otherPlace": "Another place",
+    "toHere": "To \"I'm here\"",
+    "noPlace": "No place",
+    "placeOf": "Place of item {n}",
+    "placeOpen": "Decide where to put it",
+    "descriptionOf": "Description of item {n}",
+    "saveAll": "Save all ({count})"
   }
 }

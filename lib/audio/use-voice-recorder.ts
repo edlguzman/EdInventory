@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { MAX_RECORDING_MS } from "./limits";
 import { canRecord, MicError, startRecording, type Recording } from "./recorder";
 
 const subscribeNever = () => () => {};
 
-/** Tap-to-start / tap-to-stop recording that hands over a WAV (auto-stop after 20 s). */
-export function useVoiceRecorder({ onAudio, onError }: { onAudio: (wav: Blob) => void; onError: (key: string) => void }) {
+/** Tap-to-start / tap-to-stop recording that hands over a WAV (auto-stop after maxMs, 20 s by default). */
+export function useVoiceRecorder({
+  onAudio,
+  onError,
+  maxMs = MAX_RECORDING_MS,
+}: {
+  onAudio: (wav: Blob) => void;
+  onError: (key: string) => void;
+  maxMs?: number;
+}) {
   const [recording, setRecording] = useState<Recording | null>(null);
   const [converting, setConverting] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -50,7 +59,7 @@ export function useVoiceRecorder({ onAudio, onError }: { onAudio: (wav: Blob) =>
   async function start() {
     try {
       setSeconds(0);
-      setRecording(await startRecording(() => stopRef.current()));
+      setRecording(await startRecording(() => stopRef.current(), maxMs));
     } catch (error) {
       onError(error instanceof MicError ? error.key : "micUnsupported");
     }

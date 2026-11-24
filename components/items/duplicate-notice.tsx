@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Copy, ImageOff } from "lucide-react";
+import { Copy } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import type { ExistingItem } from "@/app/(app)/items/duplicate-actions";
 import { useDataLang } from "@/components/data-lang/context";
 import { useLocations } from "@/components/locations/locations-context";
 import { Photo } from "@/components/ui/photo";
+import { ItemIcon } from "./item-icon";
 
 const SHOWN = 3;
 
@@ -49,7 +50,7 @@ export function PhotoUsedNotice({ items, actions }: { items: ExistingItem[]; act
           <li key={it.id}>
             <Link href={`/items/${it.id}`} className="flex min-h-11 items-center gap-3 rounded-lg bg-background/70 p-1.5 pr-3">
               <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface text-muted">
-                {it.thumbUrl ? <Photo src={it.thumbUrl} alt="" className="size-full object-cover" /> : <ImageOff className="size-4" aria-hidden />}
+                {it.thumbUrl ? <Photo src={it.thumbUrl} alt="" className="size-full object-cover" /> : <ItemIcon kind={it.kind} category={it.category} className="size-4" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-foreground">{name(it)}</span>
@@ -85,7 +86,7 @@ export function SimilarNote({ item }: { item: ExistingItem }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-1.5 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
       <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-surface text-muted">
-        {item.thumbUrl ? <Photo src={item.thumbUrl} alt="" className="size-full object-cover" /> : <ImageOff className="size-4" aria-hidden />}
+        {item.thumbUrl ? <Photo src={item.thumbUrl} alt="" className="size-full object-cover" /> : <ItemIcon kind={item.kind} category={item.category} className="size-4" />}
       </span>
       <span className="min-w-0 flex-1 text-xs leading-snug">
         <span className="block truncate font-medium">{t("similar", { name: name(item) })}</span>

@@ -14,15 +14,18 @@ import { processPhoto, UnsupportedImageError } from "@/lib/photos/process";
 import { useErrorText } from "@/lib/use-error-text";
 import { ItemForm, type ItemSeed } from "./item-form";
 import { MultiAdd } from "./multi-add";
+import { VoiceAdd, VoiceAddCard } from "./voice-add";
+import type { VoiceAddResult } from "@/lib/ai/types";
 
 type View =
   | { kind: "choose" }
   | { kind: "single"; seed: ItemSeed; n: number }
-  | { kind: "multi"; file: File; n: number };
+  | { kind: "multi"; file: File; n: number }
+  | { kind: "voice"; result: VoiceAddResult; n: number };
 
 /**
- * The "Add" screen. Until a photo is picked it shows only two equal cards:
- * "Several items in one photo" and "One item", each with "Take photo" / "From gallery".
+ * The "Add" screen. At first it shows only three cards: "Several items in one photo" and "One
+ * item", each with "Take photo" / "From gallery", and "By voice" (a phrase by voice or text).
  * The picked photo then opens the matching flow; the multi flow can hand a photo
  * (and what the AI recognized) over to the usual form.
  */
@@ -73,6 +76,10 @@ export function AddItem({ userId, categories }: { userId: string; categories: Ca
     );
   }
 
+  if (view.kind === "voice") {
+    return <VoiceAdd key={view.n} result={view.result} categories={categories} onCancel={back} />;
+  }
+
   if (view.kind === "single") {
     return <ItemForm key={view.n} mode="create" userId={userId} categories={categories} seed={view.seed} onCancel={back} />;
   }
@@ -88,6 +95,7 @@ export function AddItem({ userId, categories }: { userId: string; categories: Ca
         onFiles={(files) => files[0] && setView({ kind: "multi", file: files[0], n: Date.now() })}
       />
       <ChoiceCard icon={Package} ns="single" multiple disabled={processing} busy={processing} onFiles={(files) => void pickSingle(files)} />
+      <VoiceAddCard disabled={processing} onResult={(result) => setView({ kind: "voice", result, n: Date.now() })} />
     </div>
   );
 }

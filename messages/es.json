@@ -274,7 +274,8 @@
     "invalid": "Datos no válidos. Recarga la página.",
     "medicineTooLong": "Un texto del bloque Medicamento es demasiado largo",
     "expiryInvalid": "No entendí la fecha de vencimiento. Por ejemplo: 05/2027",
-    "ndcInvalid": "NDC no válido: se necesitan 10 dígitos"
+    "ndcInvalid": "NDC no válido: se necesitan 10 dígitos",
+    "voicePlaceOpen": "Primero decide dónde van los objetos marcados."
   },
   "here": {
     "label": "Estoy aquí",
@@ -385,7 +386,8 @@
           "Toca la cámara abajo y elige \"Un objeto\": haz una foto o elige una de la galería. La IA rellena el nombre, la descripción, la categoría y las etiquetas; revísalos y toca \"Guardar\". El botón \"Guardar\" está siempre abajo en la pantalla: sobre el menú o, con el teclado abierto, justo encima de él. Mientras la IA reconoce o se procesan las fotos, espera con un indicador de carga.",
           "Un objeto puede tener hasta 10 fotos; la principal lleva una estrella. Fotografía varios lados de un empaque: la IA recibe hasta 4 fotos en una sola solicitud y junta lo que ve en todas. La segunda foto y las siguientes tienen \"Leer más\" (1 solicitud): solo llena los campos vacíos y muestra \"Reemplazar\" si la foto tiene otro valor. \"Reconocer de nuevo\" vuelve a preguntar a la IA.",
           "Cada foto se revisa al momento en el teléfono, sin IA, por si tiene código de barras: un libro por su ISBN y un medicamento de EE. UU. por su NDC se llenan desde catálogos. Si la misma foto ya se agregó antes, la app muestra esos objetos antes de cualquier solicitud a la IA.",
-          "Las fotos se comprimen en el teléfono — a unos 150 KB, 1280px en el lado largo: sin diferencia visible en pantalla y ocupan de 2 a 3 veces menos espacio. La ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro."
+          "Las fotos se comprimen en el teléfono — a unos 150 KB, 1280px en el lado largo: sin diferencia visible en pantalla y ocupan de 2 a 3 veces menos espacio. La ubicación (GPS) y otros datos guardados en la foto se eliminan. Fotografía el objeto de cerca sobre un fondo claro.",
+          "Sin foto: la tarjeta \"Por voz\". Di (hasta 40 segundos) o escribe qué agregar, uno o varios objetos: \"un martillo y dos destornilladores en el garaje, un florero aquí\". Es una solicitud a la IA. Revisa la lista y toca \"Guardar\"; puedes agregar fotos después con \"Editar\" y mientras tanto el objeto muestra el icono de su categoría."
         ]
       },
       "multi": {
@@ -400,6 +402,7 @@
         "title": "Voz",
         "points": [
           "En el formulario del objeto, di dónde lo pusiste: \"en el garaje, en la estantería de la casa de campo\". Si el lugar no existe, la app pregunta \"¿Crear … dentro de …?\"; si encajan varios, te pide elegir.",
+          "\"Por voz\" en la pantalla Añadir: cada objeto recibe su propio lugar de la frase. Si el lugar no existe, la app pregunta \"¿Crear …?\"; si encajan varios, te pide elegir. Los objetos sin lugar van a \"Estoy aquí\"; un lugar nombrado no cambia \"Estoy aquí\". Los libros y medicamentos reciben solo los datos que dijiste.",
           "En la misma frase puedes decir algo del objeto (\"es el taladro viejo de papá, no funciona\"): los cambios de nombre y descripción llegan como una tarjeta \"Aceptar / Rechazar\".",
           "Los nombres y las descripciones tienen micrófono: habla y el texto aparece bajo el campo: \"Reemplazar\", \"Añadir al final\" o \"Cancelar\". El texto siempre está en el idioma del campo.",
           "Cada grabación de voz es una solicitud a la IA. Todo se puede escribir en su lugar."
@@ -594,7 +597,8 @@
       "search": "Búsqueda inteligente",
       "translate": "Traducción",
       "transcribe": "Dictado",
-      "categorize": "Clasificar"
+      "categorize": "Clasificar",
+      "voice_add": "Agregar por voz"
     },
     "usageSettings": "Uso y precios",
     "usageSettingsHint": "Límite de almacenamiento y precios de la IA",
@@ -926,5 +930,22 @@
     "changed": "{count, plural, one {# libro modificado} other {# libros modificados}}",
     "allComplete": "Los libros elegidos ya están completos.",
     "noBooks": "No hay libros entre los objetos elegidos."
+  },
+  "voiceAdd": {
+    "title": "Por voz",
+    "hint": "Di o escribe qué agregar: un objeto o varios a la vez",
+    "label": "¿Qué agregar?",
+    "placeholder": "Por ejemplo: un martillo y dos destornilladores en el garaje, un florero aquí",
+    "working": "La IA está interpretando la frase…",
+    "nothing": "No entendí qué agregar. Nombra los objetos otra vez.",
+    "again": "Agregar más",
+    "placeFor": "Para: {names}",
+    "otherPlace": "Otro lugar",
+    "toHere": "A \"Estoy aquí\"",
+    "noPlace": "Sin lugar",
+    "placeOf": "Lugar del objeto {n}",
+    "placeOpen": "Decide dónde ponerlo",
+    "descriptionOf": "Descripción del objeto {n}",
+    "saveAll": "Guardar todo ({count})"
   }
 }

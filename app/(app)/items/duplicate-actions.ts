@@ -1,7 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { getItemsByIds } from "@/lib/items/data";
+import { getCategories, getItemsByIds } from "@/lib/items/data";
+import type { ItemKind, ItemSummary } from "@/lib/items/types";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_BATCH_ITEMS } from "@/lib/validation/items";
 import { photoHashSchema } from "@/lib/validation/photo-hash";
@@ -14,7 +15,30 @@ export type ExistingItem = {
   location_id: string | null;
   created_at: string;
   thumbUrl: string | null;
+  /** For the placeholder icon of an item without photos. */
+  kind: ItemKind;
+  category: { name_local: string | null; name_en: string | null } | null;
 };
+
+/** Items as shown in a warning; categories are read only if some item has no photo. */
+async function toExisting(items: ItemSummary[]): Promise<Map<string, ExistingItem>> {
+  const categories = items.some((i) => !i.thumbUrl && i.categoryId) ? new Map((await getCategories()).map((c) => [c.id, c])) : null;
+  return new Map(
+    items.map((it) => [
+      it.id,
+      {
+        id: it.id,
+        name_local: it.nameLocal,
+        name_en: it.nameEn,
+        location_id: it.locationId,
+        created_at: it.createdAt,
+        thumbUrl: it.thumbUrl,
+        kind: it.kind,
+        category: (it.categoryId && categories?.get(it.categoryId)) || null,
+      },
+    ]),
+  );
+}
 
 /** Trigram similarity of names from which an item counts as "probably the same" (calibrated on real data). */
 const SIMILAR_MIN = 0.5;
@@ -36,21 +60,14 @@ export async function findPhotoUses(hashes: string[]): Promise<Record<string, Ex
   if (error || !data?.length) return {};
 
   const ids = [...new Set(data.map((r) => r.item_id))];
-  const items = new Map((await getItemsByIds(ids)).map((it) => [it.id, it]));
+  const items = await toExisting(await getItemsByIds(ids));
   const result: Record<string, ExistingItem[]> = {};
   for (const row of data) {
     const it = items.get(row.item_id);
     if (!it || !row.source_hash) continue;
     const list = (result[row.source_hash] ??= []);
     if (list.some((x) => x.id === it.id)) continue;
-    list.push({
-      id: it.id,
-      name_local: it.nameLocal,
-      name_en: it.nameEn,
-      location_id: it.locationId,
-      created_at: it.createdAt,
-      thumbUrl: it.thumbUrl,
-    });
+    list.push(it);
   }
   for (const list of Object.values(result)) list.sort((a, b) => b.created_at.localeCompare(a.created_at));
   return result;
@@ -82,20 +99,12 @@ export async function findSimilarItems(input: {
   });
   if (error || !data?.length) return {};
 
-  const items = new Map((await getItemsByIds([...new Set(data.map((r) => r.item_id))])).map((it) => [it.id, it]));
+  const items = await toExisting(await getItemsByIds([...new Set(data.map((r) => r.item_id))]));
   const result: Record<number, ExistingItem & { inPlace: boolean }> = {};
   for (const row of data) {
     const it = items.get(row.item_id);
     if (!it) continue;
-    result[row.idx - 1] = {
-      id: it.id,
-      name_local: it.nameLocal,
-      name_en: it.nameEn,
-      location_id: it.locationId,
-      created_at: it.createdAt,
-      thumbUrl: it.thumbUrl,
-      inPlace: row.in_place,
-    };
+    result[row.idx - 1] = { ...it, inPlace: row.in_place };
   }
   return result;
 }

@@ -8,7 +8,8 @@
  * ~32 KB per second (a 20-second phrase is ~640 KB).
  */
 
-export const MAX_RECORDING_MS = 20_000;
+import { MAX_RECORDING_MS } from "./limits";
+
 const TARGET_RATE = 16_000;
 
 export class MicError extends Error {
@@ -35,7 +36,7 @@ export type Recording = {
   cancel: () => void;
 };
 
-export async function startRecording(onAutoStop: () => void): Promise<Recording> {
+export async function startRecording(onAutoStop: () => void, maxMs: number = MAX_RECORDING_MS): Promise<Recording> {
   if (!canRecord()) throw new MicError("micUnsupported");
   let stream: MediaStream;
   try {
@@ -56,7 +57,7 @@ export async function startRecording(onAutoStop: () => void): Promise<Recording>
   const startedAt = Date.now();
   const stopped = new Promise<void>((resolve) => (recorder.onstop = () => resolve()));
   recorder.start(250);
-  const timer = setTimeout(onAutoStop, MAX_RECORDING_MS);
+  const timer = setTimeout(onAutoStop, maxMs);
 
   const finish = () => {
     clearTimeout(timer);

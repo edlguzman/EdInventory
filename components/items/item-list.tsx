@@ -1,13 +1,13 @@
 "use client";
 
 import { useDataLang } from "@/components/data-lang/context";
-import { ImageOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useLocations } from "@/components/locations/locations-context";
 import { Photo } from "@/components/ui/photo";
 import type { CategoryOption } from "@/lib/items/data";
 import { pickText, type ItemSummary } from "@/lib/items/types";
 import { createLocalStore } from "@/lib/local-store";
+import { ItemIcon } from "./item-icon";
 import { SelectableLink, SelectMark, type ItemSelection } from "./selection";
 import { ExpiryBadge } from "./medicine";
 
@@ -31,6 +31,7 @@ function useItemLabels(categories: CategoryOption[], fullPath = false) {
   return {
     name: (i: ItemSummary) => pickText(i.nameLocal, i.nameEn, locale),
     /** "Author · 1999" for books, else null. */
+    categoryOf: (i: ItemSummary) => (i.categoryId ? categoryById.get(i.categoryId) : undefined),
     book: (i: ItemSummary) => [i.bookAuthor, i.bookYear].filter(Boolean).join(" · ") || null,
     place: (i: ItemSummary) => {
       const loc = i.locationId ? byId.get(i.locationId) : undefined;
@@ -43,13 +44,23 @@ function useItemLabels(categories: CategoryOption[], fullPath = false) {
   };
 }
 
-function Thumb({ item, alt, className }: { item: ItemSummary; alt: string; className: string }) {
+function Thumb({
+  item,
+  alt,
+  className,
+  category,
+}: {
+  item: ItemSummary;
+  alt: string;
+  className: string;
+  category: CategoryOption | undefined;
+}) {
   const t = useTranslations("items");
   return item.thumbUrl ? (
     <Photo src={item.thumbUrl} alt={alt} loading="lazy" className={`object-cover ${className}`} />
   ) : (
-    <span className={`flex items-center justify-center bg-surface text-muted ${className}`} aria-label={t("noPhoto")}>
-      <ImageOff className="size-6" aria-hidden />
+    <span className={`flex items-center justify-center bg-surface text-muted ${className}`} role="img" aria-label={alt || t("noPhoto")}>
+      <ItemIcon kind={item.kind} category={category} className="size-1/3 max-h-16 max-w-16 min-h-6 min-w-6" />
     </span>
   );
 }
@@ -84,6 +95,7 @@ export function ItemGallery({
             >
               <span className="relative block">
                 <Thumb
+                  category={labels.categoryOf(item)}
                   item={item}
                   alt={name}
                   className={`aspect-square w-full rounded-xl ${selection?.active && selection.selected.has(item.id) ? "ring-3 ring-accent" : ""}`}
@@ -144,7 +156,7 @@ export function ItemTable({
           return (
             <tr key={item.id} className="relative">
               <td className="relative w-14 min-w-14 py-2 pr-2 align-middle">
-                <Thumb item={item} alt="" className="size-12 rounded-lg" />
+                <Thumb category={labels.categoryOf(item)} item={item} alt="" className="size-12 rounded-lg" />
                 {selection?.active && (
                   <SelectMark selected={selection.selected.has(item.id)} className="absolute top-1/2 left-2.5 -translate-y-1/2" />
                 )}

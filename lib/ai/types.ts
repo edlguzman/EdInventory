@@ -70,14 +70,25 @@ export type ItemSuggestion = {
   tags_add_en: string[];
 };
 
-export type PlaceResult = {
-  transcript: string;
+/** A place in a phrase: an existing one, a missing one to create, or several that fit (at most one of the three). */
+export type PlaceAnswer = {
   match: string | null;
   /** Missing part of the path: create `names` one inside another, starting under `parent_id` (null = top level). */
   create: { parent_id: string | null; names: { name_local: string; name_en: string }[] } | null;
   ambiguous: string[];
-  item: ItemSuggestion | null;
 };
+
+export type PlaceResult = PlaceAnswer & { transcript: string; item: ItemSuggestion | null };
+
+/** One item of a phrase ("add by voice"): only what was said. */
+export type VoiceItem = RecognizeResult & {
+  /** Medicines: for whom, if said. */
+  for_whom: string;
+  /** Index in VoiceAddResult.places; null = no place named. */
+  place: number | null;
+};
+
+export type VoiceAddResult = { transcript: string; items: VoiceItem[]; places: PlaceAnswer[] };
 
 export type SearchResult = {
   transcript: string;

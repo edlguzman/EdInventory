@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import type { TokenUsage } from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
 
-export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe" | "categorize";
+export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe" | "categorize" | "voice_add";
 
 /** Error codes returned by /api/ai/* as { error }. The client maps them to dictionary keys. */
 export type AiErrorCode =

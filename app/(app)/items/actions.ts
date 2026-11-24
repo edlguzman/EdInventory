@@ -325,6 +325,50 @@ export async function createItemsBatch(input: {
 }
 
 /**
+ * Saves items without photos ("add by voice"), each in its own place. Plan limit as in
+ * createItemsBatch: as many as fit, in the user's order. Ids and refs are checked by RLS and the
+ * composite keys; everything is inserted at once.
+ */
+export async function createItemsWithoutPhotos(input: {
+  items: (SaveInput & { id: string })[];
+}): Promise<ItemResult<{ count: number; skipped: number }>> {
+  const user = await getUser();
+  if (!user) return fail("unauthorized");
+  const items = Array.isArray(input.items) ? input.items : [];
+  const ids = items.map((it) => uuid.safeParse(it?.id));
+  if (items.length === 0 || items.length > MAX_BATCH_ITEMS) return fail("unknown");
+  if (!ids.every((r) => r.success) || new Set(items.map((it) => it.id)).size !== items.length) return fail("unknown");
+
+  const mode = await getDataLang();
+  const parsedRows = [];
+  for (const it of items) {
+    const parsed = parseSave(
+      { fields: it.fields, category_id: it.category_id, location_id: it.location_id, medicine: it.medicine ?? null },
+      mode,
+      null,
+    );
+    if ("error" in parsed) return fail(parsed.error ?? "unknown");
+    parsedRows.push({ id: it.id, ...parsed.row });
+  }
+
+  const plan = await getMyPlan();
+  const room = !plan || plan.isAdmin || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
+  if (room === 0) return fail("planLimit");
+  const rows = parsedRows.slice(0, room);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("items").insert(rows);
+  if (error) return fail(dataErrorKey(error));
+
+  translateAfterSave(
+    mode,
+    rows.map((r) => ({ type: "item" as const, id: r.id })),
+  );
+  refresh();
+  return { ok: true, data: { count: rows.length, skipped: items.length - rows.length } };
+}
+
+/**
  * Updates fields and photos. `keep` = existing main paths to keep, `add` = newly uploaded
  * main paths, `primary` = one path from keep ∪ add. Removed photos lose both files.
  */
