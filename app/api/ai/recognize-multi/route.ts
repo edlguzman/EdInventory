@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "You help fill in a personal home inventory. The photo shows several things together: a shelf, a tool board, a drawer, a table.",
         `Find every separate item a person would want to record (at most ${MAX_DETECTED_ITEMS}, the most noticeable first).`,

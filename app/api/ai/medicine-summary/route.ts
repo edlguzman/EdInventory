@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "You prepare reference notes about a medicine for a personal home inventory.",
         fdaContext(fda),

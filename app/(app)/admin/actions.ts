@@ -183,3 +183,53 @@ export async function reorderPlans(codes: string[]): Promise<AdminActionResult> 
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+const modelName = z.string().trim().regex(/^[a-z0-9][a-z0-9._-]{0,99}$/);
+const usd = z.number().min(0).max(10_000);
+const priceSchema = z.object({ model: modelName, valid_from: z.iso.date(), input: usd, audio: usd.nullable(), output: usd });
+
+/** USD per million tokens of a model from a date on (an earlier price keeps counting for earlier requests). */
+export async function setAiPrice(input: z.input<typeof priceSchema>): Promise<AdminActionResult> {
+  const v = priceSchema.safeParse(input);
+  if (!v.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_ai_price", {
+    p_model: v.data.model,
+    p_valid_from: v.data.valid_from,
+    p_input: v.data.input,
+    p_audio: v.data.audio as number,
+    p_output: v.data.output,
+  });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Remove one price (requests since that date count at the price before it, if there is one). */
+export async function deleteAiPrice(model: string, validFrom: string): Promise<AdminActionResult> {
+  const m = modelName.safeParse(model);
+  const d = z.iso.date().safeParse(validFrom);
+  if (!m.success || !d.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_ai_price", { p_model: m.data, p_valid_from: d.data });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** The storage limit shown on the admin home screen, in GB (1024³ bytes). Only a number to compare with. */
+export async function setStorageLimit(gb: number): Promise<AdminActionResult> {
+  const v = z.number().min(0.01).max(1000).safeParse(gb);
+  if (!v.success) return { ok: false, error: "invalid" };
+  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_storage_limit", { p_bytes: Math.round(v.data * 1024 ** 3) });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}

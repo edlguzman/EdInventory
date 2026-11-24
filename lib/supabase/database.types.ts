@@ -14,24 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_prices: {
+        Row: {
+          audio_usd: number | null
+          input_usd: number
+          model: string
+          output_usd: number
+          updated_at: string
+          valid_from: string
+        }
+        Insert: {
+          audio_usd?: number | null
+          input_usd: number
+          model: string
+          output_usd: number
+          updated_at?: string
+          valid_from: string
+        }
+        Update: {
+          audio_usd?: number | null
+          input_usd?: number
+          model?: string
+          output_usd?: number
+          updated_at?: string
+          valid_from?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           created_at: string
           id: string
+          input_audio_tokens: number | null
+          input_tokens: number | null
           kind: string
+          model: string | null
+          output_tokens: number | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          input_audio_tokens?: number | null
+          input_tokens?: number | null
           kind: string
+          model?: string | null
+          output_tokens?: number | null
           user_id?: string
         }
         Update: {
           created_at?: string
           id?: string
+          input_audio_tokens?: number | null
+          input_tokens?: number | null
           kind?: string
+          model?: string | null
+          output_tokens?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          id: boolean
+          storage_limit_bytes: number
+        }
+        Insert: {
+          id?: boolean
+          storage_limit_bytes?: number
+        }
+        Update: {
+          id?: boolean
+          storage_limit_bytes?: number
         }
         Relationships: []
       }
@@ -431,6 +485,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_delete_ai_price: {
+        Args: { p_model: string; p_valid_from: string }
+        Returns: undefined
+      }
       admin_delete_plan: { Args: { p_code: string }; Returns: undefined }
       admin_list_users_v2: {
         Args: never
@@ -478,6 +536,39 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_users_v4: {
+        Args: {
+          p_limit: number
+          p_offset: number
+          p_plan: string
+          p_search: string
+          p_sort: string
+          p_status: string
+        }
+        Returns: {
+          ai_24h: number
+          ai_30d: number
+          ai_cost_30d: number
+          ai_kinds_30d: Json
+          ai_no_price_30d: number
+          ai_no_tokens_30d: number
+          ai_total: number
+          created_at: string
+          email: string
+          items_count: number
+          last_sign_in_at: string
+          manual_plan: string
+          manual_until: string
+          plan_code: string
+          plan_source: string
+          plan_until: string
+          role: string
+          status: string
+          storage_bytes: number
+          total: number
+          user_id: string
+        }[]
+      }
       admin_overview: {
         Args: never
         Returns: {
@@ -496,6 +587,16 @@ export type Database = {
         }[]
       }
       admin_reorder_plans: { Args: { p_codes: string[] }; Returns: undefined }
+      admin_set_ai_price: {
+        Args: {
+          p_audio: number
+          p_input: number
+          p_model: string
+          p_output: number
+          p_valid_from: string
+        }
+        Returns: undefined
+      }
       admin_set_plan: {
         Args: { p_plan: string; p_until: string; p_user_id: string }
         Returns: undefined
@@ -516,6 +617,7 @@ export type Database = {
           old_status: string
         }[]
       }
+      admin_set_storage_limit: { Args: { p_bytes: number }; Returns: undefined }
       admin_update_plan: {
         Args: {
           p_ai_daily_limit: number
@@ -537,10 +639,40 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_usage_overview: {
+        Args: never
+        Returns: {
+          ai_active_users_30d: number
+          ai_cost_30d: number
+          ai_no_price_30d: number
+          ai_no_tokens_30d: number
+          ai_requests_30d: number
+          db_bytes: number
+          storage_bytes: number
+          storage_limit_bytes: number
+        }[]
+      }
+      admin_usage_settings: { Args: never; Returns: Json }
+      ai_usage_costs: {
+        Args: { p_since: string }
+        Returns: {
+          cost: number
+          has_tokens: boolean
+          kind: string
+          user_id: string
+        }[]
+      }
       attrs_search_text: { Args: { a: Json }; Returns: string }
       consume_ai_quota_v2: {
         Args: { p_fallback: number; p_kind: string }
         Returns: string
+      }
+      consume_ai_quota_v3: {
+        Args: { p_fallback: number; p_kind: string }
+        Returns: {
+          result: string
+          usage_id: string
+        }[]
       }
       delete_my_account: { Args: never; Returns: undefined }
       display_text: {
@@ -596,6 +728,16 @@ export type Database = {
       normalize_search_v2: { Args: { t: string }; Returns: string }
       owner_lang: { Args: { uid: string }; Returns: string }
       plan_names_valid: { Args: { p_names: Json }; Returns: boolean }
+      record_ai_tokens: {
+        Args: {
+          p_audio: number
+          p_input: number
+          p_model: string
+          p_output: number
+          p_usage_id: string
+        }
+        Returns: boolean
+      }
       search_items: {
         Args: {
           p_category_id?: string

@@ -1,6 +1,7 @@
 import "server-only";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
+import type { TokenUsage } from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
 
 export type AiKind = "recognize" | "voice_place" | "search" | "translate" | "transcribe" | "categorize";
@@ -27,23 +28,47 @@ export function dailyLimit() {
 }
 
 export type QuotaResult = "ok" | "limit" | "itemsLimit" | "inactive" | "error";
+export type Quota = { result: QuotaResult; /** Pass to generateJson as onUsage. */ onUsage: (usage: TokenUsage) => void };
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Checks the plan and records one AI call, atomically in the database (consume_ai_quota_v2):
+ * Writes the tokens into the recorded request, after the answer is sent (statistics for the
+ * admin: a failure is only logged and never affects the user).
+ */
+function usageRecorder(supabase: Supabase, usageId: string) {
+  return (u: TokenUsage) =>
+    after(async () => {
+      const { error } = await supabase.rpc("record_ai_tokens", {
+        p_usage_id: usageId,
+        p_model: u.model,
+        p_input: u.input,
+        p_audio: u.audio,
+        p_output: u.output,
+      });
+      if (error) console.error("record_ai_tokens failed", { code: error.code });
+    });
+}
+
+/**
+ * Checks the plan and records one AI call, atomically in the database (consume_ai_quota_v3):
  * - the user's items reached the plan's item limit -> "itemsLimit": all AI is off, nothing recorded;
  * - the plan's daily AI limit (rolling 24 h, all kinds) is used up -> "limit";
  * - admins are never limited. Pending and disabled accounts get 42501 -> "inactive".
  * Always called before Gemini, so a refused request costs nothing.
  */
-export async function consumeQuota(supabase: Awaited<ReturnType<typeof createClient>>, kind: AiKind): Promise<QuotaResult> {
-  const { data, error } = await supabase.rpc("consume_ai_quota_v2", { p_kind: kind, p_fallback: dailyLimit() });
-  if (error?.code === "42501") return "inactive";
+export async function consumeQuota(supabase: Supabase, kind: AiKind): Promise<Quota> {
+  const none = (result: QuotaResult): Quota => ({ result, onUsage: () => {} });
+  const { data, error } = await supabase.rpc("consume_ai_quota_v3", { p_kind: kind, p_fallback: dailyLimit() });
+  if (error?.code === "42501") return none("inactive");
   if (error) {
-    console.error("consume_ai_quota_v2 failed", { code: error.code });
-    return "error";
+    console.error("consume_ai_quota_v3 failed", { code: error.code });
+    return none("error");
   }
-  if (data === "items_limit") return "itemsLimit";
-  return data === "ok" ? "ok" : "limit";
+  const row = data?.[0];
+  if (row?.result === "items_limit") return none("itemsLimit");
+  if (row?.result !== "ok") return none("limit");
+  return { result: "ok", onUsage: usageRecorder(supabase, row.usage_id) };
 }
 
 export function quotaError(result: Exclude<QuotaResult, "ok">) {
@@ -54,7 +79,7 @@ export function quotaError(result: Exclude<QuotaResult, "ok">) {
 }
 
 type Guard =
-  | { ok: true; user: User; supabase: Awaited<ReturnType<typeof createClient>> }
+  | { ok: true; user: User; supabase: Supabase; onUsage: Quota["onUsage"] }
   | { ok: false; response: NextResponse };
 
 /**
@@ -71,7 +96,7 @@ export async function guardAiRequest(kind: AiKind): Promise<Guard> {
   if (!user) return { ok: false, response: aiError("unauthorized", 401) };
 
   const quota = await consumeQuota(supabase, kind);
-  if (quota !== "ok") return { ok: false, response: quotaError(quota) };
+  if (quota.result !== "ok") return { ok: false, response: quotaError(quota.result) };
 
-  return { ok: true, user, supabase };
+  return { ok: true, user, supabase, onUsage: quota.onUsage };
 }

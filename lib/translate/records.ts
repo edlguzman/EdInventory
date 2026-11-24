@@ -244,7 +244,7 @@ export async function translateRecords(
   const pack = await loadPack(supabase, slot, lang, targets);
   if (pack.length === 0) return { ok: true, translated: 0, remaining: targets ? 0 : await countMissing(supabase, slot, lang) };
 
-  const quota = await consumeQuota(supabase, "translate");
+  const { result: quota, onUsage } = await consumeQuota(supabase, "translate");
   if (quota === "inactive") return { ok: false, error: "accountInactive", status: 403 };
   if (quota === "limit") return { ok: false, error: "aiLimit", status: 429 };
   if (quota === "itemsLimit") return { ok: false, error: "itemsLimit", status: 403 };
@@ -255,6 +255,7 @@ export async function translateRecords(
   let result: z.output<typeof outputSchema>;
   try {
     result = await generateJson(outputSchema, {
+      onUsage,
       systemInstruction: instructions(slot === "en" ? "the record's language" : "English", to),
       contents: JSON.stringify(
         pack.map((p) => {

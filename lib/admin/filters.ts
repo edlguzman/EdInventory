@@ -2,7 +2,7 @@
 
 export const USERS_PAGE_SIZE = 50;
 export const USER_STATUSES = ["pending", "active", "disabled"] as const;
-export const USER_SORTS = ["new", "old", "email", "items", "ai", "seen"] as const;
+export const USER_SORTS = ["new", "old", "email", "items", "storage", "ai", "seen"] as const;
 
 export type UserStatus = (typeof USER_STATUSES)[number];
 export type UserSort = (typeof USER_SORTS)[number];

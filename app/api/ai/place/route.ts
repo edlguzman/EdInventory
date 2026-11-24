@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         instructions(places.columns),
         speechRule(lang),

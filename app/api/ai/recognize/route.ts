@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
   try {
     const imageParts = await Promise.all(form.images.map((i) => blobPart(i, "image/jpeg")));
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         many
           ? `You help fill in a personal home inventory. The ${form.images.length} photos show the SAME item from different sides (front, back, label, barcode). Combine what is visible on all of them.`

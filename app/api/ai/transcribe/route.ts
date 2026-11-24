@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "You turn a short voice recording into text for one field of a personal home inventory app.",
         kind === "name"

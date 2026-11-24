@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "You sort the items of a personal home inventory into categories.",
         "For every numbered item below return one entry with n = its number.",
