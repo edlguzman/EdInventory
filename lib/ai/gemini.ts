@@ -1,5 +1,5 @@
 import "server-only";
-import { ApiError, GoogleGenAI, ThinkingLevel, type ContentListUnion } from "@google/genai";
+import { ApiError, GoogleGenAI, MediaModality, ThinkingLevel, type ContentListUnion, type GenerateContentResponse } from "@google/genai";
 import { z } from "zod";
 
 let client: GoogleGenAI | null = null;
@@ -27,6 +27,16 @@ function jsonSchemaFor(schema: z.ZodType) {
 
 export class AiOutputError extends Error {}
 
+/** Tokens one request was billed for (audio is a part of the input; thinking is a part of the output). */
+export type TokenUsage = { model: string; input: number; audio: number; output: number };
+
+function tokensOf(response: GenerateContentResponse): TokenUsage | null {
+  const u = response.usageMetadata;
+  if (!u || u.promptTokenCount === undefined) return null;
+  const audio = (u.promptTokensDetails ?? []).filter((d) => d.modality === MediaModality.AUDIO).reduce((sum, d) => sum + (d.tokenCount ?? 0), 0);
+  return { model: model(), input: u.promptTokenCount, audio, output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) };
+}
+
 type GenerateOptions = {
   contents: ContentListUnion;
   systemInstruction?: string;
@@ -35,6 +45,11 @@ type GenerateOptions = {
   thinking?: "low" | "high";
   /** Timeout of each attempt; one entry = one attempt. */
   attemptTimeoutsMs?: number[];
+  /**
+   * Gets the tokens of the answer (also of an answer that turns out to be unusable). Attempts
+   * that timed out give no answer and so no numbers.
+   */
+  onUsage?: (usage: TokenUsage) => void;
 };
 
 const isTimeout = (e: unknown) => e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError");
@@ -69,7 +84,7 @@ export function isAiBusy(error: unknown) {
  */
 export async function generateJson<S extends z.ZodType>(
   schema: S,
-  { contents, systemInstruction, temperature = 0.2, thinking, attemptTimeoutsMs = [10_000, 15_000] }: GenerateOptions,
+  { contents, systemInstruction, temperature = 0.2, thinking, attemptTimeoutsMs = [10_000, 15_000], onUsage }: GenerateOptions,
 ): Promise<z.output<S>> {
   let useThinking = thinking !== undefined;
   const call = (timeoutMs: number) =>
@@ -105,6 +120,9 @@ export async function generateJson<S extends z.ZodType>(
       await new Promise((r) => setTimeout(r, pause));
     }
   }
+
+  const usage = tokensOf(response);
+  if (usage) onUsage?.(usage);
 
   let raw: unknown;
   try {

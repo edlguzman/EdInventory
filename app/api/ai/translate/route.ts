@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         ...(kind === "name"
           ? [

@@ -6,7 +6,8 @@ import { useFormatter, useTranslations } from "next-intl";
 import { deleteUser, setUserStatus, type AdminActionError } from "@/app/(app)/admin/actions";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
-import type { AdminUser, PlanRow } from "@/lib/admin/data";
+import type { AdminUser, AiKindUsage, PlanRow } from "@/lib/admin/data";
+import { AiKinds, useAmounts, useCost } from "./usage";
 import { usePlanName, UserPlan } from "./plan-controls";
 import { useTimeZone } from "@/lib/use-time-zone";
 
@@ -147,6 +148,8 @@ function UserCard({
   const format = useFormatter();
   const timeZone = useTimeZone();
   const planName = usePlanName(plans);
+  const { bytes } = useAmounts();
+  const cost = useCost()({ cost: user.ai_cost_30d, requests: user.ai_30d, noTokens: user.ai_no_tokens_30d, noPrice: user.ai_no_price_30d });
   const date = (iso: string | null, time = true) =>
     !iso
       ? t("never")
@@ -161,7 +164,7 @@ function UserCard({
 
   return (
     <li className="rounded-2xl border border-border">
-      {/* Compact row: email, role, status, plan, items; more columns on wide screens. */}
+      {/* Compact row: email, role, status, plan, items, storage, AI cost; more columns on wide screens. */}
       <button
         type="button"
         onClick={onToggle}
@@ -179,6 +182,8 @@ function UserCard({
             </span>
             <span>{planName(user.plan_code)}</span>
             <span className="tabular-nums">{t("itemsShort", { count: user.items_count })}</span>
+            <span className="tabular-nums">{bytes(user.storage_bytes)}</span>
+            <span className="tabular-nums">{t("costShort", { cost: cost.text })}</span>
             <span className="hidden tabular-nums md:inline">{t("aiShort", { count: user.ai_24h })}</span>
             <span className="hidden md:inline">
               {t("registered")}: {date(user.created_at, false)}
@@ -209,16 +214,21 @@ function UserCard({
             {(
               [
                 ["items", user.items_count],
+                ["place", bytes(user.storage_bytes)],
+                ["cost30d", cost.text],
                 ["ai24h", user.ai_24h],
+                ["ai30", user.ai_30d],
                 ["aiTotal", user.ai_total],
               ] as const
             ).map(([key, n]) => (
-              <div key={key} className="flex flex-col-reverse rounded-xl bg-surface px-2 py-2">
+              <div key={key} className="flex flex-col-reverse justify-end rounded-xl bg-surface px-1 py-2">
                 <dt className="text-xs text-muted">{t(key)}</dt>
-                <dd className="text-lg font-semibold tabular-nums">{n}</dd>
+                <dd className="font-semibold whitespace-nowrap tabular-nums">{n}</dd>
               </div>
             ))}
           </dl>
+          <AiKinds kinds={user.ai_kinds_30d as AiKindUsage[]} />
+          {cost.notes.length > 0 && <p className="text-xs text-muted">{cost.notes.join(" ")}</p>}
 
           <UserPlan user={user} plans={plans} editable={!isAdmin} />
 

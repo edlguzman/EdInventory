@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "You turn a question about a personal home inventory into a database search.",
         speechRule(lang),

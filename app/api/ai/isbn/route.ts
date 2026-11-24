@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const r = await generateJson(outputSchema, {
+      onUsage: guard.onUsage,
       systemInstruction: [
         "The photo shows a book's back cover, its copyright page (title verso) or the imprint page at the end of a book.",
         "Find every ISBN printed on it: the digits after \"ISBN\" (10 or 13 digits, may contain hyphens or spaces; ISBN-10 may end with X),",
