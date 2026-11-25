@@ -7,6 +7,15 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.5.0 — 2026-11-24
+
+- **Add by voice (or text):** a third card on the Add screen. One phrase of up to 40 seconds (or 1000 characters) gives one or several items with name, category, a short description of what was said, and book / medicine data if they were said; one AI request.
+- Every item has its own place from the phrase: existing, missing ("Create …?") or chosen among several. A named place does not change "I'm here"; items without a place go to "I'm here".
+- Review before saving: ticks, name, description, category, place; similar items start unticked.
+- Photos are not required: an item without photos shows the icon of its category or type; photos can be added later.
+- Database: AI usage kind `voice_add`.
+- Help updated (RU, EN, ES): "Add an item" and "Voice".
+
 ## v2.4.0 — 2026-11-24
 
 - **Admin, storage:** the admin home shows the storage used of a limit (set in the admin settings) and the database size; every user's storage in the list, with sorting.
