@@ -1,10 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { aiRequestsLeft } from "@/app/(app)/items/bulk-actions";
 import { getProfile, getUser } from "@/lib/auth";
-import { LOCALE_COOKIE } from "@/i18n/config";
 import { isLang } from "@/lib/languages";
 import { createClient } from "@/lib/supabase/server";
 import { estimatePacks } from "@/lib/translate/records";
@@ -30,7 +28,7 @@ export async function previewLanguageChange(next: string): Promise<LanguageChang
  * Changes "my language": the interface and new records. Nothing is deleted or rewritten here;
  * records in the old language are shown in English until translated (the client starts that
  * only if the user agreed). The database lets a user update only lang / show_english of
- * their own profile. The locale cookie follows, so the sign-in screen matches after signing out.
+ * their own profile.
  */
 export async function setMyLanguage(next: string): Promise<{ ok: boolean }> {
   if (!isLang(next)) return { ok: false };
@@ -39,7 +37,6 @@ export async function setMyLanguage(next: string): Promise<{ ok: boolean }> {
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ lang: next }).eq("user_id", user.id).select("lang").single();
   if (error) return { ok: false };
-  (await cookies()).set(LOCALE_COOKIE, next, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   revalidatePath("/", "layout");
   return { ok: true };
 }

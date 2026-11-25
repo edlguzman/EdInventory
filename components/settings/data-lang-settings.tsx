@@ -16,13 +16,14 @@ import { useAiOff, usePlanLimitText } from "@/components/plan-context";
 import { useOffline } from "@/components/offline-banner";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
-import { LANGUAGES, type Lang } from "@/lib/languages";
+import { LANGUAGES, languageInfo, type Lang } from "@/lib/languages";
 
 type Ask = { next: Lang; preview: Extract<LanguageChangePreview, { ok: true }> };
 
 /**
  * "Language" in Settings: "my language" (interface and records) and "Show English next to it".
- * Changing the language first shows what happens to saved records: they stay as they are and
+ * The language is shown as text; "Change language" opens a window: pick another one, read what
+ * happens to saved records, confirm. Nothing changes before that. Records stay as they are and
  * are shown in English until translated; translating them now runs in the background in packs
  * (about N AI requests). `untranslated`: records with no text in my language (server count).
  */
@@ -35,15 +36,27 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
   const aiOff = useAiOff();
   const limitText = usePlanLimitText();
   const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState(false);
   const running = !!job?.running && !job.silent;
-  const enabled = LANGUAGES.filter((l) => l.enabled);
+  const others = LANGUAGES.filter((l) => l.enabled && l.code !== lang);
+
+  const openWindow = () => {
+    setError(false);
+    setAsk(null);
+    setOpen(true);
+  };
+  // Not while a preview or the change itself is on its way.
+  const closeWindow = () => {
+    if (!pending) setOpen(false);
+  };
 
   const choose = (next: Lang) => {
-    if (next === lang || pending) return;
+    if (next === ask?.next || pending) return;
     startTransition(async () => {
       setError(false);
+      setAsk(null);
       const preview = await previewLanguageChange(next);
       if (!preview.ok) return setError(true);
       setAsk({ next, preview });
@@ -56,8 +69,8 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
     startTransition(async () => {
       setError(false);
       const r = await setMyLanguage(next);
-      setAsk(null);
       if (!r.ok) return setError(true);
+      setOpen(false);
       router.refresh();
       if (translate && preview.records > 0) startTranslation("local", preview.records);
     });
@@ -84,33 +97,17 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
         </h2>
         <p className="mt-1 text-sm text-muted">{t("intro")}</p>
       </div>
-      {error && <Alert>{tErrors("unknown")}</Alert>}
-      <div role="radiogroup" aria-label={t("title")} className="flex flex-col divide-y divide-border rounded-xl border border-border">
-        {enabled.map((option) => {
-          const selected = option.code === lang;
-          return (
-            <button
-              key={option.code}
-              type="button"
-              role="radio"
-              lang={option.code}
-              aria-checked={selected}
-              disabled={pending}
-              onClick={() => choose(option.code)}
-              className="flex min-h-12 items-center gap-3 px-4 py-2 text-left disabled:opacity-60"
-            >
-              <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                  selected ? "border-accent bg-accent text-accent-foreground" : "border-border"
-                }`}
-                aria-hidden
-              >
-                {selected && <Check className="size-3" strokeWidth={3} />}
-              </span>
-              <span className="min-w-0 flex-1 font-medium">{option.native}</span>
-            </button>
-          );
-        })}
+      {error && !open && <Alert>{tErrors("unknown")}</Alert>}
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-2">
+        <p className="min-w-0">
+          {t("current")}{" "}
+          <span lang={lang} className="font-semibold">
+            {languageInfo(lang).native}
+          </span>
+        </p>
+        <Button variant="ghost" onClick={openWindow} disabled={pending} className="-mr-3 shrink-0">
+          {t("changeButton")}
+        </Button>
       </div>
 
       {lang !== "en" && (
@@ -135,7 +132,7 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
         </button>
       )}
 
-      {untranslated > 0 && !running && !ask && (
+      {untranslated > 0 && !running && !open && (
         <div className="flex items-center gap-3 rounded-xl bg-surface px-4 py-2">
           <Languages className="size-5 shrink-0 text-accent" aria-hidden />
           <span className="min-w-0 flex-1 text-sm">{t("untranslated", { count: untranslated })}</span>
@@ -152,9 +149,9 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
       )}
 
       <Sheet
-        open={!!ask}
-        onClose={() => setAsk(null)}
-        title={t("changeTitle", { lang: nextName })}
+        open={open}
+        onClose={closeWindow}
+        title={t("changeButton")}
         footer={
           <div className="flex flex-col gap-2">
             {canTranslate && (
@@ -163,13 +160,13 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
               </Button>
             )}
             <div className="flex gap-2">
-              <Button onClick={() => setAsk(null)} disabled={pending} className="flex-1">
+              <Button onClick={closeWindow} disabled={pending} className="flex-1">
                 {t("cancel")}
               </Button>
               <Button
                 variant={canTranslate ? "secondary" : "primary"}
                 pending={pending && !canTranslate}
-                disabled={pending}
+                disabled={pending || !ask || offline}
                 onClick={() => change(false)}
                 className="flex-1"
               >
@@ -179,22 +176,49 @@ export function DataLangSettings({ untranslated }: { untranslated: number }) {
           </div>
         }
       >
-        {ask && (
-          <div className="flex flex-col gap-3">
-            <p>{t("changeText", { lang: nextName })}</p>
-            {ask.next === "en" ? (
-              <p className="text-sm text-muted">{t("changeToEnglish")}</p>
-            ) : ask.preview.records > 0 ? (
-              <>
-                <p>
-                  {t("changeTranslate", { count: ask.preview.records, lang: nextName, requests: ask.preview.requests })}
-                  {ask.preview.aiLeft !== null && <> {t("changeLeft", { left: ask.preview.aiLeft })}</>}
-                </p>
-                <p className="text-sm text-muted">{t("changeNote")}</p>
-              </>
-            ) : null}
+        <div className="flex flex-col gap-3">
+          <p>{t("chooseNew")}</p>
+          <div role="radiogroup" aria-label={t("chooseNew")} className="grid grid-cols-2 gap-2">
+            {others.map((option) => {
+              const selected = option.code === ask?.next;
+              return (
+                <button
+                  key={option.code}
+                  type="button"
+                  role="radio"
+                  lang={option.code}
+                  aria-checked={selected}
+                  disabled={pending || offline}
+                  onClick={() => choose(option.code)}
+                  className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 font-medium disabled:opacity-60 ${
+                    selected ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+                  }`}
+                >
+                  {selected && <Check className="size-4" strokeWidth={3} aria-hidden />}
+                  {option.native}
+                </button>
+              );
+            })}
           </div>
-        )}
+          {error && <Alert>{tErrors("unknown")}</Alert>}
+          {ask && (
+            <div className="flex flex-col gap-3" aria-live="polite">
+              <h3 className="font-semibold">{t("changeTitle", { lang: nextName })}</h3>
+              <p>{t("changeText", { lang: nextName })}</p>
+              {ask.next === "en" ? (
+                <p className="text-sm text-muted">{t("changeToEnglish")}</p>
+              ) : ask.preview.records > 0 ? (
+                <>
+                  <p>
+                    {t("changeTranslate", { count: ask.preview.records, lang: nextName, requests: ask.preview.requests })}
+                    {ask.preview.aiLeft !== null && <> {t("changeLeft", { left: ask.preview.aiLeft })}</>}
+                  </p>
+                  <p className="text-sm text-muted">{t("changeNote")}</p>
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
       </Sheet>
     </section>
   );

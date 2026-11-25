@@ -112,11 +112,19 @@ export function FormAlert({ error }: { error?: string }) {
   );
 }
 
-export function SubmitButton({ pending, children }: { pending: boolean; children: React.ReactNode }) {
+export function SubmitButton({
+  pending,
+  disabled = false,
+  children,
+}: {
+  pending: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       aria-busy={pending}
       className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-foreground transition-opacity active:opacity-90 disabled:opacity-60"
     >

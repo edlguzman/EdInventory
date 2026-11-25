@@ -184,7 +184,8 @@
       "checkEmailTitle": "Revisa tu correo",
       "checkEmail": "Enviamos un correo a {email}. Abre el enlace para confirmar tu dirección.",
       "myLanguage": "Mi idioma",
-      "myLanguageHint": "La interfaz y tus registros. Puedes cambiarlo más tarde en Ajustes."
+      "myLanguageHint": "La app y todos tus registros estarán en él. Puedes cambiarlo después en Ajustes.",
+      "chooseLanguageFirst": "Primero elige tu idioma"
     },
     "forgot": {
       "title": "Restablecer contraseña",
@@ -374,7 +375,7 @@
         "title": "Primeros pasos",
         "points": [
           "Después de registrarte, un administrador aprueba tu cuenta. Hasta entonces, al entrar solo ves \"Tu cuenta está pendiente de aprobación\"; cuando la aprueben, recarga la página.",
-          "Al registrarte, elige \"Mi idioma\" (English, Русский o Español): en él estarán la interfaz y tus registros. Puedes cambiarlo después en Ajustes.",
+          "Al registrarte tienes que elegir \"Mi idioma\": English, Русский o Español; sin elegirlo no se puede crear la cuenta. En él estarán la interfaz y tus registros. Antes de entrar, las pantallas están en el idioma de tu navegador; arriba en la pantalla de inicio de sesión puedes cambiarlo (EN / RU / ES).",
           "La ayuda se abre con el \"?\" arriba en cualquier pantalla, justo en la sección correspondiente. Ciérrala con la flecha o el gesto Atrás: todo lo que escribiste se queda.",
           "Instalar en iPhone: abre el sitio en Safari → Compartir → \"Añadir a pantalla de inicio\". En Android: Chrome → ⋮ → \"Instalar aplicación\".",
           "La primera vez, el navegador pide acceso a la cámara y al micrófono. Sin conexión la app no funciona: arriba aparece \"Sin conexión\", y guardar y la IA esperan."
@@ -460,7 +461,7 @@
           "Una versión en inglés de los nombres y descripciones se rellena sola en segundo plano. Por eso la búsqueda (simple, \"Preguntar a la IA\" y por voz) busca en tu idioma y en inglés: \"taladro\", \"drill\" y \"дрель\" encuentran el mismo objeto. Las tildes no importan: \"camara\" encuentra \"cámara\".",
           "Habla en tu idioma: la voz funciona en los tres.",
           "¿Quieres ver también el inglés? Ajustes → \"Mostrar el inglés al lado\": los formularios tendrán dos campos, tu idioma e inglés.",
-          "\"Mi idioma\" solo se cambia en Ajustes → \"Idioma\". La interfaz y los registros nuevos pasan al nuevo idioma; los ya guardados se quedan como están y se muestran en inglés hasta traducirlos. La app ofrece traducirlos ahora en segundo plano (más o menos 1 solicitud a la IA por cada 40 registros) o más tarde: en Ajustes (\"No están en tu idioma: N\") o con \"Traducir\" en un registro. La versión en inglés siempre se queda."
+          "\"Mi idioma\" solo se cambia en Ajustes → \"Idioma\" → \"Cambiar idioma\": elige un idioma, lee qué pasará con tus registros y confirma. La interfaz y los registros nuevos pasan al nuevo idioma; los ya guardados se quedan como están y se muestran en inglés hasta traducirlos. La app ofrece traducirlos ahora en segundo plano (más o menos 1 solicitud a la IA por cada 40 registros) o más tarde: en Ajustes (\"No están en tu idioma: N\") o con \"Traducir\" en un registro. La versión en inglés siempre se queda."
         ]
       },
       "plan": {
@@ -634,6 +635,9 @@
     "intro": "Mi idioma: la interfaz y los nombres, descripciones y etiquetas de tus objetos, lugares y categorías. Se rellena sola una copia en inglés, así la búsqueda también encuentra en inglés.",
     "showEnglish": "Mostrar el inglés al lado",
     "showEnglishHint": "Los formularios tendrán un segundo campo en inglés.",
+    "current": "Mi idioma:",
+    "changeButton": "Cambiar idioma",
+    "chooseNew": "Elige el nuevo idioma. Solo cambia después de que confirmes.",
     "changeTitle": "¿Cambiar el idioma a {lang}?",
     "changeText": "La interfaz y los registros nuevos estarán en {lang}. Los registros que ya guardaste se quedan como están y se muestran en inglés hasta que se traduzcan.",
     "changeToEnglish": "Todos los registros ya tienen su copia en inglés, así que todo se verá en inglés enseguida.",
