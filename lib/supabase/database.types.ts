@@ -468,122 +468,8 @@ export type Database = {
       }
     }
     Functions: {
-      admin_check_delete_v2: { Args: { p_user_id: string }; Returns: string }
-      admin_create_plan_v3: {
-        Args: {
-          p_ai_daily_limit: number
-          p_code: string
-          p_item_limit: number
-          p_names: Json
-        }
-        Returns: undefined
-      }
-      admin_delete_ai_price_v2: {
-        Args: { p_model: string; p_valid_from: string }
-        Returns: undefined
-      }
-      admin_delete_plan_v2: { Args: { p_code: string }; Returns: undefined }
-      admin_list_users_v5: {
-        Args: {
-          p_limit: number
-          p_offset: number
-          p_plan: string
-          p_search: string
-          p_sort: string
-          p_status: string
-        }
-        Returns: {
-          ai_24h: number
-          ai_30d: number
-          ai_cost_30d: number
-          ai_kinds_30d: Json
-          ai_no_price_30d: number
-          ai_no_tokens_30d: number
-          ai_total: number
-          created_at: string
-          email: string
-          is_owner: boolean
-          items_count: number
-          last_sign_in_at: string
-          manual_plan: string
-          manual_until: string
-          plan_code: string
-          plan_source: string
-          plan_until: string
-          role: string
-          status: string
-          storage_bytes: number
-          total: number
-          user_id: string
-        }[]
-      }
-      admin_overview_v2: {
-        Args: never
-        Returns: {
-          pending_count: number
-          plans_count: number
-          users_count: number
-        }[]
-      }
-      admin_plan_stats_v2: {
-        Args: never
-        Returns: {
-          code: string
-          users_linked: number
-          users_now: number
-        }[]
-      }
-      admin_reorder_plans_v2: { Args: { p_codes: string[] }; Returns: undefined }
-      admin_set_ai_price_v2: {
-        Args: {
-          p_audio: number
-          p_input: number
-          p_model: string
-          p_output: number
-          p_valid_from: string
-        }
-        Returns: undefined
-      }
-      admin_set_plan_v2: {
-        Args: { p_plan: string; p_until: string; p_user_id: string }
-        Returns: undefined
-      }
-      admin_set_status_v3: {
-        Args: { p_status: string; p_user_id: string }
-        Returns: {
-          email: string
-          lang: string
-          old_status: string
-        }[]
-      }
-      admin_set_storage_limit_v2: { Args: { p_bytes: number }; Returns: undefined }
-      admin_update_plan_v3: {
-        Args: {
-          p_ai_daily_limit: number
-          p_code: string
-          p_item_limit: number
-          p_names: Json
-          p_sort_order: number
-        }
-        Returns: undefined
-      }
-      admin_usage_overview_v2: {
-        Args: never
-        Returns: {
-          ai_active_users_30d: number
-          ai_cost_30d: number
-          ai_no_price_30d: number
-          ai_no_tokens_30d: number
-          ai_requests_30d: number
-          db_bytes: number
-          storage_bytes: number
-          storage_limit_bytes: number
-        }[]
-      }
-      admin_usage_settings_v2: { Args: never; Returns: Json }
-      admin_set_role: { Args: { p_role: string; p_user_id: string }; Returns: undefined }
-      is_owner: { Args: never; Returns: boolean }
       admin_check_delete: { Args: { p_user_id: string }; Returns: string }
+      admin_check_delete_v2: { Args: { p_user_id: string }; Returns: string }
       admin_create_plan: {
         Args: {
           p_ai_daily_limit: number
@@ -603,11 +489,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_create_plan_v3: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_names: Json
+        }
+        Returns: undefined
+      }
       admin_delete_ai_price: {
         Args: { p_model: string; p_valid_from: string }
         Returns: undefined
       }
+      admin_delete_ai_price_v2: {
+        Args: { p_model: string; p_valid_from: string }
+        Returns: undefined
+      }
       admin_delete_plan: { Args: { p_code: string }; Returns: undefined }
+      admin_delete_plan_v2: { Args: { p_code: string }; Returns: undefined }
+      admin_guard: { Args: { p_owner: boolean }; Returns: undefined }
       admin_list_users_v2: {
         Args: never
         Returns: {
@@ -687,7 +588,49 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_users_v5: {
+        Args: {
+          p_limit: number
+          p_offset: number
+          p_plan: string
+          p_search: string
+          p_sort: string
+          p_status: string
+        }
+        Returns: {
+          ai_24h: number
+          ai_30d: number
+          ai_cost_30d: number
+          ai_kinds_30d: Json
+          ai_no_price_30d: number
+          ai_no_tokens_30d: number
+          ai_total: number
+          created_at: string
+          email: string
+          is_owner: boolean
+          items_count: number
+          last_sign_in_at: string
+          manual_plan: string
+          manual_until: string
+          plan_code: string
+          plan_source: string
+          plan_until: string
+          role: string
+          status: string
+          storage_bytes: number
+          total: number
+          user_id: string
+        }[]
+      }
       admin_overview: {
+        Args: never
+        Returns: {
+          pending_count: number
+          plans_count: number
+          users_count: number
+        }[]
+      }
+      admin_overview_v2: {
         Args: never
         Returns: {
           pending_count: number
@@ -704,8 +647,30 @@ export type Database = {
           users_now: number
         }[]
       }
+      admin_plan_stats_v2: {
+        Args: never
+        Returns: {
+          code: string
+          users_linked: number
+          users_now: number
+        }[]
+      }
       admin_reorder_plans: { Args: { p_codes: string[] }; Returns: undefined }
+      admin_reorder_plans_v2: {
+        Args: { p_codes: string[] }
+        Returns: undefined
+      }
       admin_set_ai_price: {
+        Args: {
+          p_audio: number
+          p_input: number
+          p_model: string
+          p_output: number
+          p_valid_from: string
+        }
+        Returns: undefined
+      }
+      admin_set_ai_price_v2: {
         Args: {
           p_audio: number
           p_input: number
@@ -717,6 +682,14 @@ export type Database = {
       }
       admin_set_plan: {
         Args: { p_plan: string; p_until: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_plan_v2: {
+        Args: { p_plan: string; p_until: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_role: {
+        Args: { p_role: string; p_user_id: string }
         Returns: undefined
       }
       admin_set_status: {
@@ -735,7 +708,19 @@ export type Database = {
           old_status: string
         }[]
       }
+      admin_set_status_v3: {
+        Args: { p_status: string; p_user_id: string }
+        Returns: {
+          email: string
+          lang: string
+          old_status: string
+        }[]
+      }
       admin_set_storage_limit: { Args: { p_bytes: number }; Returns: undefined }
+      admin_set_storage_limit_v2: {
+        Args: { p_bytes: number }
+        Returns: undefined
+      }
       admin_update_plan: {
         Args: {
           p_ai_daily_limit: number
@@ -748,6 +733,16 @@ export type Database = {
         Returns: undefined
       }
       admin_update_plan_v2: {
+        Args: {
+          p_ai_daily_limit: number
+          p_code: string
+          p_item_limit: number
+          p_names: Json
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
+      admin_update_plan_v3: {
         Args: {
           p_ai_daily_limit: number
           p_code: string
@@ -770,7 +765,21 @@ export type Database = {
           storage_limit_bytes: number
         }[]
       }
+      admin_usage_overview_v2: {
+        Args: never
+        Returns: {
+          ai_active_users_30d: number
+          ai_cost_30d: number
+          ai_no_price_30d: number
+          ai_no_tokens_30d: number
+          ai_requests_30d: number
+          db_bytes: number
+          storage_bytes: number
+          storage_limit_bytes: number
+        }[]
+      }
       admin_usage_settings: { Args: never; Returns: Json }
+      admin_usage_settings_v2: { Args: never; Returns: Json }
       ai_usage_costs: {
         Args: { p_since: string }
         Returns: {
@@ -811,6 +820,7 @@ export type Database = {
       }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_owner: { Args: never; Returns: boolean }
       keepalive: { Args: never; Returns: string }
       location_descendants: { Args: { loc_id: string }; Returns: string[] }
       my_plan: {
