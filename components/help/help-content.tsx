@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
-  Camera,
   CheckSquare,
   ChevronDown,
   ChevronsDownUp,
@@ -15,6 +14,7 @@ import {
   Mic,
   Package,
   Pill,
+  Plus,
   ScanSearch,
   Smartphone,
   UserCog,
@@ -25,7 +25,7 @@ import { HELP_TOPICS, type HelpTopic } from "@/lib/help/topics";
 
 const ICONS: Record<HelpTopic, LucideIcon> = {
   start: Smartphone,
-  add: Camera,
+  add: Plus,
   multi: ScanSearch,
   voice: Mic,
   places: MapPin,
