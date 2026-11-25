@@ -13,7 +13,10 @@ export const MAX_IMAGES = 4;
  * `image`), optional "text", and a JSON "meta" field.
  * Returns null when the body is malformed or a file is too big / of the wrong type.
  */
-export async function readAiForm(request: Request): Promise<{
+export async function readAiForm(
+  request: Request,
+  { maxText = MAX_TEXT }: { maxText?: number } = {},
+): Promise<{
   audio: Blob | null;
   image: Blob | null;
   images: Blob[];
@@ -37,7 +40,7 @@ export async function readAiForm(request: Request): Promise<{
   for (const i of images) {
     if (!(i instanceof Blob) || i.size === 0 || i.size > MAX_IMAGE_BYTES || i.type !== "image/jpeg") return null;
   }
-  if (text !== null && (typeof text !== "string" || text.length > MAX_TEXT)) return null;
+  if (text !== null && (typeof text !== "string" || text.length > maxText)) return null;
 
   let parsedMeta: unknown = {};
   if (typeof meta === "string") {

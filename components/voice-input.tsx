@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowUp, LoaderCircle, Mic, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { MAX_RECORDING_MS } from "@/lib/audio/recorder";
+import { MAX_RECORDING_MS } from "@/lib/audio/limits";
 import { useVoiceRecorder } from "@/lib/audio/use-voice-recorder";
 import { useOffline } from "./offline-banner";
 import { useAiOff, usePlanLimitText } from "./plan-context";
@@ -43,7 +43,7 @@ export function MicButton({
   );
 }
 
-export function RecordingStatus({ seconds }: { seconds: number }) {
+export function RecordingStatus({ seconds, maxMs = MAX_RECORDING_MS }: { seconds: number; maxMs?: number }) {
   const t = useTranslations("voice");
   return (
     <p
@@ -51,32 +51,38 @@ export function RecordingStatus({ seconds }: { seconds: number }) {
       className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
     >
       <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-red-600" aria-hidden />
-      <span className="truncate">{t("listening", { seconds, max: MAX_RECORDING_MS / 1000 })}</span>
+      <span className="truncate">{t("listening", { seconds, max: maxMs / 1000 })}</span>
     </p>
   );
 }
 
 /**
  * A phrase by voice or by text. The text field is always there (CLAUDE.md);
- * the mic: tap to start, tap to stop (auto-stop after 20 s). The parent sends the
- * phrase to an AI route and shows the result.
+ * the mic: tap to start, tap to stop (auto-stop after 20 s or maxMs). The parent sends the
+ * phrase to an AI route and shows the result. `multiline`: a longer text (Enter adds a line).
  */
 export function VoiceInput({
   placeholder,
   label,
   busy,
+  multiline = false,
+  maxLength = 500,
+  maxMs = MAX_RECORDING_MS,
   onSubmit,
   onError,
 }: {
   placeholder: string;
   label: string;
   busy: boolean;
+  multiline?: boolean;
+  maxLength?: number;
+  maxMs?: number;
   onSubmit: (input: { audio?: Blob; text?: string }) => void;
   onError: (key: string) => void;
 }) {
   const t = useTranslations("voice");
   const [text, setText] = useState("");
-  const recorder = useVoiceRecorder({ onAudio: (audio) => onSubmit({ audio }), onError });
+  const recorder = useVoiceRecorder({ onAudio: (audio) => onSubmit({ audio }), onError, maxMs });
   const offline = useOffline();
   const aiOff = useAiOff();
   const limitText = usePlanLimitText();
@@ -89,16 +95,27 @@ export function VoiceInput({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex gap-2 ${multiline ? "items-end" : "items-center"}`}>
       {recorder.recording ? (
-        <RecordingStatus seconds={recorder.seconds} />
+        <RecordingStatus seconds={recorder.seconds} maxMs={maxMs} />
+      ) : multiline ? (
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={limitText ?? placeholder}
+          aria-label={label}
+          maxLength={maxLength}
+          rows={3}
+          disabled={disabled}
+          className="min-w-0 flex-1 resize-y rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-accent disabled:opacity-60"
+        />
       ) : (
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={limitText ?? placeholder}
           aria-label={label}
-          maxLength={500}
+          maxLength={maxLength}
           enterKeyHint="send"
           disabled={disabled}
           onKeyDown={(e) => {

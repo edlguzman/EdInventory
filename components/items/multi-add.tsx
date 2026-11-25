@@ -743,7 +743,7 @@ export function MultiAdd({
 }
 
 /** "Ibuprofen · 200 mg", or the first components of a supplement, and the expiry chip. */
-function MedicineLine({ m }: { m: MedicineSuggestion }) {
+export function MedicineLine({ m }: { m: MedicineSuggestion }) {
   const t = useTranslations("medicine");
   const { display } = useDataLang();
   const pick = (l: string, e: string) => (display === "local" ? l || e : e || l);

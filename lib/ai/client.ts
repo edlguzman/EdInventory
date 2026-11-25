@@ -10,6 +10,7 @@ import type {
   RecognizeSingleResult,
   SearchResult,
   TranscribeResult,
+  VoiceAddResult,
 } from "./types";
 
 /** Dictionary keys (namespace "errors") for AI failures shown to the user. */
@@ -127,6 +128,15 @@ export function askPlace(input: {
       meta: { mode: input.mode, current_location_id: input.currentLocationId, item: input.item ?? null },
     }),
     (d): d is PlaceResult => isObject(d) && "match" in d,
+  );
+}
+
+/** One phrase -> new items with their places. 1 unit of the daily limit; nothing is saved. */
+export function voiceAdd(input: { audio?: Blob | null; text?: string; currentLocationId: string | null }) {
+  return call<VoiceAddResult>(
+    "/api/ai/voice-add",
+    form({ audio: input.audio, text: input.text, meta: { current_location_id: input.currentLocationId } }),
+    (d): d is VoiceAddResult => isObject(d) && Array.isArray(d.items) && Array.isArray(d.places),
   );
 }
 

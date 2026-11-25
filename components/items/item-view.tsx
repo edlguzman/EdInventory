@@ -6,7 +6,7 @@ import { useDataLang } from "@/components/data-lang/context";
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightLeft, BookOpen, ChevronLeft, ChevronRight, ImageOff, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookOpen, ChevronLeft, ChevronRight, MapPin, Pencil, Tag, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useHelpTopic } from "@/components/help/help-sheet";
 import { deleteItem, moveItem } from "@/app/(app)/items/actions";
@@ -18,19 +18,20 @@ import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
 import type { CategoryOption } from "@/lib/items/data";
 import { formatIsbn } from "@/lib/books/isbn";
+import { ItemIcon } from "./item-icon";
 import { MedicineView } from "./medicine";
 import { pickText, type ItemDetail, type ItemPhoto } from "@/lib/items/types";
 import { useErrorText } from "@/lib/use-error-text";
 
-function Carousel({ photos, alt }: { photos: ItemPhoto[]; alt: string }) {
+function Carousel({ photos, alt, placeholder }: { photos: ItemPhoto[]; alt: string; placeholder: React.ReactNode }) {
   const t = useTranslations("items");
   const ref = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
 
   if (photos.length === 0) {
     return (
-      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-surface text-muted">
-        <ImageOff className="size-10" aria-label={t("noPhoto")} />
+      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-surface text-muted" role="img" aria-label={t("noPhoto")}>
+        {placeholder}
       </div>
     );
   }
@@ -138,7 +139,7 @@ export function ItemView({ item, categories }: { item: ItemDetail; categories: C
 
   return (
     <article className="flex flex-col gap-5">
-      <Carousel photos={item.photos} alt={name} />
+      <Carousel photos={item.photos} alt={name} placeholder={<ItemIcon kind={item.kind} category={category} className="size-20" />} />
 
       <div>
         <h1 className="text-2xl font-semibold tracking-tight break-words">{name}</h1>
