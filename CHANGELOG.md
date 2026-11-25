@@ -7,6 +7,14 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.5.1 — 2026-11-25
+
+- **Sign-up:** "My language" is chosen explicitly: a large block with English / Русский / Español, nothing preselected, no account without a choice. The choice switches the screen at once. Before, the screen's language was recorded silently.
+- **Sign-in and sign-up screens** open in the browser's language (English, Russian, Spanish; otherwise English). The EN / RU / ES choice on the sign-in screen lasts until signing in, signing out or closing the browser; the old year-long cookie is ignored.
+- **Settings:** "My language: …" as text with "Change language": a window to pick the language, with the warning and the translation estimate; nothing changes before confirmation.
+- No language switch anywhere after signing in (it was left on the new-password screen).
+- Help updated (RU, EN, ES): "Getting started" and "Language".
+
 ## v2.5.0 — 2026-11-24
 
 - **Add by voice (or text):** a third card on the Add screen. One phrase of up to 40 seconds (or 1000 characters) gives one or several items with name, category, a short description of what was said, and book / medicine data if they were said; one AI request.
