@@ -184,7 +184,8 @@
       "checkEmailTitle": "Check your email",
       "checkEmail": "We sent an email to {email}. Open the link in it to confirm your address.",
       "myLanguage": "My language",
-      "myLanguageHint": "The interface and your records. You can change it later in Settings."
+      "myLanguageHint": "The app and all your records will be in it. You can change it later in Settings.",
+      "chooseLanguageFirst": "Choose your language first"
     },
     "forgot": {
       "title": "Reset password",
@@ -374,7 +375,7 @@
         "title": "Getting started",
         "points": [
           "After you sign up, an administrator approves your account. Until then you only see \"Your account is awaiting approval\" after signing in; once approved, reload the page.",
-          "When signing up, pick \"My language\" (English, Русский or Español): the interface and your records will be in it. You can change it later in Settings.",
+          "When signing up you have to choose \"My language\": English, Русский or Español — there is no account without it. The interface and your records will be in it. Before you sign in, screens are in your browser's language; you can switch it at the top of the sign-in screen (EN / RU / ES).",
           "The help opens with the \"?\" at the top of any screen — right on the matching section. Close it with the arrow or the Back gesture: everything you typed stays in place.",
           "Install on iPhone: open the site in Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ → \"Install app\".",
           "The browser asks for camera and microphone access the first time. Without a connection the app does not work: \"Offline\" shows at the top, saving and AI wait for it."
@@ -456,11 +457,11 @@
       "languages": {
         "title": "Language",
         "points": [
-          "You choose \"My language\" when you sign up: English, Русский or Español. The interface and all your records — names, descriptions and tags of items, places and categories — are in it. You only see and type your own language.",
+          "You choose \"My language\" yourself when you sign up: English, Русский or Español. The interface and all your records — names, descriptions and tags of items, places and categories — are in it. You only see and type your own language.",
           "An English version of names and descriptions is filled in by itself in the background. That's why search — plain, \"Ask AI\" and voice — looks in your language and in English: \"дрель\", \"drill\" and \"taladro\" find the same item. Accents don't matter: \"camara\" finds \"cámara\".",
           "Speak in your language — voice works in all three.",
           "Using Russian or Spanish and want to see English too? Settings → \"Show English next to it\": forms then have two fields, your language and English.",
-          "\"My language\" can be changed only in Settings → \"Language\". The interface and new records switch to it; records you already saved stay as they are and show in English until translated. The app offers to translate them now in the background (about 1 AI request per 40 records) or later: in Settings (\"Not in your language: N\") or with \"Translate\" on a record. The English version always stays."
+          "\"My language\" can be changed only in Settings → \"Language\" → \"Change language\": pick a language, read what happens to your records and confirm. The interface and new records switch to it; records you already saved stay as they are and show in English until translated. The app offers to translate them now in the background (about 1 AI request per 40 records) or later: in Settings (\"Not in your language: N\") or with \"Translate\" on a record. The English version always stays."
         ]
       },
       "plan": {
@@ -634,6 +635,9 @@
     "intro": "My language: the interface and the names, descriptions and tags of your items, places and categories. An English copy is filled in automatically, so search also finds things in English.",
     "showEnglish": "Show English next to it",
     "showEnglishHint": "Forms get a second field in English.",
+    "current": "My language:",
+    "changeButton": "Change language",
+    "chooseNew": "Choose the new language. It changes only after you confirm.",
     "changeTitle": "Switch to {lang}?",
     "changeText": "The interface and new records will be in {lang}. Records you already saved stay as they are and are shown in English until they are translated.",
     "changeToEnglish": "Every record already has its English copy, so everything is shown in English right away.",

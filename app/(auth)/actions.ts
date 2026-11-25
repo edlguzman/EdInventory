@@ -1,11 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { getLocale } from "next-intl/server";
+import { LOCALE_COOKIE } from "@/i18n/config";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth-errors";
-import { isLang, toLang } from "@/lib/languages";
 import { notifyAdmin } from "@/lib/notify/admin-email";
 import { notifyUser } from "@/lib/notify/user-email";
 import { safeNext } from "@/lib/safe-next";
@@ -33,6 +32,11 @@ async function requestOrigin() {
   return `${proto}://${host}`;
 }
 
+/** The guest's language choice ends with signing in or out: "my language" inside, the browser's after. */
+async function forgetGuestLanguage() {
+  (await cookies()).delete(LOCALE_COOKIE);
+}
+
 export async function signIn(input: LoginInput, next?: string): Promise<AuthActionResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return { error: "unknown" };
@@ -41,17 +45,18 @@ export async function signIn(input: LoginInput, next?: string): Promise<AuthActi
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: authErrorKey(error) };
 
+  await forgetGuestLanguage();
   redirect(safeNext(next));
 }
 
-export async function signUp(input: SignupInput & { lang?: string }): Promise<AuthActionResult> {
+export async function signUp(input: SignupInput): Promise<AuthActionResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) return { error: "unknown" };
 
   const supabase = await createClient();
-  // "My language" chosen on the sign-up screen (it is also the screen's language); read once
-  // by the profile trigger, which also creates the default categories in it.
-  const lang = isLang(input.lang) ? input.lang : toLang(await getLocale());
+  // "My language", chosen explicitly on the sign-up screen; read once by the profile trigger,
+  // which also creates the default categories in it.
+  const { lang } = parsed.data;
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -70,7 +75,10 @@ export async function signUp(input: SignupInput & { lang?: string }): Promise<Au
   }
 
   // Email confirmation off: Supabase returns a session right away.
-  if (data.session) redirect("/");
+  if (data.session) {
+    await forgetGuestLanguage();
+    redirect("/");
+  }
   // Confirmation on: the user must follow the link from the email.
   return { status: "checkEmail" };
 }
@@ -106,5 +114,6 @@ export async function signOut() {
   const supabase = await createClient();
   // This device only: signing out on the phone must not end the session on the computer.
   await supabase.auth.signOut({ scope: "local" });
+  await forgetGuestLanguage();
   redirect("/login");
 }

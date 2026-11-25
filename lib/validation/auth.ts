@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AuthErrorKey } from "@/lib/auth-errors";
+import { isLang, type Lang } from "@/lib/languages";
 
 // Error messages are dictionary keys (AuthErrorKey), translated in the form.
 const msg = (key: AuthErrorKey) => ({ error: key });
@@ -19,6 +20,8 @@ export const signupSchema = z
     email,
     password: newPassword,
     confirmPassword: z.string().min(1, msg("required")),
+    // "My language": chosen explicitly, never guessed from the screen or the browser.
+    lang: z.custom<Lang>(isLang, msg("required")),
   })
   .refine((v) => v.password === v.confirmPassword, { ...msg("passwordsMismatch"), path: ["confirmPassword"] });
 
