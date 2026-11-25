@@ -13,8 +13,9 @@ export type MyPlan = {
   until: string | null;
   itemsCount: number;
   aiUsed24h: number;
-  isAdmin: boolean;
-  /** Items reached the limit: new items and all AI are blocked (admins: never). */
+  /** No limits at all: only the owner (admins live by their plan). */
+  unlimited: boolean;
+  /** Items reached the limit: new items and all AI are blocked (the owner: never). */
   atItemLimit: boolean;
 };
 
@@ -33,7 +34,7 @@ export const getMyPlan = cache(async (): Promise<MyPlan | null> => {
     until: row.until ?? null,
     itemsCount: Number(row.items_count ?? 0),
     aiUsed24h: Number(row.ai_used_24h ?? 0),
-    isAdmin: !!row.is_admin,
+    unlimited: !!row.is_admin,
     atItemLimit: !row.is_admin && itemLimit !== null && Number(row.items_count ?? 0) >= itemLimit,
   };
 });

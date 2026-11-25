@@ -158,7 +158,9 @@
     "lastDbCheck": "Last database check:",
     "never": "not yet",
     "help": "How to use",
-    "admin": "Admin"
+    "admin": "Admin",
+    "dangerZone": "Danger zone",
+    "deleteAccount": "Delete account"
   },
   "auth": {
     "email": "Email",
@@ -319,8 +321,7 @@
   },
   "account": {
     "delete": "Delete account",
-    "deleteTitle": "Delete the account forever?",
-    "deleteWarning": "All your places, items, categories and photos will be deleted. This cannot be undone.",
+    "deleteWarning": "The account and everything in it will be deleted forever: items, places, categories and all photos. Nobody can restore it, not even the administrator.",
     "password": "Password",
     "confirmWord": "DELETE",
     "confirmLabel": "To confirm, type {word}",
@@ -330,7 +331,45 @@
       "confirmMismatch": "The confirmation word does not match",
       "rateLimit": "Too many attempts. Please wait a bit.",
       "unauthorized": "Session expired. Please sign in again.",
-      "unknown": "Could not delete the account. Please try again."
+      "unknown": "Could not delete the account. Please try again.",
+      "owner": "The owner's account cannot be deleted in the app."
+    }
+  },
+  "code": {
+    "title": "Sign-in with a code",
+    "on": "on",
+    "off": "off",
+    "hint": "After the password the app asks for a code from Google Authenticator or another authenticator app.",
+    "hintAdmin": "Required for the admin screens: they do not open without a code.",
+    "enable": "Turn on sign-in with a code",
+    "disable": "Turn off sign-in with a code",
+    "enableTitle": "Turn on sign-in with a code",
+    "disableTitle": "Turn off sign-in with a code?",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "step1": "1. Scan the QR code with an authenticator app: Google Authenticator, Microsoft Authenticator, 1Password or similar.",
+    "qrAlt": "QR code for the authenticator app",
+    "samePhone": "Is the authenticator app on this phone? Open it with the button or type the key in it.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openApp": "Open the app",
+    "saveKey": "Save this key, for example in a password manager: if you lose your phone, it lets you add the account on a new one.",
+    "step2": "2. Enter the code from the app.",
+    "otherDevices": "You will have to sign in again on other devices.",
+    "loading": "Preparing the QR code…",
+    "disableText": "Enter the code from the app. After that the password is enough to sign in.",
+    "disableTextAdmin": "Enter the code from the app. After that the password is enough to sign in, but the admin screens will not open without a code.",
+    "code": "6-digit code",
+    "continue": "Continue",
+    "askTitle": "Enter the code",
+    "ask": "Open your authenticator app and enter the code for Inventory.",
+    "askReset": "To change the password, first enter the code from your authenticator app.",
+    "lost": "No access to the authenticator app? Write to the administrator.",
+    "errors": {
+      "wrongCode": "Wrong code. Wait for a new one and try again.",
+      "rateLimit": "Too many attempts. Please wait a bit.",
+      "unavailable": "Sign-in with a code is not available now.",
+      "unknown": "That did not work. Please try again."
     }
   },
   "onboarding": {
@@ -476,7 +515,9 @@
         "title": "Account",
         "points": [
           "\"Sign out\" in Settings signs out of this device only; you stay signed in on others.",
-          "Delete the account: Settings → \"Delete account\", enter your password and the word DELETE. All places, items, categories and photos are deleted forever and cannot be restored."
+          "Sign-in with a code: Settings → \"Turn on sign-in with a code\". Scan the QR code in Google Authenticator or a similar app (or copy the key into it) and enter the code. From then on signing in needs a code after the password; on other devices you sign in again. Save the key in a password manager. Turn it off in the same place, with a code.",
+          "Lost the phone with the codes? If you saved the key, add it to the app on your new phone. If not, write to the administrator: they reset sign-in with a code and you sign in with your password.",
+          "Delete the account: at the very bottom of Settings, \"Danger zone\" → \"Delete account\", enter your password and the word DELETE. All places, items, categories and photos are deleted forever and cannot be restored."
         ]
       }
     },
@@ -523,7 +564,8 @@
       "unknown": "Something went wrong. Please try again.",
       "invalid": "Check the values: end date in the future, names up to 50 characters, numbers not below 0.",
       "exists": "A plan with this code already exists.",
-      "inUse": "The plan is assigned to users or is the default plan: it cannot be deleted."
+      "inUse": "The plan is assigned to users or is the default plan: it cannot be deleted.",
+      "codeRequired": "A code is needed: sign in with the code or turn it on in Settings."
     },
     "plan": "Plan",
     "manualPlan": "Manual plan",
@@ -617,7 +659,19 @@
     "priceAudio": "Audio, $",
     "priceAudioHint": "same as input",
     "addPrice": "Save price",
-    "settingsInvalid": "Check the values: numbers of 0 or more; date, input and output are required; limit from 0.01 to 1000 GB."
+    "settingsInvalid": "Check the values: numbers of 0 or more; date, input and output are required; limit from 0.01 to 1000 GB.",
+    "ownerRole": "owner",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "makeAdminTitle": "Make admin?",
+    "removeAdminTitle": "Remove admin?",
+    "makeAdminText": "{email} will be able to approve, disable and delete regular users and see the numbers. Plans, prices and admins stay with you only. The admin screens open once sign-in with a code is on.",
+    "removeAdminText": "{email} becomes a regular user and can no longer open the admin screens. Their data and plan stay.",
+    "codeOn": "Sign-in with a code is on",
+    "codeOff": "Sign-in with a code is off: the admin screens are closed",
+    "lockedTitle": "Turn on sign-in with a code",
+    "lockedText": "The admin screens open only for accounts that sign in with a code. Turn it on in Settings and come back.",
+    "lockedLink": "Open Settings"
   },
   "notify": {
     "adminLink": "Admin page:",
@@ -758,7 +812,7 @@
     "sourceManual": "set by the administrator",
     "sourceManualUntil": "set by the administrator until {date}",
     "sourceSubscription": "subscription until {date}",
-    "sourceAdmin": "administrator, no limits",
+    "sourceAdmin": "owner, no limits",
     "howToChange": "The administrator can change your plan. A lower limit deletes nothing: only new items and the AI become unavailable."
   },
   "books": {

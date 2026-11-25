@@ -30,22 +30,49 @@ export async function requireUser() {
 export type AccountStatus = "pending" | "active" | "disabled";
 
 /**
+ * The session's level: "aal2" = the code of the second step was entered in it. From the verified
+ * token (getClaims); the database checks the live session again (mfa_ok()).
+ */
+const getAal = cache(async () => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.aal ?? "aal1";
+});
+
+export type Profile = {
+  status: AccountStatus;
+  /** Admin rights (the owner has them too). */
+  isAdmin: boolean;
+  /** The one owner: plans, prices, users' plans, admins. Set only by SQL. */
+  isOwner: boolean;
+  /** "Sign-in with a code" is on. */
+  hasCode: boolean;
+  /** It is on, but was not entered in this session: only the code screen is shown. */
+  needsCode: boolean;
+  lang: Lang;
+  dataLang: DataLang;
+};
+
+/**
  * The signed-in user's profile (status and role) from public.profiles. RLS lets a user
  * read only their own row. A missing row is treated as pending (never as active).
  */
 export const getProfile = cache(
-  async (): Promise<{ status: AccountStatus; isAdmin: boolean; lang: Lang; dataLang: DataLang } | null> => {
+  async (): Promise<Profile | null> => {
     const user = await getUser();
     if (!user) return null;
     const supabase = await createClient();
     const { data } = await supabase
       .from("profiles")
-      .select("status, role, lang, show_english")
+      .select("status, role, is_owner, lang, show_english")
       .eq("user_id", user.id)
       .maybeSingle();
     const status = (data?.status ?? "pending") as AccountStatus;
     const dataLang = dataLangOf(data?.lang, data?.show_english);
-    return { status, isAdmin: status === "active" && data?.role === "admin", lang: dataLang.lang, dataLang };
+    const isAdmin = status === "active" && data?.role === "admin";
+    const hasCode = !!user.factors?.some((f) => f.status === "verified");
+    const needsCode = hasCode && (await getAal()) !== "aal2";
+    return { status, isAdmin, isOwner: isAdmin && !!data?.is_owner, hasCode, needsCode, lang: dataLang.lang, dataLang };
   },
 );
 
@@ -59,10 +86,21 @@ export async function getDisplaySlot(): Promise<Slot> {
   return displaySlot((await getDataLang()).mode);
 }
 
-/** Admin-only pages: anyone else gets a plain 404, so the page does not reveal itself. */
-export async function requireAdmin() {
+/**
+ * Admin pages ("owner": the owner's only). Anyone else gets a plain 404, so the page does not
+ * reveal itself. Without a code turned on and entered in this session the page is `locked`: it
+ * must show AdminLocked and load nothing (the database functions refuse as well).
+ */
+export async function requireAdmin(level: "admin" | "owner" = "admin") {
   const user = await requireUser();
   const profile = await getProfile();
-  if (!profile?.isAdmin) notFound();
-  return user;
+  if (!profile?.isAdmin || (level === "owner" && !profile.isOwner)) notFound();
+  return { user, isOwner: profile.isOwner, locked: !profile.hasCode || profile.needsCode };
+}
+
+/** The same for admin server actions: what is missing, or null. */
+export async function adminRefusal(level: "admin" | "owner" = "admin"): Promise<"forbidden" | "codeRequired" | null> {
+  const profile = await getProfile();
+  if (!profile?.isAdmin || (level === "owner" && !profile.isOwner)) return "forbidden";
+  return !profile.hasCode || profile.needsCode ? "codeRequired" : null;
 }

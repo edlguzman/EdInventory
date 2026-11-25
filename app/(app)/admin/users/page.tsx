@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AdminUserList } from "@/components/admin/user-list";
 import { UserFiltersBar, UsersPager } from "@/components/admin/user-filters";
+import { AdminLocked } from "@/components/admin/locked";
 import { PageTitle } from "@/components/page-title";
 import { listPlans, listUsersPage } from "@/lib/admin/data";
 import { parseUserFilters, userFiltersHref, USERS_PAGE_SIZE } from "@/lib/admin/filters";
@@ -15,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Admin → Users: search, filters, sorting and pages of 50, all in the address. Admin only (404). */
 export default async function AdminUsersPage({ searchParams }: PageProps<"/admin/users">) {
-  const user = await requireAdmin();
+  const { user, isOwner, locked } = await requireAdmin();
+  if (locked) return <AdminLocked />;
   const filters = parseUserFilters(await searchParams);
   const [t, { users, total }, plans] = await Promise.all([getTranslations("admin"), listUsersPage(filters), listPlans()]);
   // Past the last page (e.g. the last user on it was deleted): the first page.
@@ -26,7 +28,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
       <PageTitle>{t("usersSection")}</PageTitle>
       <div className="flex flex-col gap-4">
         <UserFiltersBar filters={filters} plans={plans} />
-        <AdminUserList users={users} selfId={user.id} plans={plans} filtered={!!(filters.q || filters.status || filters.plan)} />
+        <AdminUserList users={users} selfId={user.id} isOwner={isOwner} plans={plans} filtered={!!(filters.q || filters.status || filters.plan)} />
         <UsersPager filters={filters} total={total} pageSize={USERS_PAGE_SIZE} />
       </div>
     </>

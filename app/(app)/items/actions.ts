@@ -270,7 +270,7 @@ export async function createItemsBatch(input: {
   // client says how many did not fit. (The database trigger enforces the limit as well.)
   const plan = await getMyPlan();
   const room =
-    !plan || plan.isAdmin || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
+    !plan || plan.unlimited || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
   if (room === 0) return abort("planLimit");
   const saved = items.slice(0, room);
   const rows = parsedRows.slice(0, room);
@@ -352,7 +352,7 @@ export async function createItemsWithoutPhotos(input: {
   }
 
   const plan = await getMyPlan();
-  const room = !plan || plan.isAdmin || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
+  const room = !plan || plan.unlimited || plan.itemLimit === null ? items.length : Math.max(0, plan.itemLimit - plan.itemsCount);
   if (room === 0) return fail("planLimit");
   const rows = parsedRows.slice(0, room);
 

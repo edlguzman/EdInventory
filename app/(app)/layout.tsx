@@ -1,4 +1,5 @@
 import { AccountBlocked } from "@/components/account-blocked";
+import { CodeRequired } from "@/components/auth/code-required";
 import { BottomNav } from "@/components/bottom-nav";
 import { DataLangProvider } from "@/components/data-lang/context";
 import { TranslationProgress } from "@/components/data-lang/translation-progress";
@@ -36,6 +37,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (!profile || profile.status !== "active") {
     return <AccountBlocked status={profile?.status === "disabled" ? "disabled" : "pending"} email={user.email ?? ""} />;
   }
+
+  // "Sign-in with a code" is on and the code was not entered in this session.
+  if (profile.needsCode) return <CodeRequired email={user.email ?? ""} />;
 
   const data = profile.dataLang;
   const [locations, pendingCount, missingEn, plan] = await Promise.all([

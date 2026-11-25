@@ -7,7 +7,7 @@ import { CategoryList } from "@/components/categories/category-list";
 import { PageTitle } from "@/components/page-title";
 import { DbHeartbeat } from "@/components/settings/db-heartbeat";
 import { DataLangSettings } from "@/components/settings/data-lang-settings";
-import { DeleteAccount } from "@/components/settings/delete-account";
+import { CodeSettings } from "@/components/settings/code-settings";
 import { PlanCard } from "@/components/settings/plan-card";
 import { getPendingCount } from "@/lib/admin/data";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -82,6 +82,7 @@ export default async function SettingsPage() {
             <span className="block text-sm text-muted">{t("signedInAs")}</span>
             <span className="break-all font-medium">{user.email}</span>
           </p>
+          {profile && <CodeSettings on={profile.hasCode} forAdmin={profile.isAdmin} />}
           <form action={signOut}>
             <button
               type="submit"
@@ -91,11 +92,18 @@ export default async function SettingsPage() {
               {t("signOut")}
             </button>
           </form>
-          <DeleteAccount />
         </section>
 
         <section className="flex flex-col gap-2 border-t border-border pt-4">
           <DbHeartbeat at={status?.last_keepalive_at ?? null} stale={isStale(status?.last_keepalive_at ?? null)} />
+        </section>
+
+        {/* Last and apart from everything else: nobody should open it by accident. */}
+        <section className="mt-10 flex flex-col items-start gap-1 border-t border-border pt-4">
+          <h2 className="text-sm font-medium text-muted">{t("dangerZone")}</h2>
+          <Link href="/settings/delete-account" className="inline-flex min-h-11 items-center text-sm text-red-600 dark:text-red-400">
+            {t("deleteAccount")}
+          </Link>
         </section>
       </div>
     </>

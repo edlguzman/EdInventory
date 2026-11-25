@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AdminPlans } from "@/components/admin/plan-controls";
+import { AdminLocked } from "@/components/admin/locked";
 import { PageTitle } from "@/components/page-title";
 import { listPlansWithStats } from "@/lib/admin/data";
 import { requireAdmin } from "@/lib/auth";
@@ -10,9 +11,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("plans") };
 }
 
-/** Admin → Plans: names, limits, order, users per plan; add and delete. Admin only (404). */
+/** Admin → Plans: names, limits, order, users per plan; add and delete. The owner only (404). */
 export default async function AdminPlansPage() {
-  await requireAdmin();
+  const { locked } = await requireAdmin("owner");
+  if (locked) return <AdminLocked />;
   const [t, plans] = await Promise.all([getTranslations("admin"), listPlansWithStats()]);
   return (
     <>
