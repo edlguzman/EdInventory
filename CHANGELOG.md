@@ -7,6 +7,12 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.6.1 — 2026-11-25
+
+- Bottom menu: the "Add" button shows a plus instead of a camera (items are added by photo and by voice).
+- The active tab is clearly visible: the app's blue, a semibold label and a highlight behind the icon, in the light and dark themes; also on inner screens (item → Items, place → Places, admin and account deletion → Settings).
+- Help updated (RU, EN, ES): "Add an item" mentions the plus; the same in onboarding and the empty list.
+
 ## v2.6.0 — 2026-11-25
 
 - **Owner and admins:** one owner (set only in the database) has everything; the owner makes users admins and removes them in Admin → Users, with a confirmation. Admins approve, disable, enable and delete regular users and see the numbers; plans, prices, the storage limit, users' plans and other admins are the owner's only (screens and buttons hidden, refused by the server and the database).
