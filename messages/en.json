@@ -14,7 +14,7 @@
   },
   "items": {
     "title": "My items",
-    "empty": "Nothing here yet. Tap the camera below to add your first item.",
+    "empty": "Nothing here yet. Tap \"+\" below to add your first item.",
     "emptyFiltered": "Nothing matches these filters.",
     "showMore": "Show more",
     "countFound": "Found: {count}",
@@ -352,7 +352,7 @@
     "hereYes": "Yes, I'm here",
     "hereNo": "No, later",
     "howTitle": "How it works",
-    "howPhoto": "Tap the camera below and take a photo of the item.",
+    "howPhoto": "Tap \"+\" below: take a photo of the item or name it by voice.",
     "howAi": "AI suggests the name, description and category.",
     "howVoice": "Say where you put it: “garage, on the rack” — the place is found or created.",
     "howSearch": "Search by voice or text: “where is my drill?”",
@@ -386,7 +386,7 @@
       "add": {
         "title": "Add an item",
         "points": [
-          "Tap the camera at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\". The \"Save\" button is always at the bottom of the screen — above the menu, or above the keyboard while it is open. While the AI is recognizing or photos are being processed, it waits with a spinner.",
+          "Tap \"+\" at the bottom and choose \"One item\": take a photo or pick one from the gallery. The AI fills in the name, description, category and tags — check them and tap \"Save\". The \"Save\" button is always at the bottom of the screen — above the menu, or above the keyboard while it is open. While the AI is recognizing or photos are being processed, it waits with a spinner.",
           "An item can have up to 10 photos; the main one has a star. Take several sides of a package — the AI gets up to 4 photos in one request and combines what it sees. The second and later photos have \"Read more\" (1 request): it fills only empty fields and shows \"Replace\" when the photo has a different value. \"Recognize again\" asks the AI again.",
           "Every photo is checked for a barcode right on the phone, without AI: a book by its ISBN and a US medicine by its NDC are filled in from catalogues. If the same photo was added before, the app shows those items before any AI request.",
           "Photos are compressed on the phone — to about 150 KB, 1280px on the long side: no visible difference on screen, and they take 2–3 times less space. The location (GPS) and other data stored in the photo are removed. Take the item close up on a light background.",

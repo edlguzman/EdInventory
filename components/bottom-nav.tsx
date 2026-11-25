@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Camera, MapPin, Package, Search, Settings, type LucideIcon } from "lucide-react";
+import { MapPin, Package, Plus, Search, Settings, type LucideIcon } from "lucide-react";
 
 type NavKey = "items" | "search" | "locations" | "settings";
 
@@ -14,8 +14,13 @@ const sideItems: { href: string; key: NavKey; icon: LucideIcon }[] = [
   { href: "/settings", key: "settings", icon: Settings },
 ];
 
+/** Inner screens outside their tab's address: an item belongs to "Items", the admin screens to "Settings". */
+const extraPrefixes: Record<string, string> = { "/": "/items", "/settings": "/admin" };
+
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const inside = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
+  if (href in extraPrefixes && inside(extraPrefixes[href])) return true;
+  return href === "/" ? pathname === "/" : inside(href);
 }
 
 function NavLink({
@@ -36,14 +41,18 @@ function NavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs ${
-        active ? "text-accent" : "text-muted"
+        active ? "font-semibold text-accent dark:text-blue-400" : "text-muted dark:text-muted/80"
       }`}
     >
-      <span className="relative">
-        <Icon className="size-6" aria-hidden />
+      <span
+        className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
+          active ? "bg-accent/15 dark:bg-accent/25" : ""
+        }`}
+      >
+        <Icon className="size-6" strokeWidth={active ? 2.5 : 2} aria-hidden />
         {badge && (
           <span
-            className="absolute -top-1.5 -right-2.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[0.6875rem] leading-none font-semibold text-white"
+            className="absolute -top-0.5 right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[0.6875rem] leading-none font-semibold text-white"
             aria-hidden
           >
             {badge.count > 99 ? "99+" : badge.count}
@@ -78,9 +87,11 @@ export function BottomNav({ settingsBadge = 0 }: { settingsBadge?: number }) {
             href="/add"
             aria-label={t("add")}
             aria-current={addActive ? "page" : undefined}
-            className="-mt-6 mb-1 flex size-16 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg ring-4 ring-background active:scale-95 transition-transform"
+            className={`-mt-6 mb-1 flex size-16 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg ring-4 ring-background active:scale-95 transition-transform ${
+              addActive ? "outline-3 outline-offset-4 outline-accent dark:outline-blue-400" : ""
+            }`}
           >
-            <Camera className="size-7" aria-hidden />
+            <Plus className="size-8" strokeWidth={2.5} aria-hidden />
           </Link>
         </div>
 

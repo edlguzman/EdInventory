@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useHelpTopic } from "@/components/help/help-sheet";
-import { Building2, Camera, CircleHelp, Home, MapPin, Mic, Package, Search, Sparkles, Warehouse } from "lucide-react";
+import { Building2, CircleHelp, Home, MapPin, Mic, Package, Plus, Search, Sparkles, Warehouse } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createLocation } from "@/app/(app)/locations/actions";
 import { useDataLang } from "@/components/data-lang/context";
@@ -161,7 +161,7 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
             <ul className="flex flex-col gap-4">
               {(
                 [
-                  [Camera, "howPhoto"],
+                  [Plus, "howPhoto"],
                   [Sparkles, "howAi"],
                   [Mic, "howVoice"],
                   [Search, "howSearch"],
@@ -177,7 +177,7 @@ export function Onboarding({ initialOpen }: { initialOpen: boolean }) {
             </ul>
             <div className="mt-2 flex flex-col gap-2">
               <Button variant="primary" className="w-full" pending={pending} onClick={() => finish("/add")}>
-                <Camera className="size-5" aria-hidden />
+                <Plus className="size-5" aria-hidden />
                 {t("addFirst")}
               </Button>
               <Button className="w-full" disabled={pending} onClick={() => finish()}>
