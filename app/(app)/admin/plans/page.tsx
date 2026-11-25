@@ -10,9 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("plans") };
 }
 
-/** Admin → Plans: names, limits, order, users per plan; add and delete. Admin only (404). */
+/** Admin → Plans: names, limits, order, users per plan; add and delete. The owner only (404). */
 export default async function AdminPlansPage() {
-  await requireAdmin();
+  await requireAdmin("owner");
   const [t, plans] = await Promise.all([getTranslations("admin"), listPlansWithStats()]);
   return (
     <>

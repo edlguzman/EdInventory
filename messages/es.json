@@ -158,7 +158,9 @@
     "lastDbCheck": "Última comprobación de la base de datos:",
     "never": "todavía no",
     "help": "Cómo usarla",
-    "admin": "Administración"
+    "admin": "Administración",
+    "dangerZone": "Zona de peligro",
+    "deleteAccount": "Eliminar cuenta"
   },
   "auth": {
     "email": "Correo electrónico",
@@ -319,8 +321,7 @@
   },
   "account": {
     "delete": "Eliminar cuenta",
-    "deleteTitle": "¿Eliminar la cuenta para siempre?",
-    "deleteWarning": "Se eliminarán todos tus lugares, objetos, categorías y fotos. No se puede deshacer.",
+    "deleteWarning": "La cuenta y todo lo que contiene se eliminará para siempre: objetos, lugares, categorías y todas las fotos. Nadie podrá recuperarlo, ni siquiera el administrador.",
     "password": "Contraseña",
     "confirmWord": "ELIMINAR",
     "confirmLabel": "Para confirmar, escribe {word}",
@@ -330,7 +331,8 @@
       "confirmMismatch": "La palabra de confirmación no coincide",
       "rateLimit": "Demasiados intentos. Espera un poco.",
       "unauthorized": "La sesión ha caducado. Vuelve a iniciar sesión.",
-      "unknown": "No se pudo eliminar la cuenta. Inténtalo de nuevo."
+      "unknown": "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
+      "owner": "La cuenta del propietario no se puede eliminar desde la app."
     }
   },
   "onboarding": {
@@ -476,7 +478,7 @@
         "title": "Cuenta",
         "points": [
           "\"Cerrar sesión\" en Ajustes cierra la sesión solo en este dispositivo; en los demás sigues dentro.",
-          "Eliminar la cuenta: Ajustes → \"Eliminar cuenta\", escribe tu contraseña y la palabra ELIMINAR. Todos los lugares, objetos, categorías y fotos se eliminan para siempre y no se pueden recuperar."
+          "Eliminar la cuenta: al final de Ajustes, \"Zona de peligro\" → \"Eliminar cuenta\", escribe tu contraseña y la palabra ELIMINAR. Todos los lugares, objetos, categorías y fotos se eliminan para siempre y no se pueden recuperar."
         ]
       }
     },
@@ -617,7 +619,14 @@
     "priceAudio": "Audio, $",
     "priceAudioHint": "igual que entrada",
     "addPrice": "Guardar precio",
-    "settingsInvalid": "Revisa los valores: números desde 0; fecha, entrada y salida son obligatorias; límite de 0,01 a 1000 GB."
+    "settingsInvalid": "Revisa los valores: números desde 0; fecha, entrada y salida son obligatorias; límite de 0,01 a 1000 GB.",
+    "ownerRole": "propietario",
+    "makeAdmin": "Hacer admin",
+    "removeAdmin": "Quitar admin",
+    "makeAdminTitle": "¿Hacer admin?",
+    "removeAdminTitle": "¿Quitar admin?",
+    "makeAdminText": "{email} podrá aprobar, desactivar y eliminar usuarios normales y ver los números. Los planes, los precios y los admins siguen siendo solo tuyos.",
+    "removeAdminText": "{email} será un usuario normal y ya no podrá abrir la administración. Sus datos y su plan se quedan."
   },
   "notify": {
     "adminLink": "Página de administración:",
@@ -758,7 +767,7 @@
     "sourceManual": "asignado por el administrador",
     "sourceManualUntil": "asignado por el administrador hasta el {date}",
     "sourceSubscription": "suscripción hasta el {date}",
-    "sourceAdmin": "administrador, sin límites",
+    "sourceAdmin": "propietario, sin límites",
     "howToChange": "El administrador puede cambiar tu plan. Un límite menor no elimina nada: solo dejan de estar disponibles los objetos nuevos y la IA."
   },
   "books": {

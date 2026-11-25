@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
-import { getProfile } from "@/lib/auth";
+import { mayAdmin } from "@/lib/auth";
 import { notifyUser } from "@/lib/notify/user-email";
 import { removeUserFiles } from "@/lib/photos/storage-cleanup";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -33,10 +33,10 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
   const id = userIdSchema.safeParse(userId);
   const st = z.enum(["active", "disabled"]).safeParse(status);
   if (!id.success || !st.success) return { ok: false, error: "notFound" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin())) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_set_status_v2", { p_user_id: id.data, p_status: st.data });
+  const { data, error } = await supabase.rpc("admin_set_status_v3", { p_user_id: id.data, p_status: st.data });
   if (error) return { ok: false, error: mapError(error.code) };
 
   // Tell the user, only when the status really changed (in the background; a mail error
@@ -53,7 +53,7 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
 
 /**
  * Delete an account with all its data and photos.
- * 1) admin_check_delete() with the admin's own session: the caller is an active admin,
+ * 1) admin_check_delete_v2() with the admin's own session: the caller is an active admin,
  *    the target exists, is not the caller and not an admin. Nothing happens otherwise.
  * 2) Only then the service role client (server only) removes the target's Storage files
  *    and the auth user; every table cascades.
@@ -61,10 +61,10 @@ export async function setUserStatus(userId: string, status: "active" | "disabled
 export async function deleteUser(userId: string): Promise<AdminActionResult> {
   const id = userIdSchema.safeParse(userId);
   if (!id.success) return { ok: false, error: "notFound" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin())) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error: checkError } = await supabase.rpc("admin_check_delete", { p_user_id: id.data });
+  const { error: checkError } = await supabase.rpc("admin_check_delete_v2", { p_user_id: id.data });
   if (checkError) return { ok: false, error: mapError(checkError.code) };
 
   try {
@@ -81,12 +81,29 @@ export async function deleteUser(userId: string): Promise<AdminActionResult> {
   return { ok: true };
 }
 
+/**
+ * Make an active user an admin, or an admin a user again. The owner only; admin_set_role()
+ * checks again and never touches the owner (that role is set only by SQL).
+ */
+export async function setUserRole(userId: string, role: "user" | "admin"): Promise<AdminActionResult> {
+  const id = userIdSchema.safeParse(userId);
+  const r = z.enum(["user", "admin"]).safeParse(role);
+  if (!id.success || !r.success) return { ok: false, error: "notFound" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_role", { p_user_id: id.data, p_role: r.data });
+  if (error) return { ok: false, error: mapError(error.code) };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 const planCode = z.string().regex(/^[a-z0-9_]{1,32}$/);
 
 /**
  * Assign a manual plan (null = remove it: the user falls back to a subscription or free),
  * optionally until a date (ISO; after it the user is back on free by themselves).
- * admin_set_plan() checks again: caller is an active admin, target is not the caller or an admin.
+ * The owner only (admin_set_plan_v2() checks again); admins have a plan too, the owner does not need one.
  */
 export async function setUserPlan(userId: string, plan: string | null, until: string | null): Promise<AdminActionResult> {
   const id = userIdSchema.safeParse(userId);
@@ -94,10 +111,10 @@ export async function setUserPlan(userId: string, plan: string | null, until: st
   const end = z.iso.datetime({ offset: true }).nullable().safeParse(until);
   if (!id.success) return { ok: false, error: "notFound" };
   if (!code.success || !end.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan", {
+  const { error } = await supabase.rpc("admin_set_plan_v2", {
     p_user_id: id.data,
     p_plan: code.data as string,
     p_until: (code.data ? end.data : null) as string,
@@ -123,10 +140,10 @@ const planSchema = z.object({
 export async function updatePlan(input: z.input<typeof planSchema>): Promise<AdminActionResult> {
   const v = planSchema.safeParse(input);
   if (!v.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_plan_v2", {
+  const { error } = await supabase.rpc("admin_update_plan_v3", {
     p_code: v.data.code,
     p_names: v.data.names,
     p_item_limit: v.data.item_limit as number,
@@ -144,10 +161,10 @@ const newPlanSchema = planSchema.omit({ sort_order: true });
 export async function createPlan(input: z.input<typeof newPlanSchema>): Promise<AdminActionResult> {
   const v = newPlanSchema.safeParse(input);
   if (!v.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_plan_v2", {
+  const { error } = await supabase.rpc("admin_create_plan_v3", {
     p_code: v.data.code,
     p_names: v.data.names,
     p_item_limit: v.data.item_limit as number,
@@ -162,10 +179,10 @@ export async function createPlan(input: z.input<typeof newPlanSchema>): Promise<
 export async function deletePlan(code: string): Promise<AdminActionResult> {
   const c = planCode.safeParse(code);
   if (!c.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_delete_plan", { p_code: c.data });
+  const { error } = await supabase.rpc("admin_delete_plan_v2", { p_code: c.data });
   if (error) return { ok: false, error: mapError(error.code) };
   revalidatePath("/", "layout");
   return { ok: true };
@@ -175,10 +192,10 @@ export async function deletePlan(code: string): Promise<AdminActionResult> {
 export async function reorderPlans(codes: string[]): Promise<AdminActionResult> {
   const c = z.array(planCode).min(1).max(100).safeParse(codes);
   if (!c.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_reorder_plans", { p_codes: c.data });
+  const { error } = await supabase.rpc("admin_reorder_plans_v2", { p_codes: c.data });
   if (error) return { ok: false, error: mapError(error.code) };
   revalidatePath("/", "layout");
   return { ok: true };
@@ -192,10 +209,10 @@ const priceSchema = z.object({ model: modelName, valid_from: z.iso.date(), input
 export async function setAiPrice(input: z.input<typeof priceSchema>): Promise<AdminActionResult> {
   const v = priceSchema.safeParse(input);
   if (!v.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_ai_price", {
+  const { error } = await supabase.rpc("admin_set_ai_price_v2", {
     p_model: v.data.model,
     p_valid_from: v.data.valid_from,
     p_input: v.data.input,
@@ -212,10 +229,10 @@ export async function deleteAiPrice(model: string, validFrom: string): Promise<A
   const m = modelName.safeParse(model);
   const d = z.iso.date().safeParse(validFrom);
   if (!m.success || !d.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_delete_ai_price", { p_model: m.data, p_valid_from: d.data });
+  const { error } = await supabase.rpc("admin_delete_ai_price_v2", { p_model: m.data, p_valid_from: d.data });
   if (error) return { ok: false, error: mapError(error.code) };
   revalidatePath("/admin", "layout");
   return { ok: true };
@@ -225,10 +242,10 @@ export async function deleteAiPrice(model: string, validFrom: string): Promise<A
 export async function setStorageLimit(gb: number): Promise<AdminActionResult> {
   const v = z.number().min(0.01).max(1000).safeParse(gb);
   if (!v.success) return { ok: false, error: "invalid" };
-  if (!(await getProfile())?.isAdmin) return { ok: false, error: "forbidden" };
+  if (!(await mayAdmin("owner"))) return { ok: false, error: "forbidden" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_storage_limit", { p_bytes: Math.round(v.data * 1024 ** 3) });
+  const { error } = await supabase.rpc("admin_set_storage_limit_v2", { p_bytes: Math.round(v.data * 1024 ** 3) });
   if (error) return { ok: false, error: mapError(error.code) };
   revalidatePath("/admin", "layout");
   return { ok: true };

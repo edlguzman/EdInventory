@@ -10,9 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("usageSettings") };
 }
 
-/** Admin → Usage and prices: the storage limit and AI prices per model. Admin only (404). */
+/** Admin → Usage and prices: the storage limit and AI prices per model. The owner only (404). */
 export default async function AdminUsageSettingsPage() {
-  await requireAdmin();
+  await requireAdmin("owner");
   const [t, settings] = await Promise.all([getTranslations("admin"), getUsageSettings()]);
   return (
     <>

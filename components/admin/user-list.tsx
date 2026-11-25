@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Ban, Check, ChevronDown, ShieldCheck, Trash2 } from "lucide-react";
+import { Ban, Check, ChevronDown, Crown, ShieldCheck, ShieldMinus, ShieldPlus, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { deleteUser, setUserStatus, type AdminActionError } from "@/app/(app)/admin/actions";
+import { deleteUser, setUserRole, setUserStatus, type AdminActionError } from "@/app/(app)/admin/actions";
 import { Alert, Button } from "@/components/ui/buttons";
 import { Sheet } from "@/components/ui/sheet";
 import type { AdminUser, AiKindUsage, PlanRow } from "@/lib/admin/data";
@@ -21,18 +21,22 @@ const STATUS_STYLE: Record<string, string> = {
 export function AdminUserList({
   users,
   selfId,
+  isOwner,
   plans,
   filtered,
 }: {
   users: AdminUser[];
   plans: PlanRow[];
   selfId: string;
+  /** The viewer is the owner: plans and admins can be changed. */
+  isOwner: boolean;
   filtered: boolean;
 }) {
   const t = useTranslations("admin");
   const tCommon = useTranslations("common");
   const [error, setError] = useState<AdminActionError>();
   const [toDelete, setToDelete] = useState<AdminUser | null>(null);
+  const [toRole, setToRole] = useState<AdminUser | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState<Set<string>>(() => new Set());
@@ -72,6 +76,7 @@ export function AdminUserList({
               key={u.user_id}
               user={u}
               isSelf={u.user_id === selfId}
+              byOwner={isOwner}
               plans={plans}
               open={open.has(u.user_id)}
               onToggle={() => toggle(u.user_id)}
@@ -80,6 +85,7 @@ export function AdminUserList({
               onActivate={() => run(u.user_id, () => setUserStatus(u.user_id, "active"))}
               onDisable={() => run(u.user_id, () => setUserStatus(u.user_id, "disabled"))}
               onDelete={() => setToDelete(u)}
+              onRole={() => setToRole(u)}
             />
           ))}
         </ul>
@@ -117,6 +123,43 @@ export function AdminUserList({
           <Alert tone="warning">{t("deleteText", { email: toDelete?.email ?? "" })}</Alert>
         </div>
       </Sheet>
+
+      <Sheet
+        open={!!toRole}
+        onClose={() => !pending && setToRole(null)}
+        title={toRole?.role === "admin" ? t("removeAdminTitle") : t("makeAdminTitle")}
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={() => setToRole(null)} disabled={pending} className="flex-1">
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              variant={toRole?.role === "admin" ? "danger" : "primary"}
+              pending={pending}
+              className="flex-1"
+              onClick={() =>
+                toRole &&
+                run(
+                  toRole.user_id,
+                  () => setUserRole(toRole.user_id, toRole.role === "admin" ? "user" : "admin"),
+                  () => setToRole(null),
+                )
+              }
+            >
+              {toRole?.role === "admin" ? t("removeAdmin") : t("makeAdmin")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {error && <Alert>{t(`errors.${error}`)}</Alert>}
+          <p className="break-words">
+            {toRole?.role === "admin"
+              ? t("removeAdminText", { email: toRole?.email ?? "" })
+              : t("makeAdminText", { email: toRole?.email ?? "" })}
+          </p>
+        </div>
+      </Sheet>
     </div>
   );
 }
@@ -127,22 +170,26 @@ function UserCard({
   open,
   onToggle,
   isSelf,
+  byOwner,
   busy,
   disabled,
   onActivate,
   onDisable,
   onDelete,
+  onRole,
 }: {
   user: AdminUser;
   plans: PlanRow[];
   open: boolean;
   onToggle: () => void;
   isSelf: boolean;
+  byOwner: boolean;
   busy: boolean;
   disabled: boolean;
   onActivate: () => void;
   onDisable: () => void;
   onDelete: () => void;
+  onRole: () => void;
 }) {
   const t = useTranslations("admin");
   const format = useFormatter();
@@ -160,6 +207,8 @@ function UserCard({
           )
         : "…";
   const isAdmin = user.role === "admin";
+  const roleName = user.is_owner ? t("ownerRole") : t("adminRole");
+  const RoleIcon = user.is_owner ? Crown : ShieldCheck;
   const status = user.status as "pending" | "active" | "disabled";
 
   return (
@@ -174,7 +223,7 @@ function UserCard({
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="truncate font-medium">{user.email}</span>
-            {isAdmin && <ShieldCheck className="size-4 shrink-0 text-accent" aria-label={t("adminRole")} />}
+            {isAdmin && <RoleIcon className="size-4 shrink-0 text-accent" aria-label={roleName} />}
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted">
             <span className={`rounded-full px-1.5 py-px font-medium ${STATUS_STYLE[status] ?? ""}`}>
@@ -199,8 +248,8 @@ function UserCard({
         <div className="flex flex-col gap-3 border-t border-border p-3">
           {isAdmin && (
             <span className="inline-flex w-fit items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-accent">
-              <ShieldCheck className="size-3.5" aria-hidden />
-              {t("adminRole")}
+              <RoleIcon className="size-3.5" aria-hidden />
+              {roleName}
               {isSelf && ` · ${t("you")}`}
             </span>
           )}
@@ -230,7 +279,7 @@ function UserCard({
           <AiKinds kinds={user.ai_kinds_30d as AiKindUsage[]} />
           {cost.notes.length > 0 && <p className="text-xs text-muted">{cost.notes.join(" ")}</p>}
 
-          <UserPlan user={user} plans={plans} editable={!isAdmin} />
+          <UserPlan user={user} plans={plans} editable={byOwner && !user.is_owner} />
 
           {!isAdmin && (
             <div className="flex flex-wrap gap-2">
@@ -256,6 +305,12 @@ function UserCard({
                 {t("delete")}
               </Button>
             </div>
+          )}
+          {byOwner && !user.is_owner && (isAdmin || status === "active") && (
+            <Button disabled={disabled} onClick={onRole}>
+              {isAdmin ? <ShieldMinus className="size-5" aria-hidden /> : <ShieldPlus className="size-5" aria-hidden />}
+              {isAdmin ? t("removeAdmin") : t("makeAdmin")}
+            </Button>
           )}
         </div>
       )}

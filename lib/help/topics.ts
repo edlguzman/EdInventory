@@ -26,7 +26,7 @@ export function topicForPath(pathname: string): HelpTopic | null {
   if (/^\/items\/[^/]+\/edit$/.test(pathname)) return "add";
   if (/^\/items\/[^/]+$/.test(pathname)) return "items";
   if (pathname === "/locations" || pathname.startsWith("/locations/")) return "places";
-  if (pathname === "/settings") return "account";
+  if (pathname === "/settings" || pathname === "/settings/delete-account") return "account";
   if (/^\/(login|signup|register|forgot-password|reset-password|auth)(\/|$)/.test(pathname)) return "start";
   return null;
 }

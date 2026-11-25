@@ -23,7 +23,7 @@ function useParentPath(): string | null {
     const parent = byId.get(m[1])?.parentId;
     return parent ? `/locations/${parent}` : "/locations";
   }
-  if (pathname === "/admin") return "/settings";
+  if (pathname === "/admin" || pathname === "/settings/delete-account") return "/settings";
   if (pathname === "/admin/users" || pathname === "/admin/plans" || pathname === "/admin/settings") return "/admin";
   return null;
 }

@@ -29,23 +29,34 @@ export async function requireUser() {
 
 export type AccountStatus = "pending" | "active" | "disabled";
 
+export type Profile = {
+  status: AccountStatus;
+  /** Admin rights (the owner has them too). */
+  isAdmin: boolean;
+  /** The one owner: plans, prices, users' plans, admins. Set only by SQL. */
+  isOwner: boolean;
+  lang: Lang;
+  dataLang: DataLang;
+};
+
 /**
  * The signed-in user's profile (status and role) from public.profiles. RLS lets a user
  * read only their own row. A missing row is treated as pending (never as active).
  */
 export const getProfile = cache(
-  async (): Promise<{ status: AccountStatus; isAdmin: boolean; lang: Lang; dataLang: DataLang } | null> => {
+  async (): Promise<Profile | null> => {
     const user = await getUser();
     if (!user) return null;
     const supabase = await createClient();
     const { data } = await supabase
       .from("profiles")
-      .select("status, role, lang, show_english")
+      .select("status, role, is_owner, lang, show_english")
       .eq("user_id", user.id)
       .maybeSingle();
     const status = (data?.status ?? "pending") as AccountStatus;
     const dataLang = dataLangOf(data?.lang, data?.show_english);
-    return { status, isAdmin: status === "active" && data?.role === "admin", lang: dataLang.lang, dataLang };
+    const isAdmin = status === "active" && data?.role === "admin";
+    return { status, isAdmin, isOwner: isAdmin && !!data?.is_owner, lang: dataLang.lang, dataLang };
   },
 );
 
@@ -59,10 +70,19 @@ export async function getDisplaySlot(): Promise<Slot> {
   return displaySlot((await getDataLang()).mode);
 }
 
-/** Admin-only pages: anyone else gets a plain 404, so the page does not reveal itself. */
-export async function requireAdmin() {
+/**
+ * Admin pages ("owner": the owner's only). Anyone else gets a plain 404, so the page does not
+ * reveal itself; the database functions refuse as well.
+ */
+export async function requireAdmin(level: "admin" | "owner" = "admin") {
   const user = await requireUser();
   const profile = await getProfile();
-  if (!profile?.isAdmin) notFound();
-  return user;
+  if (!profile?.isAdmin || (level === "owner" && !profile.isOwner)) notFound();
+  return { user, isOwner: profile.isOwner };
+}
+
+/** The same check for admin server actions. */
+export async function mayAdmin(level: "admin" | "owner" = "admin"): Promise<boolean> {
+  const profile = await getProfile();
+  return !!profile?.isAdmin && (level === "admin" || profile.isOwner);
 }
