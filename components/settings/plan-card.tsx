@@ -11,12 +11,12 @@ const WARN_AT = 0.9;
 export async function PlanCard({ plan }: { plan: MyPlan }) {
   const [t, locale, format] = await Promise.all([getTranslations("plan"), getLocale(), getFormatter()]);
   const name = planName(plan.names, locale, plan.code);
-  const limit = plan.isAdmin ? null : plan.itemLimit;
+  const limit = plan.unlimited ? null : plan.itemLimit;
   const share = limit ? Math.min(1, plan.itemsCount / limit) : 0;
   const left = limit === null ? null : Math.max(0, limit - plan.itemsCount);
-  const aiLimit = plan.isAdmin ? null : plan.aiDailyLimit;
+  const aiLimit = plan.unlimited ? null : plan.aiDailyLimit;
   const until = plan.until ? format.dateTime(new Date(plan.until), { dateStyle: "medium" }) : null;
-  const source = plan.isAdmin
+  const source = plan.unlimited
     ? t("sourceAdmin")
     : plan.source === "manual"
       ? until
@@ -79,7 +79,7 @@ export async function PlanCard({ plan }: { plan: MyPlan }) {
             </p>
           )
         )}
-        {!plan.isAdmin && <p className="text-xs text-muted">{t("howToChange")}</p>}
+        {!plan.unlimited && <p className="text-xs text-muted">{t("howToChange")}</p>}
       </div>
     </section>
   );

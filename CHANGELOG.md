@@ -7,6 +7,14 @@ changes that break things for users → major. Each release is a git tag `vX.Y.Z
 
 - **Payments via Stripe**: the data model is ready (v1.6.0); steps are in CLAUDE.md → "Подключение Stripe".
 
+## v2.6.0 — 2026-11-25
+
+- **Owner and admins:** one owner (set only in the database) has everything; the owner makes users admins and removes them in Admin → Users, with a confirmation. Admins approve, disable, enable and delete regular users and see the numbers; plans, prices, the storage limit, users' plans and other admins are the owner's only (screens and buttons hidden, refused by the server and the database).
+- No limits of items and AI only for the owner; admins live by their own plan.
+- **Delete account** moved from Settings to its own page: a small red link in "Danger zone" at the very bottom of Settings. The owner's account cannot be deleted in the app.
+- Database: `profiles.is_owner`, new admin functions (additive); the admin functions of 2.5.x are closed after the release (`owner_role_enforce`).
+- Help updated (RU, EN, ES): "Account".
+
 ## v2.5.1 — 2026-11-25
 
 - **Sign-up:** "My language" is chosen explicitly: a large block with English / Русский / Español, nothing preselected, no account without a choice. The choice switches the screen at once. Before, the screen's language was recorded silently.

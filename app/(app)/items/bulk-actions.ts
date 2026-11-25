@@ -226,7 +226,7 @@ export async function selectAllItemIds(input: z.input<typeof filtersSchema>): Pr
 export async function aiRequestsLeft(): Promise<number | null> {
   const plan = await getMyPlan();
   if (!plan) return 0;
-  if (plan.isAdmin) return null;
+  if (plan.unlimited) return null;
   if (plan.atItemLimit) return 0;
   return Math.max(0, (plan.aiDailyLimit ?? dailyLimit()) - plan.aiUsed24h);
 }

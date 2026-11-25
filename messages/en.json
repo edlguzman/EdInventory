@@ -158,7 +158,9 @@
     "lastDbCheck": "Last database check:",
     "never": "not yet",
     "help": "How to use",
-    "admin": "Admin"
+    "admin": "Admin",
+    "dangerZone": "Danger zone",
+    "deleteAccount": "Delete account"
   },
   "auth": {
     "email": "Email",
@@ -319,8 +321,7 @@
   },
   "account": {
     "delete": "Delete account",
-    "deleteTitle": "Delete the account forever?",
-    "deleteWarning": "All your places, items, categories and photos will be deleted. This cannot be undone.",
+    "deleteWarning": "The account and everything in it will be deleted forever: items, places, categories and all photos. Nobody can restore it, not even the administrator.",
     "password": "Password",
     "confirmWord": "DELETE",
     "confirmLabel": "To confirm, type {word}",
@@ -330,7 +331,8 @@
       "confirmMismatch": "The confirmation word does not match",
       "rateLimit": "Too many attempts. Please wait a bit.",
       "unauthorized": "Session expired. Please sign in again.",
-      "unknown": "Could not delete the account. Please try again."
+      "unknown": "Could not delete the account. Please try again.",
+      "owner": "The owner's account cannot be deleted in the app."
     }
   },
   "onboarding": {
@@ -476,7 +478,7 @@
         "title": "Account",
         "points": [
           "\"Sign out\" in Settings signs out of this device only; you stay signed in on others.",
-          "Delete the account: Settings → \"Delete account\", enter your password and the word DELETE. All places, items, categories and photos are deleted forever and cannot be restored."
+          "Delete the account: at the very bottom of Settings, \"Danger zone\" → \"Delete account\", enter your password and the word DELETE. All places, items, categories and photos are deleted forever and cannot be restored."
         ]
       }
     },
@@ -617,7 +619,14 @@
     "priceAudio": "Audio, $",
     "priceAudioHint": "same as input",
     "addPrice": "Save price",
-    "settingsInvalid": "Check the values: numbers of 0 or more; date, input and output are required; limit from 0.01 to 1000 GB."
+    "settingsInvalid": "Check the values: numbers of 0 or more; date, input and output are required; limit from 0.01 to 1000 GB.",
+    "ownerRole": "owner",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "makeAdminTitle": "Make admin?",
+    "removeAdminTitle": "Remove admin?",
+    "makeAdminText": "{email} will be able to approve, disable and delete regular users and see the numbers. Plans, prices and admins stay with you only.",
+    "removeAdminText": "{email} becomes a regular user and can no longer open the admin screens. Their data and plan stay."
   },
   "notify": {
     "adminLink": "Admin page:",
@@ -758,7 +767,7 @@
     "sourceManual": "set by the administrator",
     "sourceManualUntil": "set by the administrator until {date}",
     "sourceSubscription": "subscription until {date}",
-    "sourceAdmin": "administrator, no limits",
+    "sourceAdmin": "owner, no limits",
     "howToChange": "The administrator can change your plan. A lower limit deletes nothing: only new items and the AI become unavailable."
   },
   "books": {
